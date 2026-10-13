@@ -1,260 +1,262 @@
-# Industry Partner Kickoff
+# Kickoff mit dem Industriepartner
+
+**Sprache / Language:** **Deutsch** (aktuell) · [English](industry-partner-kickoff.en.md)
 
 **AI-Assisted Legacy Migration Knowledge Base**
 
-*AMOS · Winter Semester 2026/27 · iteratec*
+*AMOS · Wintersemester 2026/27 · iteratec*
 
 > [!IMPORTANT]
-> **Discussion draft — for team review**
+> **Diskussionsentwurf – zur Abstimmung im Team**
 >
-> This document supports kickoff preparation. It is **not** an approved requirements specification, implementation plan, or commitment to a release scope. Decisions must be confirmed with the Industry Partner and the team.
+> Dieses Dokument dient der Vorbereitung des Kickoff-Meetings. Es ist **weder eine freigegebene Anforderungsspezifikation noch ein verbindlicher Implementierungsplan oder eine Zusage zum Lieferumfang**. Entscheidungen werden erst nach Abstimmung mit dem Industriepartner und dem Team als verbindlich festgehalten.
 
-| Project information | Details |
+| Projektinformationen | Angaben |
 | :--- | :--- |
-| **Industry Partner** | iteratec |
-| **Industry Contact** | Wolfgang Strunk |
-| **Course** | AMOS — Winter Semester 2026/27 |
-| **Kickoff date** | To be confirmed |
-| **Document status** | Draft · awaiting team review |
+| **Industriepartner** | iteratec |
+| **Ansprechpartner** | Wolfgang Strunk |
+| **Lehrveranstaltung** | AMOS – Wintersemester 2026/27 |
+| **Kickoff-Termin** | Noch zu bestätigen |
+| **Dokumentenstatus** | Entwurf · Team-Review ausstehend |
 
-**Navigate:** [Kickoff objectives](#1-kickoff-objectives) · [Product overview](#2-product-overview) · [Discussion questions](#3-kickoff-discussion-guide) · [Weeks 1–2](#4-candidate-work-packages) · [Open decisions & risks](#5-open-decisions-and-risks) · [Meeting notes](#6-meeting-notes) · [Decision log](#7-decision-log) · [Action tracker](#8-action-tracker) · [Follow-up](#9-follow-up-after-the-kickoff)
+**Navigation:** [Kickoff-Ziele](#1-ziele-des-kickoffs) · [Produktüberblick](#2-produktüberblick) · [Diskussionsleitfaden](#3-diskussionsleitfaden-für-den-kickoff) · [Wochen 1–2](#4-mögliche-arbeitspakete) · [Offene Entscheidungen & Risiken](#5-offene-entscheidungen-und-risiken) · [Besprechungsnotizen](#6-besprechungsnotizen) · [Entscheidungsprotokoll](#7-entscheidungsprotokoll) · [Maßnahmenübersicht](#8-maßnahmenübersicht) · [Nachbereitung](#9-nachbereitung-des-kickoffs)
 
 ---
 
-## 1. Kickoff objectives
+## 1. Ziele des Kickoffs
 
-**Meeting purpose:** Establish a shared understanding of the proposed product and turn the unresolved points in iteratec's *Project Sketch* into an actionable starting plan.
+**Zweck des Meetings:** Ein gemeinsames Verständnis des geplanten Produkts schaffen und die im *Project Sketch* von iteratec bewusst offengelassenen Punkte in einen umsetzbaren Ausgangsplan überführen.
 
-### Outcomes to aim for
+### Angestrebte Ergebnisse
 
-| Focus | Desired outcome |
+| Schwerpunkt | Angestrebtes Ergebnis |
 | :--- | :--- |
-| **Product direction** | Shared Product Goal and realistic, observable success criteria |
-| **Delivery scope** | Agreed expectations for the first demonstrable increment and mid-project release |
-| **Reference scenario** | Direction for a synthetic example and the initial two weeks of work |
-| **Technical exploration** | Clear questions and evaluation criteria, without premature technology commitments |
-| **Ways of working** | Clarified responsibilities, feedback process, and next checkpoint |
+| **Produktausrichtung** | Gemeinsames Product Goal und realistische, überprüfbare Erfolgskriterien |
+| **Lieferumfang** | Abgestimmte Erwartungen an das erste vorführbare Inkrement und das Mid-Project Release |
+| **Referenzszenario** | Grundsätzliche Richtung für ein synthetisches Beispielszenario und die Arbeit der ersten zwei Wochen |
+| **Technische Voruntersuchung** | Klare Fragestellungen und Bewertungskriterien, ohne Technologien vorschnell festzulegen |
+| **Zusammenarbeit** | Geklärte Zuständigkeiten, Feedbackwege und nächster Abstimmungstermin |
 
 > [!NOTE]
-> The goal is to **identify and record agreements**, not to finalize every technical detail in the first meeting.
+> Ziel ist es, **Vereinbarungen zu erarbeiten und zu dokumentieren** – nicht, bereits im ersten Meeting sämtliche technischen Details endgültig festzulegen.
 
 ---
 
-## 2. Product overview
+## 2. Produktüberblick
 
-### 2.1 Proposed Product Goal
+### 2.1 Vorgeschlagenes Product Goal
 
-> Build a prototype knowledge base for **legacy-to-target software migration** that connects knowledge of the legacy system, target system, business domain, and migration/coupling status in **one queryable graph**. Make this knowledge accessible through **natural-language queries** and **automatically generated architecture views**.
+> Entwicklung einer prototypischen Wissensbasis für die **Migration von Legacy- zu Zielsystemen**. Wissen über das Altsystem, das Zielsystem, die fachliche Domäne sowie den Migrationsstatus und bestehende Kopplungen soll in **einem gemeinsam abfragbaren Knowledge Graph** verknüpft werden. Das Wissen soll über **natürlichsprachliche Abfragen** und **automatisch erzeugte Architekturansichten** zugänglich sein.
 
-This interpretation is based on the *Project Sketch* and should be refined with iteratec.
+Diese Formulierung basiert auf dem *Project Sketch* und ist mit iteratec noch abzustimmen.
 
-**Primary value:** Persistent, cross-referenced system understanding and visibility into migration status.
+**Zentraler Nutzen:** Dauerhaft verfügbares, systemübergreifend verknüpftes Systemverständnis sowie Transparenz über den Migrationsfortschritt.
 
-**Not the goal:** Automatic code migration or a general-purpose project assistant.
+**Nicht Ziel des Projekts:** Eine automatische Code-Migration oder ein allgemeiner Projektassistent.
 
-### 2.2 Knowledge sources
+### 2.2 Wissensquellen
 
-The proposed graph brings together four kinds of information:
+Der geplante Graph verknüpft vier Informationsbereiche:
 
-| Knowledge source | What it represents | Example inputs |
+| Wissensquelle | Inhalt | Beispielhafte Eingaben |
 | :--- | :--- | :--- |
-| **01 · Legacy code** | Existing components, calls, and data access | Legacy source code; structural analysis |
-| **02 · Target code** | Components actually implemented in the new system | Target source code analyzed through the same pipeline |
-| **03 · Domain model** | Bounded contexts, business rules, events, and domain language | Event Storming outputs; product/domain documentation |
-| **04 · Process & coupling data** | Migration/deployment status and remaining dependencies | Work items; architecture decisions; shared tables; messaging routes |
+| **01 · Legacy-Code** | Bestehende Komponenten, Aufrufbeziehungen und Datenzugriffe | Quellcode des Altsystems; Strukturanalyse |
+| **02 · Target-Code** | Tatsächlich implementierte Komponenten des Zielsystems | Quellcode des Zielsystems; Analyse über dieselbe Pipeline |
+| **03 · Domänenmodell** | Bounded Contexts, Geschäftsregeln, Events und Fachsprache | Event-Storming-Ergebnisse; Fach- und Produktdokumentation |
+| **04 · Prozess- und Kopplungsdaten** | Migrations-/Deployment-Status und verbleibende Abhängigkeiten | Tickets; Architekturentscheidungen; gemeinsam genutzte Tabellen; Messaging-Routen |
 
-The domain model should be linked to **both** codebases so that the graph can show which implementation supports a given bounded context in the legacy and target systems.
+Das Domänenmodell soll mit **beiden Codebasen** verknüpft werden, damit nachvollziehbar ist, welcher Code einen Bounded Context im Alt- und im Zielsystem tatsächlich umsetzt.
 
-#### Conceptual information flow
+#### Konzeptioneller Informationsfluss
 
 ```mermaid
 flowchart LR
-    subgraph INPUTS["Knowledge sources"]
+    subgraph INPUTS["Wissensquellen"]
       direction TB
-      L["Legacy code"]
-      T["Target code"]
-      D["Domain model"]
-      P["Process & coupling data"]
+      L["Legacy-Code"]
+      T["Target-Code"]
+      D["Domänenmodell"]
+      P["Prozess- und Kopplungsdaten"]
     end
 
-    L --> G["Linked, queryable knowledge graph"]
+    L --> G["Verknüpfter, abfragbarer Knowledge Graph"]
     T --> G
     D --> G
     P --> G
 
-    G --> Q["Natural-language answers"]
-    G --> A["Generated arc42 views"]
+    G --> Q["Natürlichsprachliche Antworten"]
+    G --> A["Generierte arc42-Ansichten"]
 ```
 
-*Conceptual illustration only — not a selected graph technology, data pipeline, or approved system architecture.*
+*Nur eine konzeptionelle Darstellung – weder eine festgelegte Graphtechnologie noch eine beschlossene Datenpipeline oder Systemarchitektur.*
 
-### 2.3 Expected demonstration capabilities
+### 2.3 Erwartete Demonstrationsfunktionen
 
-#### Natural-language queries
+#### Natürlichsprachliche Abfragen
 
-A worked example should make it possible to investigate questions such as:
+Für mindestens ein ausgearbeitetes Beispielszenario soll der Prototyp Fragen wie die folgenden beantworten können:
 
-1. Which parts of the legacy system have already been **decommissioned**?
-2. What is **implemented or under development** in the target system?
-3. Which **dependencies or couplings** still connect the two systems?
-4. Based on available evidence, what could reasonably be **decommissioned next**?
+1. Welche Teile des Legacy-Systems sind bereits **stillgelegt**?
+2. Was ist im Zielsystem bereits **implementiert oder in Entwicklung**?
+3. Welche **Abhängigkeiten und Kopplungen** bestehen weiterhin zwischen den Systemen?
+4. Welche Komponenten könnten auf Basis der verfügbaren Informationen **als Nächstes stillgelegt** werden?
 
-#### Automatically generated architecture documentation
+#### Automatisch erzeugte Architekturdokumentation
 
-The *Project Sketch* calls for three **arc42 views generated from the current graph**, rather than diagrams maintained separately by hand.
+Laut *Project Sketch* sollen drei **arc42-Ansichten aus dem jeweils aktuellen Graphen generiert** werden, statt Diagramme unabhängig davon manuell zu pflegen.
 
-| arc42 view | Intended content |
+| arc42-Ansicht | Erwarteter Inhalt |
 | :--- | :--- |
-| **Context View** | External actors, neighboring systems, and interfaces |
-| **Building Block View** | Legacy/target components and their status |
-| **Deployment View** | Runtime topology and relevant connections |
+| **Context View** | Externe Akteure, Nachbarsysteme und Schnittstellen |
+| **Building Block View** | Komponenten des Alt- und Zielsystems einschließlich ihres Status |
+| **Deployment View** | Laufzeit-/Infrastruktur-Topologie und relevante Verbindungen |
 
-**To define and validate:** How output correctness is assessed and how changes in the graph are reflected in generated answers and views.
+**Noch festzulegen und zu validieren:** Wie die Korrektheit der Antworten und Ansichten geprüft wird und wie sich Änderungen im Graphen auf die generierten Ergebnisse auswirken.
 
-### 2.4 Scope boundaries and assumptions
+### 2.4 Abgrenzung und Annahmen
 
-| Area | Current understanding from the Project Sketch |
+| Bereich | Stand laut Project Sketch |
 | :--- | :--- |
-| **Reference data** | Use a synthetic or suitably adapted open-source legacy/target example; **no confidential client systems or data**. |
-| **Previous prototype** | The 2025 iteratec internal prototype is prior-art inspiration; this project is a **fresh build**, not a fork or extension of that codebase. |
-| **Tooling approach** | Survey open-source code-analysis and code-to-graph options first; document a **build vs. adopt vs. adapt** recommendation in weeks 1–2. |
-| **MVP depth** | A narrow end-to-end vertical slice is proposed, but **narrow/deep versus broad/shallow remains open**. |
-| **Technical context** | Python/JavaScript, relevant libraries, and university HPC resources appear in the brief; access and architecture still need confirmation. |
+| **Referenzdaten** | Synthetisches oder geeignet angepasstes Open-Source-Beispiel für Alt- und Zielsystem; **keine vertraulichen Kundensysteme oder Kundendaten**. |
+| **Früherer Prototyp** | Der interne iteratec-Prototyp von 2025 dient als Inspiration. Geplant ist **eine Neuentwicklung**, kein Fork und keine Weiterentwicklung dieser Codebasis. |
+| **Tooling-Strategie** | Zunächst Open-Source-Werkzeuge für Codeanalyse und Code-to-Graph untersuchen; in Woche 1–2 eine begründete Empfehlung **Build vs. Adopt vs. Adapt** erarbeiten. |
+| **MVP-Zuschnitt** | Ein durchgängiger, schmaler Vertical Slice wird vorgeschlagen; **Tiefe gegenüber Breite** ist noch offen. |
+| **Technischer Rahmen** | Python/JavaScript, passende Bibliotheken und universitäre HPC-Ressourcen werden in der Kurzbeschreibung genannt; Verfügbarkeit und Architektur sind noch abzustimmen. |
 
 > [!CAUTION]
-> The architecture concept and nine-person technical-team proposal in the *Project Sketch* are **not** an agreed delivery structure. They do not supersede the actual AMOS team setup or Scrum roles.
+> Der Architekturentwurf und die im *Project Sketch* vorgeschlagene technische Aufteilung eines neunköpfigen Teams sind **keine bereits beschlossene Team- oder Lieferstruktur**. Sie ersetzen weder die tatsächliche AMOS-Teamaufstellung noch die Scrum-Rollen.
 
 ---
 
-## 3. Kickoff discussion guide
+## 3. Diskussionsleitfaden für den Kickoff
 
-Use the questions below to drive decisions and reveal uncertainties. They are **discussion prompts, not a mandatory script**.
+Die folgenden Fragen sollen offene Entscheidungen sichtbar machen und das Gespräch strukturieren. Sie sind **ein Leitfaden, kein Fragenkatalog, der Punkt für Punkt abgearbeitet werden muss**.
 
-### A. Product Goal, MVP & evaluation
+### A. Product Goal, MVP und Erfolgskriterien
 
-1. **Minimum demonstration:** What would iteratec consider the minimum successful end-to-end demonstration for this semester?
-2. **Primary users and decisions:** Who will use the prototype, and what concrete migration decisions should it help them make?
-3. **Scope strategy:** Should we start with the proposed **narrow vertical slice**, or aim for broader coverage of the four knowledge sources?
-4. **Success criteria:** Which observable results and acceptance criteria matter most for the **mid-project release** and **Demo Day**?
+1. **Mindestumfang der Demo:** Was wäre aus Sicht von iteratec die kleinste erfolgreiche End-to-End-Demonstration in diesem Semester?
+2. **Zielgruppe und Entscheidungen:** Wer soll den Prototyp nutzen und welche konkreten Entscheidungen während einer Migration soll er unterstützen?
+3. **Umfangsstrategie:** Sollen wir mit dem vorgeschlagenen **schmalen Vertical Slice** beginnen oder die vier Wissensquellen zunächst breiter, aber weniger tief abdecken?
+4. **Erfolgskriterien:** Welche beobachtbaren Ergebnisse und Akzeptanzkriterien sind für das **Mid-Project Release** und den **Demo Day** besonders wichtig?
 
-### B. Synthetic reference scenario
+### B. Synthetisches Referenzszenario
 
-5. **Scenario selection:** Who should select or design the synthetic legacy/target system pair? Which domain, language, scale, and migration history would make it convincing?
-6. **Representative migration state:** Which migration stages and remaining dependencies must the example contain to support meaningful decommissioning questions?
+5. **Auswahl des Szenarios:** Wer soll das synthetische Alt-/Zielsystem auswählen oder gestalten? Welche Domäne, Programmiersprache, Größe und Migrationshistorie machen das Szenario glaubwürdig?
+6. **Repräsentativer Migrationsstand:** Welche Migrationsphasen und verbleibenden Kopplungen muss das Beispiel enthalten, damit sich sinnvolle Fragen zur Stilllegung beantworten lassen?
 
-### C. Technical options to investigate
+### C. Zu untersuchende technische Optionen
 
-7. **Open-source survey:** What deliverable is expected from the weeks 1–2 tooling survey? Which prior-art references will iteratec provide?
-8. **Technology evaluation:** Which criteria should guide the choice of graph store, extraction tooling, and LLM approach — for example, accuracy, cost, maintainability, and available infrastructure?
-9. **Process integrations:** Is a **mocked/synthetic integration** sufficient, or should the prototype connect to a live Jira/GitLab or messaging instance?
-10. **Query experience:** Should the initial interface be **chat, MCP, or both**?
-11. **arc42 output:** Which rendering format is expected, and how should the team verify that each view stays consistent with changes in the graph?
+7. **Open-Source-Recherche:** Welches konkrete Ergebnis wird von der Tool-Recherche in Woche 1–2 erwartet? Welche Referenzen kann iteratec bereitstellen?
+8. **Technologiebewertung:** Anhand welcher Kriterien sollen Graphspeicher, Extraktionswerkzeuge und LLM-Ansätze verglichen werden – beispielsweise Genauigkeit, Kosten, Wartbarkeit und vorhandene Infrastruktur?
+9. **Prozessintegrationen:** Genügt eine **synthetische bzw. simulierte Integration**, oder soll der Prototyp eine laufende Jira-/GitLab- oder Messaging-Instanz anbinden?
+10. **Abfrageschnittstelle:** Soll die erste Nutzerschnittstelle **Chat, MCP oder beides** unterstützen?
+11. **arc42-Ausgabe:** Welches Ausgabeformat wird erwartet, und wie soll geprüft werden, ob die Ansichten nach Änderungen im Graphen weiterhin korrekt sind?
 
-### D. Collaboration & delivery
+### D. Zusammenarbeit und Lieferung
 
-12. **Feedback and validation:** How frequently should the team get feedback, and who will validate product requirements and working demonstrations?
-13. **Team coordination:** How should the proposed technical subteams and integration lead relate to the actual AMOS team, Product Owner(s), and Scrum Master?
-14. **Product naming:** Is a distinct product name needed now, or can the current project title remain a working title?
+12. **Feedback und Validierung:** In welchem Rhythmus sollte das Team Feedback einholen, und wer bestätigt die Produktanforderungen und funktionierenden Demos?
+13. **Teamkoordination:** Wie passen die vorgeschlagenen technischen Teilteams und die Integrationsrolle zur tatsächlichen AMOS-Teamstruktur, den Product Ownern und dem Scrum Master?
+14. **Produktname:** Wird bereits jetzt ein eigenständiger Produktname benötigt, oder kann der bestehende Projekttitel zunächst als Arbeitstitel dienen?
 
 > [!TIP]
-> **Facilitation:** Product Owners should steer discussion toward **value, scope, priorities, and acceptance criteria**. Developers should lead the assessment of **technical feasibility and implementation options**.
+> **Moderationshinweis:** Die Product Owner sollten das Gespräch vor allem auf **Produktnutzen, Umfang, Prioritäten und Akzeptanzkriterien** ausrichten. Die Developers sollten die **technische Umsetzbarkeit und Implementierungsoptionen** bewerten.
 
 ---
 
-## 4. Candidate work packages
+## 4. Mögliche Arbeitspakete
 
-The items below are **proposals based on the Project Sketch**. They are **not** committed Sprint Backlog items, confirmed assignments, or final deadlines.
+Die folgenden Punkte sind **Vorschläge auf Basis des Project Sketch**. Sie sind **weder verbindliche Sprint-Backlog-Einträge noch bestätigte Zuständigkeiten oder feste Termine**.
 
-| Proposed work package | Expected output | Ownership / coordination |
+| Vorgeschlagenes Arbeitspaket | Erwartetes Ergebnis | Verantwortung / Abstimmung |
 | :--- | :--- | :--- |
-| **Reference scenario** | Synthetic legacy/target system with a credible migration history | To agree with the team |
-| **Open-source tooling survey** | Concise **build / adopt / adapt** comparison and recommendation | To agree with developers |
-| **Initial success criteria** | Defined demonstration scope and observable acceptance criteria | PO(s), team, and partner — to agree |
-| **Interfaces & milestones** | Mapped dependencies, coordination checkpoints, and course deliverables | Entire team — to agree |
+| **Referenzszenario** | Synthetisches Alt-/Zielsystem mit nachvollziehbarer Migrationshistorie | Mit dem Team festzulegen |
+| **Open-Source-Tool-Recherche** | Kurzer Vergleich mit begründeter Empfehlung **Build / Adopt / Adapt** | Mit den Developers abzustimmen |
+| **Erste Erfolgskriterien** | Abgestimmter Demo-Umfang und überprüfbare Akzeptanzkriterien | POs, Team und Partner – noch abzustimmen |
+| **Schnittstellen & Meilensteine** | Überblick über Abhängigkeiten, Integrationszeitpunkte und Kursabgaben | Gemeinsam im Team abzustimmen |
 
 > [!NOTE]
-> Before committing this work to a Sprint, check the **AMOS weekly Sprint/Homework deadlines** and align the proposed two-week activities with course requirements.
+> Bevor daraus verbindliche Sprint-Arbeit wird, sind die **wöchentlichen Sprint-/Homework-Termine von AMOS** zu prüfen und die geplanten Aktivitäten für Woche 1–2 mit den Kursvorgaben abzugleichen.
 
 ---
 
-## 5. Open decisions and risks
+## 5. Offene Entscheidungen und Risiken
 
-### 5.1 Decisions still to be made
+### 5.1 Noch offene Entscheidungen
 
-| Topic | Current position | Next step |
+| Thema | Aktueller Stand | Nächster Schritt |
 | :--- | :--- | :--- |
-| **MVP coverage** | Narrow-first proposed; breadth vs. depth unresolved | Agree scope and success criteria at kickoff |
-| **Synthetic reference system** | Synthetic example required; design not selected | Agree on example and ownership |
-| **Code-analysis tooling** | Survey required; no tool selected | Define build / adopt / adapt evaluation |
-| **Graph & LLM stack** | Architecture and cost implications unresolved | Set evaluation criteria |
-| **Process/coupling integration** | Mocked vs. live integration undecided | Agree required integration depth |
-| **Query interface** | Chat vs. MCP vs. both undecided | Agree initial user flow |
-| **arc42 generation** | Three view types identified; format undecided | Agree rendering and validation approach |
+| **MVP-Umfang** | Schmaler Vertical Slice vorgeschlagen; Breite oder Tiefe noch nicht entschieden | Umfang und Erfolgskriterien beim Kickoff abstimmen |
+| **Synthetisches Referenzsystem** | Synthetisches Beispiel vorgesehen; konkrete Ausgestaltung offen | Beispiel und Zuständigkeiten abstimmen |
+| **Codeanalyse-Werkzeuge** | Tool-Recherche vorgesehen; noch keine Auswahl | Bewertung für Build / Adopt / Adapt vereinbaren |
+| **Graph- und LLM-Technologien** | Architektur und Kostenfragen offen | Bewertungskriterien festlegen |
+| **Prozess-/Kopplungsintegration** | Simulation oder Live-Anbindung offen | Gewünschte Integrationstiefe abstimmen |
+| **Abfrageschnittstelle** | Chat, MCP oder beides offen | Ersten Nutzerablauf abstimmen |
+| **arc42-Generierung** | Drei Ansichten vorgegeben; Ausgabeformat offen | Darstellung und Validierung abstimmen |
 
-### 5.2 Delivery and quality risks
+### 5.2 Risiken für Lieferung und Qualität
 
-| Risk | Why it matters | Suggested mitigation to discuss |
+| Risiko | Bedeutung | Zu diskutierende Gegenmaßnahme |
 | :--- | :--- | :--- |
-| **Subteam integration** | Shared schema or interfaces could diverge | Agree integration checkpoints |
-| **Unsupported LLM answers** | Explanations may be inaccurate or lack evidence | Define validation and human review |
+| **Integration der Teilteams** | Gemeinsames Schema oder Schnittstellen könnten auseinanderlaufen | Regelmäßige Integrations-Checkpoints vereinbaren |
+| **Unbelegte LLM-Antworten** | Erklärungen können unzutreffend oder ohne belastbare Grundlage sein | Prüfverfahren und menschliche Validierung definieren |
 
 > [!WARNING]
-> **Public repository / information handling:** Do **not** publish iteratec-internal source code, proprietary documents, or access details in this public GitHub repository without explicit permission — even if the project brief states that no NDA is required.
+> **Öffentliches Repository / Umgang mit Informationen:** Ohne ausdrückliche Freigabe dürfen **keine iteratec-internen Quellcodes, proprietären Dokumente oder Zugangsdaten** in diesem öffentlichen GitHub-Repository veröffentlicht werden – auch dann nicht, wenn laut Projektbeschreibung keine Geheimhaltungsvereinbarung (NDA) erforderlich ist.
 
 ---
 
-## 6. Meeting notes
+## 6. Besprechungsnotizen
 
-| Meeting detail | Entry |
+| Meeting-Detail | Eintrag |
 | :--- | :--- |
-| **Date** | To be confirmed |
-| **Participants** | To be confirmed |
-| **Note-taker** | To be confirmed |
+| **Datum** | Noch zu bestätigen |
+| **Teilnehmende** | Noch zu bestätigen |
+| **Protokoll** | Noch zu bestimmen |
 
-### Discussion summary
+### Gesprächszusammenfassung
 
-*Add key discussion points during the meeting.*
+*Wichtige Gesprächspunkte während des Meetings ergänzen.*
 
-### Confirmed requirements & success criteria
+### Bestätigte Anforderungen und Erfolgskriterien
 
-*Record only requirements and criteria explicitly agreed with the Industry Partner and team.*
+*Nur Anforderungen und Kriterien eintragen, die mit Industriepartner und Team ausdrücklich abgestimmt wurden.*
 
-### Unresolved questions
+### Offene Fragen
 
-*Capture remaining questions and any follow-up needed.*
+*Verbleibende Fragen und erforderliche Rückmeldungen festhalten.*
 
 ---
 
-## 7. Decision log
+## 7. Entscheidungsprotokoll
 
-Record **confirmed decisions only**, including who agreed and the supporting rationale. Keep undecided options in [Section 5](#5-open-decisions-and-risks).
+Hier werden **nur bestätigte Entscheidungen** dokumentiert – einschließlich Begründung und beteiligter Personen. Ungeklärte Optionen bleiben in [Abschnitt 5](#5-offene-entscheidungen-und-risiken).
 
-| Confirmed decision | Rationale / evidence | Agreed by | Date |
+| Bestätigte Entscheidung | Begründung / Grundlage | Abgestimmt mit | Datum |
 | :--- | :--- | :--- | :--- |
-| *Pending kickoff* | — | — | — |
+| *Kickoff ausstehend* | – | – | – |
 
 ---
 
-## 8. Action tracker
+## 8. Maßnahmenübersicht
 
-Track agreed next steps here. Do not interpret a proposed work package as an assignment until ownership is confirmed.
+Hier werden vereinbarte nächste Schritte nachverfolgt. Ein vorgeschlagenes Arbeitspaket gilt **erst dann als zugewiesen**, wenn die Zuständigkeit abgestimmt wurde.
 
-| Action / deliverable | Owner | Due date | Status |
+| Maßnahme / Ergebnis | Verantwortlich | Frist | Status |
 | :--- | :--- | :--- | :--- |
-| *Pending kickoff* | To be assigned | To be agreed | Open |
+| *Kickoff ausstehend* | Noch zuzuweisen | Noch festzulegen | Offen |
 
 ---
 
-## 9. Follow-up after the kickoff
+## 9. Nachbereitung des Kickoffs
 
-1. **Document decisions:** Circulate the agreed scope, success criteria, and confirmed decisions.
-2. **Confirm responsibilities:** Assign owners and deliverables for the reference scenario and open-source survey.
-3. **Shape the Product Backlog:** Convert validated needs into initial backlog items with acceptance criteria.
-4. **Check feasibility:** Review dependencies and technical feasibility with developers; prioritize collaboratively.
-5. **Align the next Sprint:** Agree on the next Sprint Goal and checkpoint within AMOS course requirements.
+1. **Entscheidungen dokumentieren:** Abgestimmten Umfang, Erfolgskriterien und Beschlüsse im Team teilen.
+2. **Verantwortlichkeiten festlegen:** Zuständige Personen und Ergebnisse für Referenzszenario und Open-Source-Recherche vereinbaren.
+3. **Product Backlog vorbereiten:** Bestätigte Bedürfnisse in erste Backlog-Einträge mit Akzeptanzkriterien überführen.
+4. **Machbarkeit prüfen:** Abhängigkeiten und technische Umsetzbarkeit mit den Developers prüfen; gemeinsam priorisieren.
+5. **Nächsten Sprint abstimmen:** Nächstes Sprint Goal und den Prüf-/Abstimmungstermin mit den AMOS-Kursvorgaben abgleichen.
 
 ---
 
-<sub>**Preparation sources:** iteratec, *AI-Assisted Legacy Migration Knowledge Base — Project Sketch* (9 pages); AMOS Project Information sheet.</sub>
+<sub>**Grundlagen:** iteratec, *AI-Assisted Legacy Migration Knowledge Base — Project Sketch* (9 Seiten); AMOS Project Information Sheet.</sub>
 
-<sub>**Document control:** Discussion draft. Technologies, scope, assignments, success criteria, and release commitments remain subject to team agreement.</sub>
+<sub>**Dokumentenstatus:** Diskussionsentwurf. Technologien, Umfang, Verantwortlichkeiten, Erfolgskriterien und Release-Zusagen bedürfen der Abstimmung mit dem Team.</sub>
