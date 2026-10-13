@@ -16,7 +16,7 @@
 | **Industry Partner** | iteratec |
 | **Industry Contact** | Wolfgang Strunk |
 | **Course** | AMOS — Winter Semester 2026/27 |
-| **Kickoff date** | To be confirmed |
+| **Kickoff date** | Wednesday, 14 October 2026, 15:00 |
 | **Document status** | Draft · awaiting team review |
 
 **Navigate:** [Kickoff objectives](#1-kickoff-objectives) · [Product overview](#2-product-overview) · [Discussion questions](#3-kickoff-discussion-guide) · [Weeks 1–2](#4-candidate-work-packages) · [Open decisions & risks](#5-open-decisions-and-risks) · [Meeting notes](#6-meeting-notes) · [Decision log](#7-decision-log) · [Action tracker](#8-action-tracker) · [Follow-up](#9-follow-up-after-the-kickoff)
@@ -209,7 +209,7 @@ The items below are **proposals based on the Project Sketch**. They are **not** 
 
 | Meeting detail | Entry |
 | :--- | :--- |
-| **Date** | To be confirmed |
+| **Date** | Wednesday, 14 October 2026, 15:00 |
 | **Participants** | To be confirmed |
 | **Note-taker** | To be confirmed |
 

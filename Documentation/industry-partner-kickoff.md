@@ -16,7 +16,7 @@
 | **Industriepartner** | iteratec |
 | **Ansprechpartner** | Wolfgang Strunk |
 | **Lehrveranstaltung** | AMOS – Wintersemester 2026/27 |
-| **Kickoff-Termin** | Noch zu bestätigen |
+| **Kickoff-Termin** | Mittwoch, 14.10.2026, 15:00 Uhr |
 | **Dokumentenstatus** | Entwurf · Team-Review ausstehend |
 
 **Navigation:** [Kickoff-Ziele](#1-ziele-des-kickoffs) · [Produktüberblick](#2-produktüberblick) · [Diskussionsleitfaden](#3-diskussionsleitfaden-für-den-kickoff) · [Wochen 1–2](#4-mögliche-arbeitspakete) · [Offene Entscheidungen & Risiken](#5-offene-entscheidungen-und-risiken) · [Besprechungsnotizen](#6-besprechungsnotizen) · [Entscheidungsprotokoll](#7-entscheidungsprotokoll) · [Maßnahmenübersicht](#8-maßnahmenübersicht) · [Nachbereitung](#9-nachbereitung-des-kickoffs)
@@ -209,7 +209,7 @@ Die folgenden Punkte sind **Vorschläge auf Basis des Project Sketch**. Sie sind
 
 | Meeting-Detail | Eintrag |
 | :--- | :--- |
-| **Datum** | Noch zu bestätigen |
+| **Datum** | Mittwoch, 14.10.2026, 15:00 Uhr |
 | **Teilnehmende** | Noch zu bestätigen |
 | **Protokoll** | Noch zu bestimmen |
 
