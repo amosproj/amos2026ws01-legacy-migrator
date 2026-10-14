@@ -1,6 +1,6 @@
 # Preliminary Functional Requirements
 
-**AI-Assisted Legacy Migration Knowledge Base**
+**Legacy Migration Knowledge Base**
 *AMOS · Winter Semester 2026/27 · iteratec*
 
 > [!NOTE]
