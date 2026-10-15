@@ -28,7 +28,7 @@ This document identifies the functional capabilities described in iteratec's ini
 
 | ID | Functional requirement |
 | :--- | :--- |
-| **FR-01** | Analyze the **legacy codebase** and capture structural elements and relationships, including classes or modules, calls, and data access. |
+| **FR-01** | Analyze the **legacy codebase** and capture structural elements and relationships, including classes or modules, calls, and data access and control flow. |
 | **FR-02** | Analyze the **implemented target codebase** using the same AST/graph-based mechanism, representing code that actually exists rather than only planned functionality. |
 
 ---
@@ -84,6 +84,14 @@ The Project Sketch also establishes the following boundaries:
 - Focus on **migration tracking and generated arc42 views**, rather than a general-purpose project assistant.
 - Automatic code migration or automatic decommissioning is **not** a stated capability.
 - Technology choices, architecture output formats, update frequency, and measurable quality thresholds remain open.
+- The synthetic reference system should be realistic rather than a toy example and include representative legacy-modernization patterns.
+- The reference system should contain a believable migration history, with parts that are still legacy, currently being migrated, and already implemented in the target system.
+- Selecting or designing the reference system is an initial work package for the first project week.
+- Before implementing the legacy-analysis pipeline, the team must conduct an open-source tooling survey covering AST/dependency extraction and code-to-graph approaches.
+- The survey should result in an explicit build-vs-adopt-vs-adapt recommendation in weeks 1–2.
+- Technologies and tools mentioned in the Project Sketch are candidates for evaluation only, not predetermined choices.
+- The proposed narrow-first approach is not a fixed requirement, but a recommendation for discussion.
+- Success criteria are to be defined jointly with the team, rather than being predetermined in the Project Sketch.
 
 ---
 
