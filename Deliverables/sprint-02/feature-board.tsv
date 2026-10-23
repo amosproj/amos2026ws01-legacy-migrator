@@ -1,0 +1,20 @@
+Title	URL	Assignees	Status	Estimated size	Real size
+Load Reference Repository	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/17		Product Backlog		
+Implementation Existing Code Parser	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/18		Product Backlog		
+Extract Code Entities	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/19		Product Backlog		
+Extract Code Relationships	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/20		Product Backlog		
+Implement Initial Graph Schema	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/21		Product Backlog		
+Persist Code Knowledge in Graph	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/22		Product Backlog		
+Implement Basic Graph Query	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/23		Product Backlog		
+Create Backend Query API	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/24		Product Backlog		
+Create LLM Provider Interface	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/25		Product Backlog		
+Generate Answer from Graph Result	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/26		Product Backlog		
+Create Basic Query Interface	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/27		Product Backlog		
+Connect Query Interface to Backend	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/28		Product Backlog		
+Test Direct Access to Generated Code Graph	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/29		Product Backlog		
+Clarify Licensing Constraints for Candidate Tools	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/30		Product Backlog		
+Establish Migration Questions as Acceptance-Test Baseline	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/31		Product Backlog		
+Select and design the synthetic reference system	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/4	nudelisidle	Sprint Backlog	5	
+Research existing code-analysis and code-to-graph tooling	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/5	RaihanFAU	Sprint Backlog	5	
+Document open technical decisions and evaluation criteria	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/6	ppohlitze	Sprint Backlog	3	
+Research arc42 view rendering options	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/7	3liAf	Sprint Backlog	5	
