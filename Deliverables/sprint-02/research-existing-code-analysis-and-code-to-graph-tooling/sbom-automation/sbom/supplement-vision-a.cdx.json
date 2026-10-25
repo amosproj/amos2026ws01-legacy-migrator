@@ -1,0 +1,620 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "version": 1,
+  "metadata": {
+    "properties": [
+      {
+        "name": "supplement:note",
+        "value": "Non-Python components for Vision A (containers, models, tools). Python libraries come from uv.lock."
+      }
+    ]
+  },
+  "components": [
+    {
+      "type": "container",
+      "bom-ref": "a-00-python",
+      "supplier": {
+        "name": "Python Software Foundation"
+      },
+      "name": "python",
+      "scope": "required",
+      "licenses": [
+        {
+          "expression": "PSF-2.0"
+        }
+      ],
+      "purl": "pkg:docker/library/python@3.12-slim",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://www.python.org/"
+        }
+      ],
+      "properties": [
+        {
+          "name": "migration-assistant:evidence",
+          "value": "P"
+        },
+        {
+          "name": "migration-assistant:group",
+          "value": "runtime"
+        },
+        {
+          "name": "migration-assistant:note",
+          "value": "Base image for pipeline and MCP server; code-review-graph needs Python >= 3.10"
+        }
+      ],
+      "version": "3.12"
+    },
+    {
+      "type": "application",
+      "bom-ref": "a-01-git",
+      "supplier": {
+        "name": "Git project"
+      },
+      "name": "git",
+      "scope": "required",
+      "licenses": [
+        {
+          "expression": "GPL-2.0-only"
+        }
+      ],
+      "purl": "pkg:deb/debian/git",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://git-scm.com/"
+        }
+      ],
+      "properties": [
+        {
+          "name": "migration-assistant:evidence",
+          "value": "P"
+        },
+        {
+          "name": "migration-assistant:group",
+          "value": "runtime"
+        },
+        {
+          "name": "migration-assistant:note",
+          "value": "Host/base-image tool for git worktree checkouts; invoked as a separate process, not linked or modified"
+        },
+        {
+          "name": "migration-assistant:version-status",
+          "value": "unpinned (resolve at first lockfile)"
+        }
+      ]
+    },
+    {
+      "type": "container",
+      "bom-ref": "a-10-ollama",
+      "supplier": {
+        "name": "Ollama Inc."
+      },
+      "name": "ollama",
+      "scope": "required",
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "purl": "pkg:github/ollama/ollama@v0.40.9",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/ollama/ollama"
+        }
+      ],
+      "properties": [
+        {
+          "name": "migration-assistant:evidence",
+          "value": "S"
+        },
+        {
+          "name": "migration-assistant:group",
+          "value": "service"
+        },
+        {
+          "name": "migration-assistant:note",
+          "value": "Local LLM runtime. Sources disagree on latest (0.40.5 / 0.40.9 / 0.40.10); pinned 0.40.9. Cloud features must be disabled (offline configuration)"
+        }
+      ],
+      "version": "0.40.9"
+    },
+    {
+      "type": "container",
+      "bom-ref": "a-11-librechat",
+      "supplier": {
+        "name": "LibreChat (Danny Avila and contributors)"
+      },
+      "name": "LibreChat",
+      "scope": "required",
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "purl": "pkg:github/LibreChat-AI/LibreChat@v0.8.8",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/LibreChat-AI/LibreChat"
+        }
+      ],
+      "properties": [
+        {
+          "name": "migration-assistant:evidence",
+          "value": "V"
+        },
+        {
+          "name": "migration-assistant:group",
+          "value": "service"
+        },
+        {
+          "name": "migration-assistant:note",
+          "value": "Chat UI (release 1 Oct 2026). Verify compose services at lock time"
+        }
+      ],
+      "version": "0.8.8"
+    },
+    {
+      "type": "container",
+      "bom-ref": "a-12-ferretdb",
+      "supplier": {
+        "name": "FerretDB Inc."
+      },
+      "name": "FerretDB",
+      "scope": "required",
+      "licenses": [
+        {
+          "expression": "Apache-2.0"
+        }
+      ],
+      "purl": "pkg:github/FerretDB/FerretDB",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/FerretDB/FerretDB"
+        }
+      ],
+      "properties": [
+        {
+          "name": "migration-assistant:evidence",
+          "value": "P"
+        },
+        {
+          "name": "migration-assistant:group",
+          "value": "service"
+        },
+        {
+          "name": "migration-assistant:note",
+          "value": "Replaces MongoDB (SSPL) as LibreChat's document store"
+        },
+        {
+          "name": "migration-assistant:version-status",
+          "value": "2.x (unpinned (resolve at first lockfile))"
+        }
+      ],
+      "version": "2.x (unpinned (resolve at first lockfile))"
+    },
+    {
+      "type": "library",
+      "bom-ref": "a-13-documentdb",
+      "supplier": {
+        "name": "Microsoft"
+      },
+      "name": "DocumentDB PostgreSQL extension",
+      "scope": "required",
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "purl": "pkg:github/microsoft/documentdb",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/microsoft/documentdb"
+        }
+      ],
+      "properties": [
+        {
+          "name": "migration-assistant:evidence",
+          "value": "P"
+        },
+        {
+          "name": "migration-assistant:group",
+          "value": "service"
+        },
+        {
+          "name": "migration-assistant:note",
+          "value": "Backend required by FerretDB 2.x; licence to verify"
+        },
+        {
+          "name": "migration-assistant:version-status",
+          "value": "unpinned (resolve at first lockfile)"
+        }
+      ]
+    },
+    {
+      "type": "container",
+      "bom-ref": "a-14-postgresql",
+      "supplier": {
+        "name": "PostgreSQL Global Development Group"
+      },
+      "name": "PostgreSQL",
+      "scope": "required",
+      "licenses": [
+        {
+          "expression": "PostgreSQL"
+        }
+      ],
+      "purl": "pkg:docker/library/postgres@17",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://www.postgresql.org/"
+        }
+      ],
+      "properties": [
+        {
+          "name": "migration-assistant:evidence",
+          "value": "P"
+        },
+        {
+          "name": "migration-assistant:group",
+          "value": "service"
+        },
+        {
+          "name": "migration-assistant:note",
+          "value": "Backend for FerretDB (both visions); in Vision A also graph + vector store"
+        },
+        {
+          "name": "migration-assistant:version-status",
+          "value": "17 (minor unpinned (resolve at first lockfile))"
+        }
+      ],
+      "version": "17 (minor unpinned (resolve at first lockfile))"
+    },
+    {
+      "type": "machine-learning-model",
+      "bom-ref": "a-15-gpt-oss-20b",
+      "supplier": {
+        "name": "OpenAI"
+      },
+      "name": "gpt-oss-20b",
+      "scope": "required",
+      "licenses": [
+        {
+          "expression": "Apache-2.0"
+        }
+      ],
+      "purl": "pkg:huggingface/openai/gpt-oss-20b",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://huggingface.co/openai/gpt-oss-20b"
+        }
+      ],
+      "properties": [
+        {
+          "name": "migration-assistant:evidence",
+          "value": "V"
+        },
+        {
+          "name": "migration-assistant:group",
+          "value": "model"
+        },
+        {
+          "name": "migration-assistant:note",
+          "value": "Chat model; Apache-2.0 plus the gpt-oss usage policy"
+        },
+        {
+          "name": "migration-assistant:version-status",
+          "value": "revision unpinned (resolve at first lockfile)"
+        }
+      ],
+      "version": "revision unpinned (resolve at first lockfile)"
+    },
+    {
+      "type": "machine-learning-model",
+      "bom-ref": "a-16-qwen3-embedding-0.6b",
+      "supplier": {
+        "name": "Qwen team, Alibaba Cloud"
+      },
+      "name": "Qwen3-Embedding-0.6B",
+      "scope": "required",
+      "licenses": [
+        {
+          "expression": "Apache-2.0"
+        }
+      ],
+      "purl": "pkg:huggingface/Qwen/Qwen3-Embedding-0.6B",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://huggingface.co/Qwen/Qwen3-Embedding-0.6B"
+        }
+      ],
+      "properties": [
+        {
+          "name": "migration-assistant:evidence",
+          "value": "P"
+        },
+        {
+          "name": "migration-assistant:group",
+          "value": "model"
+        },
+        {
+          "name": "migration-assistant:note",
+          "value": "Embedding model; check licence on the model card (Qwen licences differ per checkpoint)"
+        },
+        {
+          "name": "migration-assistant:version-status",
+          "value": "revision unpinned (resolve at first lockfile)"
+        }
+      ],
+      "version": "revision unpinned (resolve at first lockfile)"
+    },
+    {
+      "type": "container",
+      "bom-ref": "a-17-mongodb",
+      "supplier": {
+        "name": "MongoDB Inc."
+      },
+      "name": "MongoDB Community",
+      "scope": "excluded",
+      "licenses": [
+        {
+          "expression": "SSPL-1.0"
+        }
+      ],
+      "purl": "pkg:docker/library/mongo",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://www.mongodb.com/"
+        }
+      ],
+      "properties": [
+        {
+          "name": "migration-assistant:evidence",
+          "value": "S"
+        },
+        {
+          "name": "migration-assistant:group",
+          "value": "excluded"
+        },
+        {
+          "name": "migration-assistant:note",
+          "value": "Default LibreChat store; excluded (non-OSI), replaced by FerretDB"
+        }
+      ]
+    },
+    {
+      "type": "container",
+      "bom-ref": "a-18-meilisearch",
+      "supplier": {
+        "name": "Meili SAS"
+      },
+      "name": "Meilisearch",
+      "scope": "excluded",
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "purl": "pkg:docker/getmeili/meilisearch",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/meilisearch/meilisearch"
+        }
+      ],
+      "properties": [
+        {
+          "name": "migration-assistant:evidence",
+          "value": "P"
+        },
+        {
+          "name": "migration-assistant:group",
+          "value": "excluded"
+        },
+        {
+          "name": "migration-assistant:note",
+          "value": "Optional LibreChat search; disabled"
+        }
+      ]
+    },
+    {
+      "type": "container",
+      "bom-ref": "a-19-redis",
+      "supplier": {
+        "name": "Redis Ltd."
+      },
+      "name": "Redis",
+      "scope": "excluded",
+      "licenses": [
+        {
+          "license": {
+            "name": "Redis tri-licence (RSALv2 / SSPLv1 / AGPLv3)"
+          }
+        }
+      ],
+      "purl": "pkg:docker/library/redis",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://redis.io/"
+        }
+      ],
+      "properties": [
+        {
+          "name": "migration-assistant:evidence",
+          "value": "P"
+        },
+        {
+          "name": "migration-assistant:group",
+          "value": "excluded"
+        },
+        {
+          "name": "migration-assistant:note",
+          "value": "Optional LibreChat cache; disabled (if needed, use Valkey, BSD-3-Clause)"
+        }
+      ]
+    },
+    {
+      "type": "application",
+      "bom-ref": "a-22-syft",
+      "supplier": {
+        "name": "Anchore"
+      },
+      "name": "syft",
+      "scope": "optional",
+      "licenses": [
+        {
+          "expression": "Apache-2.0"
+        }
+      ],
+      "purl": "pkg:github/anchore/syft",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/anchore/syft"
+        }
+      ],
+      "properties": [
+        {
+          "name": "migration-assistant:evidence",
+          "value": "P"
+        },
+        {
+          "name": "migration-assistant:group",
+          "value": "dev"
+        },
+        {
+          "name": "migration-assistant:note",
+          "value": "Dev-only: SBOM for container images"
+        },
+        {
+          "name": "migration-assistant:version-status",
+          "value": "unpinned (resolve at first lockfile)"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "a-24-apache",
+      "supplier": {
+        "name": "Apache Software Foundation"
+      },
+      "name": "Apache AGE",
+      "scope": "required",
+      "licenses": [
+        {
+          "expression": "Apache-2.0"
+        }
+      ],
+      "purl": "pkg:github/apache/age@PG17%2Fv1.7.0-rc0",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/apache/age"
+        }
+      ],
+      "properties": [
+        {
+          "name": "migration-assistant:evidence",
+          "value": "V"
+        },
+        {
+          "name": "migration-assistant:group",
+          "value": "service"
+        },
+        {
+          "name": "migration-assistant:note",
+          "value": "Graph extension (openCypher) for PostgreSQL 17"
+        }
+      ],
+      "version": "1.7.0 (PG17)"
+    },
+    {
+      "type": "library",
+      "bom-ref": "a-25-pgvector",
+      "supplier": {
+        "name": "Andrew Kane and contributors"
+      },
+      "name": "pgvector",
+      "scope": "required",
+      "licenses": [
+        {
+          "expression": "PostgreSQL"
+        }
+      ],
+      "purl": "pkg:github/pgvector/pgvector",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/pgvector/pgvector"
+        }
+      ],
+      "properties": [
+        {
+          "name": "migration-assistant:evidence",
+          "value": "P"
+        },
+        {
+          "name": "migration-assistant:group",
+          "value": "service"
+        },
+        {
+          "name": "migration-assistant:note",
+          "value": "Vector index in PostgreSQL"
+        },
+        {
+          "name": "migration-assistant:version-status",
+          "value": "unpinned (resolve at first lockfile)"
+        }
+      ]
+    }
+  ],
+  "services": [
+    {
+      "bom-ref": "a-svc-jira",
+      "provider": {
+        "name": "Atlassian"
+      },
+      "name": "Jira",
+      "endpoints": [
+        "Jira REST API (Cloud or Data Center)"
+      ],
+      "authenticated": true,
+      "x-trust-boundary": true,
+      "properties": [
+        {
+          "name": "migration-assistant:note",
+          "value": "External proprietary data source; not distributed; read-only service account"
+        }
+      ]
+    },
+    {
+      "bom-ref": "a-svc-confluence",
+      "provider": {
+        "name": "Atlassian"
+      },
+      "name": "Confluence",
+      "endpoints": [
+        "Confluence REST API (Cloud v2 or Server/DC)"
+      ],
+      "authenticated": true,
+      "x-trust-boundary": true,
+      "properties": [
+        {
+          "name": "migration-assistant:note",
+          "value": "External proprietary data source; not distributed; read-only service account"
+        }
+      ]
+    }
+  ]
+}

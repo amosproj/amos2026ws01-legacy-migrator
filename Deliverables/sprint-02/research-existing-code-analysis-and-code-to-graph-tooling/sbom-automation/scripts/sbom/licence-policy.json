@@ -1,0 +1,110 @@
+{
+  "_comment": "Licence policy for the SBOM licence gate. Engineering defaults, to be reviewed by the project's legal contact. Decisions: allow | allow-aggregate | review (needs an approved exception) | deny.",
+  "version": 1,
+
+  "candidate_project_licences": ["MIT", "Apache-2.0", "GPL-3.0-or-later", "AGPL-3.0-or-later"],
+
+  "project_families": {
+    "MIT": "permissive", "MIT-0": "permissive", "BSD-2-Clause": "permissive", "BSD-3-Clause": "permissive",
+    "ISC": "permissive", "0BSD": "permissive", "Unlicense": "permissive", "Apache-2.0": "permissive",
+    "MPL-2.0": "weak",
+    "LGPL-2.1-only": "lgpl", "LGPL-2.1-or-later": "lgpl", "LGPL-3.0-only": "lgpl", "LGPL-3.0-or-later": "lgpl",
+    "GPL-2.0-only": "gpl2only", "GPL-2.0-or-later": "gpl2plus",
+    "GPL-3.0-only": "gpl3", "GPL-3.0-or-later": "gpl3",
+    "AGPL-3.0-only": "agpl3", "AGPL-3.0-or-later": "agpl3"
+  },
+
+  "categories": {
+    "permissive": ["MIT", "MIT-0", "BSD-2-Clause", "BSD-3-Clause", "BSD-3-Clause-Clear", "ISC", "0BSD", "Unlicense",
+                   "Zlib", "PSF-2.0", "Python-2.0", "Python-2.0.1", "PostgreSQL", "CC0-1.0", "BSL-1.0", "X11",
+                   "NCSA", "UPL-1.0", "HPND", "CNRI-Python", "MIT-CMU", "Unicode-3.0", "Unicode-DFS-2016"],
+    "apache": ["Apache-2.0"],
+    "weak": ["MPL-2.0"],
+    "weak_review": ["EPL-1.0", "EPL-2.0", "CDDL-1.0", "CDDL-1.1", "MPL-1.1", "CPL-1.0"],
+    "lgpl21": ["LGPL-2.0-only", "LGPL-2.0-or-later", "LGPL-2.1-only", "LGPL-2.1-or-later"],
+    "lgpl3": ["LGPL-3.0-only", "LGPL-3.0-or-later"],
+    "gpl2only": ["GPL-2.0-only", "GPL-2.0"],
+    "gpl2plus": ["GPL-2.0-or-later"],
+    "gpl3": ["GPL-3.0-only", "GPL-3.0-or-later", "GPL-3.0"],
+    "agpl3": ["AGPL-3.0-only", "AGPL-3.0-or-later", "AGPL-3.0"],
+    "nonfree": ["SSPL-1.0", "BUSL-1.1", "Elastic-2.0", "PolyForm-Noncommercial-1.0.0", "PolyForm-Small-Business-1.0.0",
+                "CC-BY-NC-4.0", "CC-BY-NC-SA-4.0", "Commons-Clause"]
+  },
+
+  "name_patterns": [
+    ["affero|\\bagpl", "agpl3"],
+    ["(lesser|library) general public license.*(v3|3\\.0)|lgplv3|lgpl-3", "lgpl3"],
+    ["(lesser|library) general public license|\\blgpl", "lgpl21"],
+    ["general public license v2 or later|gplv2\\+", "gpl2plus"],
+    ["general public license v2|gplv2\\b", "gpl2only"],
+    ["general public license v3|gplv3", "gpl3"],
+    ["general public license|\\bgpl\\b", "gpl_unspecified"],
+    ["server side public|\\bsspl|business source|\\bbusl|commons clause|polyform|non-?commercial|elastic license|proprietary", "nonfree"],
+    ["mozilla public license 2|mpl[- ]?2", "weak"],
+    ["eclipse public|\\bcddl|common development and distribution", "weak_review"],
+    ["apache", "apache"],
+    ["\\bmit\\b|expat", "permissive"],
+    ["\\bbsd\\b", "permissive"],
+    ["\\bisc\\b", "permissive"],
+    ["python software foundation|\\bpsf\\b", "permissive"],
+    ["public domain|unlicense|cc0", "permissive"],
+    ["postgresql", "permissive"],
+    ["zlib|boost", "permissive"]
+  ],
+
+  "with_exception_patterns": [
+    ["LLVM-exception", "apache"],
+    ["Classpath|linking|GCC|Autoconf|Bison|Font|OpenJDK", "gpl_linking_exception"]
+  ],
+
+  "linked_matrix": {
+    "permissive": {"permissive": "allow", "apache": "allow", "weak": "allow", "weak_review": "review",
+                   "lgpl21": "review", "lgpl3": "review", "gpl_linking_exception": "review",
+                   "gpl2only": "deny", "gpl2plus": "deny", "gpl3": "deny", "agpl3": "deny", "gpl_unspecified": "deny",
+                   "nonfree": "deny", "unknown": "deny"},
+    "weak":       {"permissive": "allow", "apache": "allow", "weak": "allow", "weak_review": "review",
+                   "lgpl21": "review", "lgpl3": "review", "gpl_linking_exception": "review",
+                   "gpl2only": "deny", "gpl2plus": "deny", "gpl3": "deny", "agpl3": "deny", "gpl_unspecified": "deny",
+                   "nonfree": "deny", "unknown": "deny"},
+    "lgpl":       {"permissive": "allow", "apache": "allow", "weak": "allow", "weak_review": "review",
+                   "lgpl21": "allow", "lgpl3": "allow", "gpl_linking_exception": "allow",
+                   "gpl2only": "deny", "gpl2plus": "deny", "gpl3": "deny", "agpl3": "deny", "gpl_unspecified": "deny",
+                   "nonfree": "deny", "unknown": "deny"},
+    "gpl2only":   {"permissive": "allow", "apache": "deny", "weak": "allow", "weak_review": "review",
+                   "lgpl21": "allow", "lgpl3": "deny", "gpl_linking_exception": "allow",
+                   "gpl2only": "allow", "gpl2plus": "allow", "gpl3": "deny", "agpl3": "deny", "gpl_unspecified": "review",
+                   "nonfree": "deny", "unknown": "deny"},
+    "gpl2plus":   {"permissive": "allow", "apache": "review", "weak": "allow", "weak_review": "review",
+                   "lgpl21": "allow", "lgpl3": "review", "gpl_linking_exception": "allow",
+                   "gpl2only": "review", "gpl2plus": "allow", "gpl3": "review", "agpl3": "deny", "gpl_unspecified": "review",
+                   "nonfree": "deny", "unknown": "deny"},
+    "gpl3":       {"permissive": "allow", "apache": "allow", "weak": "allow", "weak_review": "review",
+                   "lgpl21": "allow", "lgpl3": "allow", "gpl_linking_exception": "allow",
+                   "gpl2only": "deny", "gpl2plus": "allow", "gpl3": "allow", "agpl3": "review", "gpl_unspecified": "review",
+                   "nonfree": "deny", "unknown": "deny"},
+    "agpl3":      {"permissive": "allow", "apache": "allow", "weak": "allow", "weak_review": "review",
+                   "lgpl21": "allow", "lgpl3": "allow", "gpl_linking_exception": "allow",
+                   "gpl2only": "deny", "gpl2plus": "allow", "gpl3": "allow", "agpl3": "allow", "gpl_unspecified": "review",
+                   "nonfree": "deny", "unknown": "deny"}
+  },
+
+  "aggregate_matrix": {
+    "permissive": "allow", "apache": "allow", "weak": "allow", "weak_review": "allow",
+    "lgpl21": "allow", "lgpl3": "allow", "gpl_linking_exception": "allow",
+    "gpl2only": "allow-aggregate", "gpl2plus": "allow-aggregate", "gpl3": "allow-aggregate",
+    "agpl3": "allow-aggregate", "gpl_unspecified": "allow-aggregate",
+    "nonfree": "deny", "unknown": "review"
+  },
+
+  "notes": {
+    "gpl3:agpl3": "GPLv3 section 13 allows combining with AGPLv3, but the AGPL network clause applies to that part",
+    "gpl2only:apache": "Apache-2.0 is incompatible with GPL-2.0-only",
+    "gpl2plus:gpl3": "combined work would effectively become GPL-3.0",
+    "permissive:lgpl21": "LGPL library imported by a permissive project: usually acceptable for unmodified, replaceable Python packages; confirm and record an exception",
+    "permissive:lgpl3": "LGPL library imported by a permissive project: usually acceptable for unmodified, replaceable Python packages; confirm and record an exception",
+    "aggregate:gpl3": "copyleft program run as a separate, unmodified process; source-offer obligations apply if it is distributed",
+    "aggregate:agpl3": "AGPL program run as a separate process; modifications offered over a network must be published",
+    "nonfree": "not an OSI-approved open-source licence",
+    "unknown": "licence could not be determined; fix metadata or add an approved exception"
+  }
+}
