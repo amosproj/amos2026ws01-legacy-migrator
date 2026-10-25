@@ -1,0 +1,163 @@
+flowchart LR
+%% MA-CONTRACT-1.0 | Accepted design; implementation verification pending
+%% Preserve existing schema. Offline local comparison MVP; future features explicitly marked.
+    %% ================= Triggers =================
+    subgraph TRIG["Future autonomous triggers - outside offline MVP"]
+        direction TB
+        T1["Git webhook / CI job<br/>(new commits)"]
+        T2["Nightly scheduler"]
+        T3["Jira / Confluence incremental poll<br/>(JQL / CQL: updated since last run)"]
+    end
+
+    %% ================= Sources =================
+    subgraph SRC["Sources"]
+        direction TB
+        LR1[("Legacy local Git repository<br/>Complete history / pinned commit")]
+        TR1[("Target local Git repository<br/>Complete history / pinned commit")]
+        JI[("Future Jira connector input<br/>External REST; disabled in MVP")]
+        CW[("Future Confluence connector input<br/>External REST; disabled in MVP")]
+        MD[("Local markdown<br/>(ADRs, plans, docs)")]
+    end
+
+    %% ================= Ingestion =================
+    subgraph ING["Deterministic ingestion"]
+        direction TB
+        CO["Local SHA worktree preparation<br/>Same ingestion pipeline for both selections<br/>No fetch / build / repository execution"]
+        EX["Code extractors<br/>(structure, calls, SQL access)"]
+        JC["Jira connector<br/>(issues, status, links, issue keys)"]
+        CC["Confluence connector<br/>(pages to markdown, Jira macros,<br/>repo links, code blocks)"]
+        MP["Markdown parser<br/>(headings, links, code spans)"]
+        CF["Canonical facts (JSONL)<br/>+ ExtractionRun manifest"]
+        DC["Document chunks<br/>+ embeddings"]
+        DL["Doc-to-code linker<br/>(issue keys, repo URLs, paths,<br/>qualified names, configured maps)"]
+    end
+
+    %% ================= Knowledge base =================
+    subgraph KB["Knowledge base"]
+        direction TB
+        LD["Loader<br/>(snapshot-scoped facts)"]
+
+        subgraph GS["Graph store + vector index"]
+            direction LR
+            subgraph CODE["Code (snapshot-scoped)"]
+                direction TB
+                MOD["Module"]
+                FIL["File"]
+                SYM["SymbolObservation<br/>(class, method, table)"]
+                COM["Commit"]
+            end
+            subgraph DOCS["Documentation"]
+                direction TB
+                ISS["JiraIssue<br/>(key, status, component)"]
+                PAG["ConfluencePage<br/>(space, page tree, version)"]
+                MDF["MarkdownFile<br/>(path, repo, commit)"]
+                CHK["DocChunk<br/>(section, text, embedding)"]
+            end
+            STA["MigrationStatus<br/>(status, rule ID, evidence IDs)"]
+        end
+
+        ME["Future migration-status engine<br/>Deterministic rules + evidence<br/>Code deletion alone is not retirement"]
+        RV["Reviewer confirms<br/>proposed links<br/>(SAME_ENTITY_AS, MENTIONS)"]
+    end
+
+    %% ================= Chatbot =================
+    subgraph CHAT["Chatbot"]
+        direction TB
+        MCP["MCP tool facade<br/>MVP: analyze_repo / job_status / compare / history / code_for<br/>Future: migration_status / docs / arc42 views"]
+        LLM["Local LLM<br/>(open weights)"]
+        UI["Chat host + UI<br/>Local provider adapter / MCP client<br/>Executes model-suggested tools"]
+        USR(["User"])
+    end
+
+    %% ----- Graph model: code -----
+    MOD -->|CONTAINS| FIL
+    FIL -->|DECLARES| SYM
+    COM -->|CHANGED| FIL
+    SYM -.->|"SAME_ENTITY_AS<br/>{method, status}"| SYM
+
+    %% ----- Graph model: documentation -----
+    PAG -->|HAS_CHUNK| CHK
+    MDF -->|HAS_CHUNK| CHK
+    ISS -->|HAS_CHUNK| CHK
+    PAG -->|EMBEDS_ISSUE| ISS
+    PAG -->|CHILD_OF| PAG
+
+    %% ----- Graph model: doc-to-code links -----
+    COM -->|REFERENCES_ISSUE| ISS
+    CHK -->|"MENTIONS<br/>{method, status}"| SYM
+    CHK -->|"MENTIONS<br/>{method, status}"| FIL
+    PAG -->|"DOCUMENTS<br/>{method, status}"| MOD
+    MDF -->|"DOCUMENTS<br/>{method, status}"| MOD
+    ISS -->|"AFFECTS<br/>{via component map}"| MOD
+    STA -->|STATUS_OF| SYM
+
+    %% ----- Triggers and sources -----
+    T1 --> CO
+    T2 --> CO
+    T3 --> JC
+    T3 --> CC
+    LR1 --> CO
+    TR1 --> CO
+    JI --> JC
+    CW --> CC
+    MD --> MP
+
+    %% ----- Ingestion flow -----
+    CO --> EX --> CF
+    JC -->|"issues + commit links"| CF
+    JC -->|"issue text"| DC
+    CC --> DC
+    MP --> DC
+    CF --> DL
+    DC --> DL
+    CF --> LD
+    DC --> LD
+    DL -->|"doc-to-code edges<br/>(deterministic / configured)"| LD
+    LD --> CODE
+    LD --> DOCS
+
+    %% ----- Status engine and review -----
+    CODE --> ME
+    DOCS --> ME
+    ME -->|"status + evidence IDs"| STA
+    ME -.->|"proposed links"| RV
+    DL -.->|"proposed mentions"| RV
+    RV -.->|"confirmed links"| GS
+
+    %% ----- Chatbot -----
+    GS <-->|"graph queries +<br/>scoped vector search"| MCP
+    UI <-->|"MCP requests / evidence results"| MCP
+    LLM <-->|"Local model requests / tool proposals"| UI
+    UI <--> USR
+
+    %% ================= Styles =================
+    classDef trig fill:#fff4e5,stroke:#e69500
+    classDef src fill:#eef5ff,stroke:#3b78d8
+    classDef det fill:#eaf7ea,stroke:#2e8b57
+    classDef kb fill:#f3ecff,stroke:#7a4fd0
+    classDef code fill:#e8f1fb,stroke:#1f5fa8
+    classDef doc fill:#fff9db,stroke:#b08900
+    classDef chat fill:#fdeef0,stroke:#c2410c
+    class T1,T2,T3 trig
+    class LR1,TR1,JI,CW,MD src
+    class CO,EX,JC,CC,MP,CF,DC,DL det
+    class LD,ME,RV,STA kb
+    class MOD,FIL,SYM,COM code
+    class ISS,PAG,MDF,CHK doc
+    class MCP,LLM,UI,USR chat
+
+    MAN["Shared milestone manifest<br/>projectId / stepId / ordinal<br/>members: repoId / origin / commitSha"]
+    BUNDLE["Provisioning only<br/>Self-contained Git bundles or complete repos"]
+    COMP["MVP deterministic old/new comparison<br/>Both pinned analysis snapshots<br/>Diff hunks / paths / lines / commit evidence<br/>Separate histories if repos differ"]
+    HIST["Local Git history and diff reader<br/>Check ancestry; report gaps and divergence"]
+    MAN --> CO
+    BUNDLE -.-> LR1
+    BUNDLE -.-> TR1
+    UI -->|"MVP ingestion request via tools"| MCP
+    MCP -->|"analyze_repo"| CO
+    MCP -->|"compare with explicit old and new"| COMP
+    LR1 --> HIST
+    TR1 --> HIST
+    HIST --> COMP
+    GS --> COMP
+    COMP -->|"Original evidence table and typed result"| MCP

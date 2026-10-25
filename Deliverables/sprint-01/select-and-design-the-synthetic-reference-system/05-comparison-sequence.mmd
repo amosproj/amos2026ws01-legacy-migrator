@@ -1,0 +1,52 @@
+sequenceDiagram
+    %% MA-CONTRACT-1.0 | Local old/new chat MVP; implementation verification pending
+    autonumber
+    actor User
+    participant Host as LibreChat host and MCP client
+    participant Model as Local provider adapter - Ollama first
+    participant MCP as Comparison tool facade
+    participant DB as Knowledge PostgreSQL and AGE
+    participant Worker as Local ingest worker
+    participant Git as Complete local Git cache
+
+    User->>Host: Compare selected old/new component at migration step
+    Host->>Model: Question with permitted comparison tools
+    Model-->>Host: Proposed compare call with explicit selectors
+    Host->>MCP: compare(projectId, stepId, old, new, scope)
+    MCP->>DB: Validate step members and resolve both analysis snapshots
+    alt Manifest invalid or local source/history missing
+        MCP-->>Host: Incomplete or failed; exact missing inputs and evidence gaps
+        Host-->>User: Explain blocker without inventing changes or history
+    else Both source selections are available
+        alt Either analysis snapshot is not published
+            MCP->>DB: Enqueue idempotent jobs for missing analyses
+            MCP-->>Host: Queued with pinned selections and job IDs
+            Worker->>DB: Claim job with lease
+            Worker->>Git: Read exact commit locally; no fetch or repository execution
+            Worker->>Worker: Extract, normalize and validate canonical facts
+            alt Extraction succeeds
+                Worker->>DB: Stage then atomically publish snapshot
+            else Extraction fails or coverage insufficient
+                Worker->>DB: Record failure or partial coverage, not a complete snapshot
+            end
+            Host->>MCP: job_status(jobId) on explicit refresh
+            MCP-->>Host: Ready or failed with coverage and snapshotId
+            Note over Host,MCP: Retry the same pinned comparison only after required analyses are ready
+        end
+        opt Both selected analyses are ready
+            MCP->>DB: Read old/new facts and accepted mapping evidence
+            MCP->>Git: Diff selected code and test repository identity and ancestry
+            alt Same repository and ancestor range
+                Git-->>MCP: Endpoint diff plus commits in selected range
+            else Same repository but divergent history
+                Git-->>MCP: Endpoint diff, divergence and explicit history policy
+            else Distinct repositories
+                Git-->>MCP: Separate code/history tracks; no shared commit range
+            end
+            MCP->>MCP: Build deterministic ComparisonResult and evidence table
+            MCP-->>Host: comparisonId, selectors, lineageMode, changes, evidence, coverage
+            Host->>Model: Evidence-backed facts and explicit limitations
+            Model-->>Host: Explanation citing evidence IDs; no completion claim
+            Host-->>User: Original old/new diff and evidence table plus explanation
+        end
+    end

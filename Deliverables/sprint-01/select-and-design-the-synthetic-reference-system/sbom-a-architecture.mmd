@@ -1,0 +1,208 @@
+flowchart LR
+%% MA-CONTRACT-1.0 | Accepted design; implementation verification pending
+%% Preserve existing schema. Offline local comparison MVP; future features explicitly marked.
+    %% Logical view with concrete SBOM components (Vision A, SBOM v1, design phase)
+    %% ================= Chatbot (entry point) =================
+    subgraph CHAT["Chatbot (entry point)"]
+        direction TB
+        USR(["User<br/>Select registered repos, migration step and old/new scope"])
+        UI["LibreChat 0.8.8<br/>Local chat host / MCP client<br/>Provider adapter; renders original artifacts"]
+        LLM["«container» ollama 0.40.9<br/>gpt-oss-20b (Apache-2.0)<br/>OpenAI-compatible HTTP"]
+        MCP["MCP server / Python 3.12 / mcp / Pydantic<br/>MVP: analyze_repo(repoId, ref), job_status(jobId)<br/>compare(projectId, stepId, old, new, scope)<br/>history / code_for<br/>Future: migration_status / docs / arc42"]
+    end
+    %% ================= On-demand ingestion control =================
+    subgraph REQ["On-demand ingestion (per request)"]
+        direction TB
+        RES["Resolve registered local ref<br/>repoId + full commitSha<br/>Validate required objects; no network"]
+        FC{"Compatible published analysis?<br/>Source + schema + extractor/config identity"}
+        JOB["Ingestion job<br/>(row in kb-db job table,<br/>claimed with SKIP LOCKED;<br/>size + time limits)"]
+    end
+    %% ================= On-demand git history (per question) =================
+    subgraph HIST["On-demand local Git history - bounded, latency to measure"]
+        direction TB
+        RC[("Local repo cache<br/>Complete required history and blobs<br/>Worker writes worktrees; MCP reads only")]
+        GH["Git history reader (git CLI)<br/>log --follow · log -L :method: ·<br/>log -S symbol · --diff-filter=A/D ·<br/>--numstat · --name-only · blame -C -C"]
+        HS["History evidence (JSON)<br/>Observed additions / changes / removals<br/>Commit IDs / paths / line spans<br/>Coverage and truncation limits"]
+        CP["Counterpart selection<br/>Explicit old/new or accepted configured mapping<br/>Issue keys / shared tables / topics: candidate evidence<br/>Name similarity: proposal only"]
+        SIG["Deterministic comparison result<br/>Added / modified / removed / rename candidates<br/>Old/new code spans + Git evidence<br/>No retirement or migration-completion inference"]
+    end
+    %% ================= Sources =================
+    subgraph SRC["Sources (named by the user)"]
+        direction TB
+        LR1[("Legacy local Git input<br/>Provisioned bundle or complete repository<br/>Selected commit and source scope")]
+        TR1[("Target local Git input<br/>Provisioned bundle or complete repository<br/>Selected commit and source scope")]
+        JI[("«external» Jira<br/>(optional, REST API, HTTPS)")]
+        CW[("«external» Confluence<br/>(optional, REST API, HTTPS)")]
+    end
+    %% ================= Ingestion =================
+    subgraph ING["Deterministic ingestion (sandboxed)"]
+        direction TB
+        CO["Ingest worker / local Git CLI<br/>Read exact SHA; validate local completeness<br/>No builds / code execution / network fetch"]
+        EX["Code extractors<br/>code-review-graph 2.3.9 (structure, calls)<br/>sqlglot 30.22.0 (SQL access)"]
+        DX["Future deployment and messaging extractor<br/>YAML parser only if adopted and added to SBOM<br/>Not required for old/new chat MVP"]
+        AL["Architecture config loader<br/>pydantic schema, YAML / TOML<br/>(actors, external systems, BC map)"]
+        MP["Markdown parser<br/>markdown-it-py<br/>(headings, links, code spans)"]
+        JC["Future Jira / Confluence connectors<br/>atlassian-python-api 5.0.5 / markdownify<br/>External access disabled in offline MVP"]
+        CF["Canonical facts (JSONL)<br/>+ ExtractionRun manifest"]
+        DC["Optional document chunks and embeddings<br/>Qwen3-Embedding-0.6B via local Embedder"]
+        DL["Doc-to-code linker<br/>(issue keys, repo URLs, paths,<br/>qualified names, configured maps)"]
+    end
+    %% ================= Knowledge base =================
+    subgraph KB["Knowledge base (cache of analysed snapshots)"]
+        direction TB
+        LD["Loader / asyncpg<br/>Stage facts, validate coverage<br/>Short atomic publication; idempotent retry"]
+        subgraph GS["«container» kb-db: PostgreSQL 17 · Apache AGE 1.7.0 (graph) · pgvector (DocChunk vectors)"]
+            direction LR
+            subgraph CODE["Code (snapshot-scoped)"]
+                direction TB
+                MOD["Module"]
+                FIL["File"]
+                SYM["SymbolObservation<br/>(class, method, table)"]
+                COM["Commit"]
+            end
+            subgraph ARCH["Architecture (snapshot-scoped)"]
+                direction TB
+                ACT["Actor"]
+                EXT["ExternalSystem"]
+                IFC["Interface<br/>(protocol, direction)"]
+                BC["BoundedContext"]
+                DN["DeploymentNode<br/>(environment, cluster, namespace)"]
+                MR["MessagingRoute<br/>(broker, topic)"]
+            end
+            subgraph DOCS["Documentation"]
+                direction TB
+                ISS["JiraIssue<br/>(key, status, component)"]
+                PAG["ConfluencePage<br/>(space, page tree, version)"]
+                MDF["MarkdownFile<br/>(path, repo, commit)"]
+                CHK["DocChunk<br/>(section, text, embedding)"]
+            end
+            STA["MigrationStatus<br/>(status, rule ID, evidence IDs)"]
+        end
+        ME["Future migration-status engine<br/>Rules + versioned evidence<br/>Diff or deletion alone never proves retirement"]
+        RV["Reviewer confirms<br/>proposed links<br/>(SAME_ENTITY_AS, MENTIONS,<br/>IMPLEMENTS)"]
+    end
+    %% ================= arc42 view generator =================
+    subgraph VIEW["arc42 view generator (deterministic, no LLM)"]
+        direction TB
+        VQ["View queries<br/>openCypher via AGE cypher() (no APOC)<br/>Context · Building Block · Deployment"]
+        VM["View model (JSON)<br/>stable IDs, sorted, status tags,<br/>evidence IDs, snapshot ID"]
+        EM["Emitter (stdlib only, text)<br/>Mermaid flowchart (views) /<br/>Mermaid gantt (history compare)<br/>+ Markdown table"]
+        GT["Golden-file tests (pytest)<br/>(diff per snapshot)"]
+    end
+    %% ----- Request flow -----
+    USR <--> UI
+    UI <-->|"Local model requests / tool proposals"| LLM
+    UI <-->|"MCP calls / typed results"| MCP
+    MCP -->|"analyze_repo(repoId, ref)"| RES
+    RES --> FC
+    FC -->|"yes: reuse"| GS
+    FC -->|"no: ingest"| JOB
+    JOB --> CO
+    JOB -.->|"Future integration only"| JC
+    JOB -.->|"state in job table,<br/>read by job_status"| MCP
+    %% ----- Sources -----
+    LR1 --> CO
+    TR1 --> CO
+    JI -.->|"Future external input"| JC
+    CW -.->|"Future external input"| JC
+    %% ----- Ingestion flow -----
+    CO --> RC
+    CO --> EX --> CF
+    CO -->|"commits, issue keys"| CF
+    CO --> DX -->|"nodes, instances, routes"| CF
+    CO --> AL -->|"actors, external systems,<br/>interfaces, BC map"| CF
+    CO --> MP --> DC
+    JC -->|"issues + commit links"| CF
+    JC -->|"issue / page text"| DC
+    CF --> DL
+    DC --> DL
+    CF --> LD
+    DC --> LD
+    DL -->|"doc-to-code edges<br/>(deterministic / configured)"| LD
+    LD --> CODE
+    LD --> ARCH
+    LD --> DOCS
+    %% ----- Graph model: code -----
+    MOD -->|CONTAINS| FIL
+    FIL -->|DECLARES| SYM
+    COM -->|CHANGED| FIL
+    SYM -.->|"SAME_ENTITY_AS<br/>{method, status}"| SYM
+    %% ----- Graph model: architecture -----
+    MOD -.->|"IMPLEMENTS<br/>{method, status}"| BC
+    MOD -->|PROVIDES| IFC
+    ACT -->|USES| IFC
+    EXT -->|"USES / PROVIDES"| IFC
+    DN -->|"HOSTS<br/>(instance)"| MOD
+    DN -->|"STORES<br/>(table)"| SYM
+    MOD -->|"PUBLISHES / SUBSCRIBES"| MR
+    DN -->|CHILD_OF| DN
+    %% ----- Graph model: documentation -----
+    PAG -->|HAS_CHUNK| CHK
+    MDF -->|HAS_CHUNK| CHK
+    ISS -->|HAS_CHUNK| CHK
+    PAG -->|EMBEDS_ISSUE| ISS
+    PAG -->|CHILD_OF| PAG
+    %% ----- Graph model: doc-to-code links -----
+    COM -->|REFERENCES_ISSUE| ISS
+    CHK -->|"MENTIONS<br/>{method, status}"| SYM
+    CHK -->|"MENTIONS<br/>{method, status}"| FIL
+    PAG -->|"DOCUMENTS<br/>{method, status}"| MOD
+    MDF -->|"DOCUMENTS<br/>{method, status}"| MOD
+    ISS -->|"AFFECTS<br/>{via component map}"| MOD
+    STA -->|STATUS_OF| SYM
+    STA -->|STATUS_OF| MOD
+    %% ----- Status engine and review -----
+    CODE --> ME
+    ARCH --> ME
+    DOCS --> ME
+    ME -->|"status + evidence IDs"| STA
+    ME -.->|"proposed links"| RV
+    DL -.->|"proposed mentions"| RV
+    RV -.->|"confirmed links"| GS
+    %% ----- On-demand history and comparison -----
+    MCP -->|"history / compare; both pinned selections"| GH
+    RC --> GH --> HS
+    HS --> CP
+    GS -->|"issue keys, mappings,<br/>shared tables / topics"| CP
+    HS --> SIG
+    CP -->|"counterpart + method"| SIG
+    CP -.->|"name-based match"| RV
+    SIG -->|"table + timeline"| VM
+    SIG -.->|"extra evidence<br/>(never decides alone)"| ME
+    %% ----- Answers and views -----
+    GS <-->|"graph queries +<br/>scoped vector search"| MCP
+    MCP -->|"arc42_view(view, scope)"| VQ
+    GS -->|"view queries"| VQ
+    VQ --> VM --> EM
+    VM --> GT
+    EM -->|"Mermaid block + table<br/>(text, passed through verbatim)"| MCP
+    %% ================= Styles =================
+    classDef req fill:#fff4e5,stroke:#e69500
+    classDef src fill:#eef5ff,stroke:#3b78d8
+    classDef det fill:#eaf7ea,stroke:#2e8b57
+    classDef kb fill:#f3ecff,stroke:#7a4fd0
+    classDef code fill:#e8f1fb,stroke:#1f5fa8
+    classDef arch fill:#e6f7f5,stroke:#0f766e
+    classDef doc fill:#fff9db,stroke:#b08900
+    classDef view fill:#eef2ff,stroke:#4338ca
+    classDef chat fill:#fdeef0,stroke:#c2410c
+    classDef hist fill:#fef3f2,stroke:#b42318
+    class RES,FC,JOB req
+    class LR1,TR1,JI,CW src
+    class CO,EX,DX,AL,MP,JC,CF,DC,DL det
+    class LD,ME,RV,STA kb
+    class MOD,FIL,SYM,COM code
+    class ACT,EXT,IFC,BC,DN,MR arch
+    class ISS,PAG,MDF,CHK doc
+    class VQ,VM,EM,GT view
+    class USR,UI,LLM,MCP chat
+    class RC,GH,HS,CP,SIG hist
+
+    STEP["Shared milestone manifest<br/>projectId / stepId / ordinal<br/>members: repoId / origin / commitSha"]
+    IDENT["Identity contract<br/>sourceSnapshotId: repoId + commitSha<br/>snapshotId: source + schema + extractor/config<br/>runId: attempt; comparisonId: ordered inputs + policy/maps"]
+    LINEAGE["Comparison lineage policy<br/>Same repo: test ancestry / divergence<br/>Different repos: independent history tracks<br/>No fabricated shared commit range"]
+    STEP --> RES
+    STEP --> CP
+    IDENT --> FC
+    LINEAGE --> SIG
+    SIG -->|"MVP comparisonId / selectors / changes / evidence / gaps"| MCP

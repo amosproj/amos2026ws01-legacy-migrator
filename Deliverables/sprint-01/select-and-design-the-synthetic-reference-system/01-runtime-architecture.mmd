@@ -1,0 +1,67 @@
+flowchart LR
+%% MA-CONTRACT-1.0 | Accepted design; implementation verification pending
+%% Preserve existing schema. Offline local comparison MVP; future features explicitly marked.
+    USER(["User / reviewer"])
+    BROWSER["Browser<br/>LibreChat client 0.8.8<br/>Mermaid renderer"]
+
+    subgraph LOCAL["Local deployment - offline MVP after provisioning"]
+        CHAT["LibreChat backend 0.8.8<br/>Agent runtime + MCP client<br/>Authorization and tool dispatch"]
+        OLLAMA["Ollama 0.40.9<br/>Local inference process<br/>Cloud disabled"]
+        MODELS[("Model artifacts<br/>gpt-oss-20b<br/>Qwen3-Embedding-0.6B<br/>Revisions to lock")]
+        FERRET["FerretDB 2.x<br/>MongoDB-compatible endpoint<br/>Compatibility spike required"]
+        CHATDB[("Chat persistence<br/>PostgreSQL 17 + DocumentDB<br/>Separate instance proposed<br/>Version matrix to validate")]
+
+        subgraph APP["migration-assistant 0.1.0 - one Python 3.12 application"]
+            TOOLS["MCP tool facade<br/>mcp SDK + Pydantic validation"]
+            SERVICES["MVP: analysis / history / old-new comparison<br/>Pinned step and both snapshot selectors<br/>Future: migration rules / docs / arc42"]
+            WORKER["Background worker process<br/>Same application artifact<br/>Bounded concurrency / retry"]
+            EXTRACT["Restricted extractor subprocess<br/>code-review-graph 2.3.9<br/>SQLGlot 30.22.0<br/>markdown-it-py<br/>Custom config readers"]
+            DOCS["Future connector module - disabled in MVP<br/>atlassian-python-api 5.0.5 / markdownify"]
+        end
+
+        GITPROC["Local Git subprocesses<br/>Resolve pinned refs / SHA worktrees<br/>Bounded history and endpoint diffs"]
+        KB[("Knowledge persistence - PostgreSQL 17<br/>Apache AGE selected; exact artifact to lock<br/>pgvector / jobs / manifests / evidence")]
+        CACHE[("Complete local Git cache<br/>Required history and blobs provisioned<br/>SHA worktrees / isolated extractor scratch")]
+    end
+
+    GIT[("Provisioning only<br/>Self-contained Git bundles or complete repos<br/>Remote synchronization before offline use")]
+    ATL[("Future external sources<br/>Jira / Confluence - outside offline MVP")]
+    CI["Build / CI only<br/>pytest / cyclonedx-bom<br/>Syft / pip-licenses"]
+
+    USER <-->|"Questions / evidence / review"| BROWSER
+    BROWSER <-->|"Local HTTP / response stream"| CHAT
+    CHAT <-->|"OpenAI-compatible HTTP<br/>Model requests and tool-call suggestions"| OLLAMA
+    OLLAMA --- MODELS
+    CHAT <-->|"MCP over Streamable HTTP<br/>Host executes tool calls"| TOOLS
+    CHAT <-->|"MongoDB wire protocol"| FERRET
+    FERRET <-->|"DocumentDB-backed persistence"| CHATDB
+    TOOLS --> SERVICES
+    SERVICES <-->|"asyncpg<br/>Allowlisted SQL / AGE cypher()"| KB
+    SERVICES -->|"Resolve refs / read history"| GITPROC
+    SERVICES -->|"Persist job; return job ID"| KB
+    WORKER <-->|"Claim jobs / publish snapshots<br/>asyncpg"| KB
+    WORKER -->|"Prepare SHA worktree and required blobs"| GITPROC
+    WORKER --> EXTRACT
+    EXTRACT <-->|"Read checkout; write isolated scratch"| CACHE
+    WORKER -.->|"Future integration"| DOCS
+    DOCS -.->|"Future read-only REST; not active in MVP"| ATL
+    GITPROC <-->|"Read/write repository cache"| CACHE
+    GIT -.->|"Import complete objects before offline use"| CACHE
+    WORKER -.->|"Optional local Embedder"| OLLAMA
+    SERVICES -.->|"Optional local query embeddings"| OLLAMA
+    CI -.->|"Tests and dependency evidence<br/>Not an application call"| APP
+
+    classDef process fill:#eaf2ff,stroke:#315b96,color:#13233d
+    classDef custom fill:#eaf7ee,stroke:#287644,color:#163e24
+    classDef storage fill:#f4edff,stroke:#7953a0,color:#352447
+    classDef external fill:#fff4df,stroke:#a87922,color:#50390d
+    class CHAT,OLLAMA,FERRET,GITPROC process
+    class TOOLS,SERVICES,WORKER,EXTRACT,DOCS custom
+    class MODELS,CHATDB,KB,CACHE storage
+    class USER,GIT,ATL,CI external
+
+    STEP["StepSelection manifest<br/>projectId / stepId / ordinal<br/>members: repoId / origin / commitSha"]
+    ALT["Chat-provider adapter extension<br/>Other model implementations deferred<br/>External providers disabled in MVP"]
+    STEP --> SERVICES
+    STEP --> WORKER
+    CHAT -.->|"Provider-neutral configuration boundary"| ALT
