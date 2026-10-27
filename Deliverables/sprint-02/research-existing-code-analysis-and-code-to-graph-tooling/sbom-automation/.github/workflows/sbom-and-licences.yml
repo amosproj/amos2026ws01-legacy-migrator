@@ -1,0 +1,106 @@
+name: SBOM and licence compliance
+
+# Regenerates the SBOM from uv.lock and runs the licence gate.
+#  - pull_request: fails if the committed SBOM is stale or the licence gate fails
+#  - push to main:  regenerates; optionally commits the result (repo variable SBOM_AUTOCOMMIT=true)
+#  - tags v*:       release mode, a LICENSE file is mandatory
+#  - weekly:        re-checks (exception expiry, policy changes)
+#
+# Optional repository variables (Settings > Secrets and variables > Actions > Variables):
+#   PROJECT_LICENSE   SPDX id to enforce while the repo has no LICENSE file yet (e.g. Apache-2.0)
+#   SBOM_SUPPLEMENT   sbom/supplement-vision-a.cdx.json or sbom/supplement-vision-b.cdx.json
+#   SBOM_AUTOCOMMIT   "true" to let the bot commit regenerated SBOM files on main
+#                     (fails on protected branches unless the bot is allowed to push;
+#                      otherwise download the "sbom" artifact and commit it in a PR)
+#
+# Pin third-party actions to full commit SHAs before production use.
+
+on:
+  pull_request:
+    paths:
+      - "uv.lock"
+      - "pyproject.toml"
+      - ".python-version"
+      - "LICENSE*"
+      - "LICENCE*"
+      - "COPYING*"
+      - "sbom/**"
+      - "scripts/sbom/**"
+      - ".github/workflows/sbom-and-licences.yml"
+  push:
+    branches: [main]
+    tags: ["v*"]   # no paths filter: tag pushes carry no diff, and main should always be re-checked
+  schedule:
+    - cron: "0 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sbom-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PROJECT_LICENSE: ${{ vars.PROJECT_LICENSE }}
+  SBOM_SUPPLEMENT: ${{ vars.SBOM_SUPPLEMENT || 'sbom/supplement.cdx.json' }}
+  SBOM_REQUIRE_PROJECT_LICENSE: ${{ startsWith(github.ref, 'refs/tags/') }}
+  CYCLONEDX_BOM_VERSION: "7.3.1"
+
+jobs:
+  sbom:
+    name: Regenerate SBOM and check licences
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write   # only used by the optional auto-commit step on main
+    steps:
+      - name: Check out
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0   # full history: the SBOM timestamp is taken from the last commit touching uv.lock
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Verify committed SBOM (pull request)
+        if: github.event_name == 'pull_request'
+        run: scripts/sbom/regenerate_sbom.sh --check
+
+      - name: Regenerate SBOM (main, tags, schedule, manual)
+        if: github.event_name != 'pull_request'
+        run: scripts/sbom/regenerate_sbom.sh
+
+      - name: Commit regenerated SBOM
+        if: >-
+          github.event_name == 'push' && github.ref == 'refs/heads/main' &&
+          vars.SBOM_AUTOCOMMIT == 'true'
+        run: |
+          if git diff --quiet -- sbom/; then
+            echo "SBOM unchanged."
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add sbom/
+          git commit -m "chore(sbom): regenerate SBOM from uv.lock [skip ci]"
+          git push
+
+      - name: Warn if SBOM changed without auto-commit
+        if: github.event_name != 'pull_request' && vars.SBOM_AUTOCOMMIT != 'true'
+        run: |
+          if ! git diff --quiet -- sbom/; then
+            echo "::warning::The SBOM in sbom/ is out of date. Download the 'sbom' artifact or run scripts/sbom/regenerate_sbom.sh and commit."
+          fi
+
+      - name: Upload SBOM and reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: |
+            .sbom-work/
+            sbom/
+          if-no-files-found: warn
+          retention-days: 90

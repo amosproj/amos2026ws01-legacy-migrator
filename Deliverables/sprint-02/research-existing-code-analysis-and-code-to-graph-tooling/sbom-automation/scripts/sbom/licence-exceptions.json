@@ -1,0 +1,11 @@
+{
+  "_comment": "Approved licence exceptions. Every entry needs component, justification, approved_by and expires (YYYY-MM-DD). Expired or incomplete entries are ignored and reported. Example entry (remove the leading underscore from the key to activate a copy of it).",
+  "_example": {
+    "component": "psycopg",
+    "version": "*",
+    "justification": "LGPL-3.0 library imported unmodified as a replaceable Python package; no static linking; source available upstream",
+    "approved_by": "Product Owner + legal contact (ticket MIG-123)",
+    "expires": "2027-03-31"
+  },
+  "exceptions": []
+}
