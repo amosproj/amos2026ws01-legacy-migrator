@@ -1,0 +1,49 @@
+%% SunsetTracker - Runtime Architecture (Architecture Deliverable, Sprint 02)
+%% Three tiers (columns): Presentation / Domain / Persistence.
+%% FRONTEND AND BACKEND ARE BUILT AND HOSTED SEPARATELY (industry partner
+%% requirement, no single origin) - the front end offers more than the AI
+%% chat interface (e.g. arc42 view display).
+%%
+%% The LLM server is a SEPARATE runtime component within the column
+%% "Application service" (local during development/demo, e.g. Ollama, or a
+%% cloud service via API key). The backend always communicates with it only
+%% through the provider-agnostic, OpenAI-compatible LlmAdapter (encapsulation
+%% + easy exchange). The adapter is a module of the backend, NOT a separate
+%% runtime component - therefore it appears as a class here, but not as an
+%% object in objects-at-runtime.mmd.
+%%
+%% Graph store technology is a candidate decision (Neo4j preferred for graph
+%% queries; PostgreSQL + Apache AGE is the alternative).
+classDiagram
+    direction LR
+
+    namespace PresentationTier {
+        class ChatUI
+        class ViewsUI
+    }
+    namespace DomainTier {
+        class McpFacade
+        class ChatOrchestrator
+        class LlmAdapter
+        class IngestionPipeline
+        class ViewGenerator
+    }
+    namespace PersistenceTier {
+        class GraphStore
+        class GitDepot
+    }
+    class LlmServer {
+        <<external>>
+    }
+
+    ChatUI "0..*" --> "1" McpFacade : asks questions / calls tools
+    ChatUI "0..*" --> "1" ChatOrchestrator : receives evidence-based answers
+    ViewsUI "0..*" --> "1" ViewGenerator : requests arc42 views
+    McpFacade "1" --> "1" ChatOrchestrator : delegates requests
+    McpFacade "1" --> "1" IngestionPipeline : starts analysis jobs
+    ChatOrchestrator "1" --> "1" LlmAdapter : creates model calls
+    ChatOrchestrator "1" --> "1" GraphStore : evidence queries (Cypher)
+    LlmAdapter "1" --> "1" LlmServer : OpenAI-compatible HTTP API
+    IngestionPipeline "1" --> "1..*" GitDepot : reads pinned migration steps
+    IngestionPipeline "1" --> "1" GraphStore : writes facts / snapshots
+    ViewGenerator "1" --> "1" GraphStore : reads graph
