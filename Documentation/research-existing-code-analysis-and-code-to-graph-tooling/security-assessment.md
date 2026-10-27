@@ -1,10 +1,10 @@
-# Security and licence assessment (C11 and C7)
+# Security and license assessment (C11 and C7)
 
 *Issue #5 · Draft · desk research, assessment date 27 Oct 2026 · **no scanner was run and no tool was installed, run or tested***
 
-*Related documents: [main report](./tool-evaluation.md) · [security and licence assessment](./security-assessment.md) · [experiment plan](./experiment-plan.md)*
+*Related documents: [main report](./tool-evaluation.md) · [security and license assessment](./security-assessment.md) · [experiment plan](./experiment-plan.md)*
 
-This document holds the detailed vulnerability and licence evidence behind the compact summaries in the [main report](./tool-evaluation.md#62-security-and-vulnerability-risk-summary-c11-27-oct-2026) and [licence summary](./tool-evaluation.md#64-licence-summary-c7-separate-from-c11). The preliminary recommendation is in [§9 of the main report](./tool-evaluation.md#9-preliminary-recommendation). Licence compliance (C7) and security risk (C11) are separate criteria. Security and licence results are gates in the [experiment plan](./experiment-plan.md#decision-rule); they are not part of its technical score.
+This document holds the detailed vulnerability and license evidence behind the compact summaries in the [main report](./tool-evaluation.md#62-security-and-vulnerability-risk-summary-c11-27-oct-2026) and [license summary](./tool-evaluation.md#64-license-summary-c7-separate-from-c11). The preliminary recommendation is in [§9 of the main report](./tool-evaluation.md#9-preliminary-recommendation). License compliance (C7) and security risk (C11) are separate criteria. Security and license results are gates in the [experiment plan](./experiment-plan.md#decision-rule); they are not part of its technical score.
 
 **Evidence labels**
 - **[V]**: verified on an official page (URLs in the Sources section below and §12 of the main report). Every [V] fact was read through a summarising fetch tool, so small errors are possible.
@@ -17,7 +17,7 @@ This document holds the detailed vulnerability and licence evidence behind the c
 
 ## Method and limits
 
-**Method.** Pin the version; query the sources in the Sources section below by package and repository; check advisories against declared dependency ranges; record dates; treat absence as Unknown; keep licence (C7) and vulnerability (C11) separate; no scanner was run.
+**Method.** Pin the version; query the sources in the Sources section below by package and repository; check advisories against declared dependency ranges; record dates; treat absence as Unknown; keep license (C7) and vulnerability (C11) separate; no scanner was run.
 
 **Source roles.** GitHub Security Advisories and the GitHub Advisory Database, NVD and package registries are primary. **deps.dev (Google Open Source Insights)** is a supplementary source used for per-version advisory keys. Its limits: it republishes OSV-style identifiers (GHSA, PYSEC), its coverage and update delay are not documented on the pages checked, and "no advisory keys" means none known to deps.dev, not none exist. OSV.dev was not queried directly. Findings from deps.dev were cross-checked against GitHub advisory pages wherever an advisory was opened.
 
@@ -46,15 +46,15 @@ Rating dimensions: S1 advisories on the tool itself, S2 dependency risk, S3 secu
 
 Commercial and closed tools are not assessable from public sources. Tools not listed were not assessed for C11.
 
-## Licence detail
+## License detail
 
-Licence notes are input for Issue #30 and are not legal advice. The grouped summary is in [§6.4 of the main report](./tool-evaluation.md#64-licence-summary-c7-separate-from-c11); the per-tool licence is in the C7 column of the [comparison matrix](./tool-evaluation.md#61-main-comparison-c1c10).
+License notes are input for Issue #30 and are not legal advice. The grouped summary is in [§6.4 of the main report](./tool-evaluation.md#64-license-summary-c7-separate-from-c11); the per-tool license is in the C7 column of the [comparison matrix](./tool-evaluation.md#61-main-comparison-c1c10).
 
 - **repowise:** the README and the `LICENSE` file say AGPL-3.0 (the file is the plain GNU AGPL v3 text); the PyPI metadata says "AGPL-3.0-or-later"; the README offers commercial licensing. The design SBOM's "OR" expression is not confirmed by these pages. Whether an AGPL tool may be used is Issue #30.
-- **CodeQL:** the queries repository is MIT; the CLI is licensed separately; the page says analysing closed-source code needs a commercial licence [V].
-- **CodeScene:** commercial; free for open-source projects, trial offered [V]. **Sonargraph and Driver:** commercial [V]. **CodeMR:** no licence or pricing on the page [V].
+- **CodeQL:** the queries repository is MIT; the CLI is licensed separately; the page says analysing closed-source code needs a commercial license [V].
+- **CodeScene:** commercial; free for open-source projects, trial offered [V]. **Sonargraph and Driver:** commercial [V]. **CodeMR:** no license or pricing on the page [V].
 - **Sourcegraph Cody:** the public repository is an archived read-only snapshot, Apache-2.0 [V].
-- **Reference systems:** the public IBM repository is Apache-2.0 [V]. The industry partner states that the IBM source is unchanged and Apache-2.0 and that its own additions are also Apache-2.0 [P]. The partner's licence notices have not been read.
+- **Reference systems:** the public IBM repository is Apache-2.0 [V]. The industry partner states that the IBM source is unchanged and Apache-2.0 and that its own additions are also Apache-2.0 [P]. The partner's license notices have not been read.
 
 ## Appendix A: Dependency advisory checks (C11 / S2)
 

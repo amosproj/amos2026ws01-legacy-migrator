@@ -2,9 +2,9 @@
 
 *Issue #5 · Draft · desk research, assessment date 27 Oct 2026 · **no tool was installed, run or tested***
 
-*Related documents: [main report](./tool-evaluation.md) · [security and licence assessment](./security-assessment.md) · [experiment plan](./experiment-plan.md)*
+*Related documents: [main report](./tool-evaluation.md) · [security and license assessment](./security-assessment.md) · [experiment plan](./experiment-plan.md)*
 
-This is the main report. It contains the candidate inventory, the criteria, the comparison matrix, the compact security and licence summaries, the reference systems and the preliminary recommendation. Detailed vulnerability and licence evidence is in the [security assessment](./security-assessment.md). The detailed experiment procedures are in the [experiment plan](./experiment-plan.md).
+This is the main report. It contains the candidate inventory, the criteria, the comparison matrix, the compact security and license summaries and the preliminary recommendation. Detailed vulnerability and license evidence is in the [security assessment](./security-assessment.md). The detailed experiment procedures are in the [experiment plan](./experiment-plan.md).
 
 ## 1. Purpose, scope and acceptance-criteria coverage
 
@@ -19,7 +19,7 @@ This document compares tools for AST extraction, dependency analysis and code-to
 | AC3 Define common evaluation criteria | §4 (C1–C14); §6.1–§6.4; C11 detail in [security-assessment.md](./security-assessment.md#c11-full-assessment) |
 | AC4 Document strengths, limitations and applicability of shortlisted tools | §5 profiles; §6.1 "Role / effort" column; §9; C11 detail in [security-assessment.md](./security-assessment.md#c11-full-assessment) |
 | AC5 Consider both legacy and target code | C5 and C14 in §4; §6.3; §7; §8; tests T5 and T6 in [experiment-plan.md](./experiment-plan.md#tests-same-in-both-phases) |
-| AC6 Include the industry partner's additional references | §3 (reference list included, every entry researched); §7.3 |
+| AC6 Include the industry partner's additional references | §3 (reference list included, every entry researched) |
 | AC7 Preliminary build / adopt / adapt recommendation or justified shortlist | §9 |
 | Additional criterion: SBOM | Design SBOM watch list in §3; supply-chain dimension (S5) in [security-assessment.md](./security-assessment.md#c11-full-assessment) |
 
@@ -45,7 +45,7 @@ The Definition of Done is added after week 5 and is not part of this document.
 - Local-first demonstration with `docker compose up` [P, recommendation].
 - **Building and running the example stages.** The industry partner's email states: "Building and running the stages is now possible and the developers probably should try it, as proposed at the kickoff." [P] This is partner-provided guidance, not a project requirement.
 - **Design contract (separate branch).** It proposes adapting code-review-graph (D4) and proposes that analysed repositories are not built or executed (D10). Both are design proposals, not finalised project-wide requirements, and D10 differs from the partner guidance above. **This document does not rely on D4 or D10.** Whether D10 stays, changes or is dropped is an open question (§11).
-- The language of the final reference system is not confirmed (Issue #4). Language fit is judged here only against the two reference systems in §7.
+- The language of the final reference system is not confirmed (Issue #4). Language fit is judged here only against the two reference systems described in the [experiment plan](./experiment-plan.md#reference-systems).
 
 ## 3. Candidate inventory (24 unique tools)
 
@@ -68,7 +68,7 @@ Categories are the authors' classification [A]. **TangleGuard:** official URL **
 | C4 | Languages and fit with the reference systems | 5 |
 | C5 | Same mechanism for legacy and target code | 5 |
 | C6 | Coupling signals: tables, messaging, cross-repository contracts | 4 |
-| C7 | Licence and commercial terms (separate from C11) | 3, 7 |
+| C7 | License and commercial terms (separate from C11) | 3, 7 |
 | C8 | Local/offline operation, telemetry, code leaving the machine, footprint on the host | 3 |
 | C9 | Maturity and maintenance | 3 |
 | C10 | Integration effort and fit with the rule to use existing AST parsers; whether the tool needs the analysed project to be built | 7 |
@@ -110,7 +110,7 @@ Categories are the authors' classification [A]. **TangleGuard:** official URL **
 ### 5.2 Analysis infrastructure
 
 - **Joern** (Apache-2.0) [V]: code property graphs, Scala query shell; frontends for C/C++, Java, JavaScript, Python, Kotlin and binaries; JDK 21; export formats not stated; latest release v4.0.665 on 23 Oct 2026.
-- **CodeQL** [V]: queries repository MIT; CLI licensed separately; the page says analysing closed-source code needs a commercial licence.
+- **CodeQL** [V]: queries repository MIT; CLI licensed separately; the page says analysing closed-source code needs a commercial license.
 - **Tree-sitter** (MIT) [V]: parser library; call-graph extraction not stated.
 - **ANTLR** (BSD-3) [V]: parser generator, 10 target languages. The Project Sketch cautions that its ANTLR-based concept outline was LLM-generated.
 - **SCIP indexers** (Apache-2.0) [V]: index protocol; indexers for Java/Scala/Kotlin, TypeScript/JavaScript, Python, C/C++, C#, Rust, Ruby, PHP, Dart.
@@ -129,7 +129,7 @@ Categories are the authors' classification [A]. **TangleGuard:** official URL **
 - **CodeCharta** (BSD-3) [V]: visualisation incl. import dependency view; Code Maat and tokei importers.
 - **tokei** (MIT / Apache-2.0) [V]: line statistics, 150+ languages.
 - **CodeScene** (commercial) [V]: free for open-source projects, trial offered.
-- **CodeMR** [V]: Java, C#, Scala, Kotlin, C++; no licence or pricing on the page.
+- **CodeMR** [V]: Java, C#, Scala, Kotlin, C++; no license or pricing on the page.
 - **Sonargraph** (commercial) [V]: from EUR 120/month for Java.
 
 ### 5.5 Commercial AI assistants
@@ -142,15 +142,15 @@ Categories are the authors' classification [A]. **TangleGuard:** official URL **
 
 ### 6.1 Main comparison (C1–C10)
 
-| Tool | Category | Extracts (C1) | Output / direct access (C2–C3) | Languages (C4) | Legacy + target (C5) | Coupling (C6) | Licence (C7) | Local / telemetry / footprint (C8) | Maturity (C9) | Role / effort (C10) |
+| Tool | Category | Extracts (C1) | Output / direct access (C2–C3) | Languages (C4) | Legacy + target (C5) | Coupling (C6) | License (C7) | Local / telemetry / footprint (C8) | Maturity (C9) | Role / effort (C10) |
 |---|---|---|---|---|---|---|---|---|---|---|
 | code-review-graph | Code graph | Structure, calls, impact [V] | SQLite with documented schema; JSON/GraphML/Cypher exports; MCP. Direct SQL plausible [A], untested [U] | 20+ incl. SQL, Terraform [V] | Where language supported [A] | Spring and Spring-Kafka enrichment edges documented [V]; no SQL-table or HTTP-call edge kinds stated; coverage of non-Spring code untested [U] | MIT [V] | Local; "no telemetry" [V-claim]; `install` edits editor configs and git hooks [V] | v2.3.9 18 Sep 2026; at least 34 releases 26 Feb–10 Jun 2026 [V] | Leading candidate for **adapt**, pending experiment; effort [U] |
-| repowise | Code graph | Calls, imports, heritage, SQL lineage, co-change [V-claim] | `.repowise/wiki.db` holds a graph per user guide [V]; export formats markdown/html/json/structurizr documented [V]; no raw-graph export stated; outputs untested [U] | 28 AST languages [V-claim] | Where supported [A] | Cross-repository HTTP/gRPC/topic/OpenAPI contracts [V-claim]; untested [U] | AGPL-3.0; commercial option; PyPI says "or later" [V] | Local; opt-out telemetry [V]; `init` edits user and editor configs and can install a git hook; `--no-editor-setup` avoids both [V] | v0.59.0 25 Oct 2026 [V] | **Comparator**; licence open (Issue #30) |
+| repowise | Code graph | Calls, imports, heritage, SQL lineage, co-change [V-claim] | `.repowise/wiki.db` holds a graph per user guide [V]; export formats markdown/html/json/structurizr documented [V]; no raw-graph export stated; outputs untested [U] | 28 AST languages [V-claim] | Where supported [A] | Cross-repository HTTP/gRPC/topic/OpenAPI contracts [V-claim]; untested [U] | AGPL-3.0; commercial option; PyPI says "or later" [V] | Local; opt-out telemetry [V]; `init` edits user and editor configs and can install a git hook; `--no-editor-setup` avoids both [V] | v0.59.0 25 Oct 2026 [V] | **Comparator**; license open (Issue #30) |
 | Understand-Anything | Code graph | Imports, defs, calls + LLM summaries [V] | JSON file [V] | Not stated | [A] | Not stated | MIT [V] | LLM to build; telemetry not stated [V] | 88.4k stars [V] | Not preferred for ingestion: LLM at ingestion |
 | AiDex | Symbol index | Identifiers, methods, classes, types [V] | SQLite; MCP [V] | 14 [V] | [A] | Not stated | MIT [V] | Local [V] | 46 stars [V] | Not preferred: no stated graph [A] |
 | cocoindex-code | Semantic search | AST search [V] | LMDB; CLI/MCP [V] | ~37 [V] | [A] | Not stated | Apache-2.0 [V] | Local or cloud; opt-out telemetry [V] | 3.0k stars [V] | Search layer only [A] |
 | Joern | Infrastructure | Code property graph [V] | Scala shell; export not stated [V] | C/C++, Java, JS, Python, Kotlin, binaries [V] | Where supported [A] | Not stated | Apache-2.0 [V] | Local; JDK 21 [V] | v4.0.665 23 Oct 2026; 3.6k stars [V] | **Fallback** [A] |
-| CodeQL | Infrastructure | Query analysis [V] | Export not stated | 9 language folders in queries repository [V] | Commercial licence needed for closed source [V] | Not stated | Repo MIT; CLI separate [V] | Not stated | n/a | Licence risk [A] |
+| CodeQL | Infrastructure | Query analysis [V] | Export not stated | 9 language folders in queries repository [V] | Commercial license needed for closed source [V] | Not stated | Repo MIT; CLI separate [V] | Not stated | n/a | License risk [A] |
 | Tree-sitter | Parser library | Syntax trees [V] | Library API [V] | Via grammars [V] | [A] | No | MIT [V] | Local [V] | Crate 0.27.1 8 Oct 2026; 27.3k stars [V] | **Parser baseline** [A] |
 | ANTLR | Parser generator | Parse trees [V] | Library API [V] | 10 targets [V] | [A] | No | BSD-3 [V] | Local [V] | 19.0k stars [V] | Parser option; grammars would have to be written or sourced [A] |
 | SCIP indexers | Index protocol | Definitions/references [V] | SCIP index [V] | ~10 families [V] | Where supported [A] | Not stated | Apache-2.0 [V] | Not stated | 846 stars [V] | Possible precision layer [A] |
@@ -163,7 +163,7 @@ Categories are the authors' classification [A]. **TangleGuard:** official URL **
 | CodeCharta | Visualisation | Metrics, import deps [V] | Visual / CSV [V] | 19 parsers [V] | [A] | Imports | BSD-3 [V] | Local; no telemetry [V-claim] | 559 stars [V] | Supporting only |
 | tokei | Metrics | Line counts [V] | JSON/YAML/CBOR [V] | 150+ [V] | [A] | No | MIT / Apache-2.0 [V] | Local [V] | 15.0k stars [V] | Supporting only |
 | CodeScene | Commercial | Hotspots, health [V] | No API on page [V] | 25+ [V] | [A] | Not stated | Commercial [V] | Cloud or on-prem [V] | n/a | Not deeper |
-| CodeMR | Commercial | Metrics, coupling [V] | Reports [V] | 5 [V] | Limited | Class coupling | Not stated [V] | IDE-integrated [V] | n/a | Licence unclear |
+| CodeMR | Commercial | Metrics, coupling [V] | Reports [V] | 5 [V] | Limited | Class coupling | Not stated [V] | IDE-integrated [V] | n/a | License unclear |
 | Sonargraph | Commercial | Not detailed | Not stated | 6 [V] | Limited | Not stated | Commercial [V] | Not stated | n/a | Cost barrier |
 | Sourcegraph Cody | Assistant | n/a | n/a | n/a | n/a | n/a | Apache-2.0 on archived snapshot [V] | n/a | Archived 1 Aug 2025 [V] | Not applicable |
 | bloop | Assistant | Code search [V] | n/a | 10+ [V] | n/a | n/a | Apache-2.0 [V] | n/a | Archived 2 Jan 2025 [V] | Not applicable |
@@ -198,18 +198,18 @@ No tool was tested, so every cell states what the documentation shows. "Unknown"
 | SCIP indexers | Occurrence ranges in the protocol [A]; not verified | Definitions and references [V] | Per-language indexers [V] |
 | Others | Unknown | Unknown | Unknown |
 
-### 6.4 Licence summary (C7, separate from C11)
+### 6.4 License summary (C7, separate from C11)
 
-| Licence group | Tools |
+| License group | Tools |
 |---|---|
 | MIT / Apache-2.0 / BSD-3 | code-review-graph, Understand-Anything, AiDex, cocoindex-code, Joern, Tree-sitter, ANTLR, SCIP, CLDK, SQLGlot, sqlgpt-parser, CodeCharta, tokei |
 | Copyleft | repowise (AGPL-3.0; commercial licensing offered), code-maat (GPL-3.0), jQAssistant (GPL-3.0) |
 | Commercial / restricted | CodeQL CLI, CodeScene, Sonargraph, Driver |
 | Not stated | CodeMR |
 
-repowise: the README and the `LICENSE` file say AGPL-3.0, the PyPI metadata says "AGPL-3.0-or-later", and the README offers commercial licensing. Licence detail, input for Issue #30 and the licences of the reference systems are in the [security and licence assessment](./security-assessment.md#licence-detail). This is not legal advice.
+repowise: the README and the `LICENSE` file say AGPL-3.0, the PyPI metadata says "AGPL-3.0-or-later", and the README offers commercial licensing. License detail, input for Issue #30 and the licenses of the reference systems are in the [security and license assessment](./security-assessment.md#license-detail). This is not legal advice.
 
-## 7. Reference Systems and Validation Strategy
+## 7. Validation Strategy
 
 ### 7.1 Tool research vs tool testing, and what each level supports
 
@@ -221,59 +221,16 @@ repowise: the README and the `LICENSE` file say AGPL-3.0, the PyPI metadata says
 
 The preliminary recommendation in §9 rests on L0 evidence and is valid on that basis. L1 and L2 are validation steps. If their results contradict it, the shortlist is revised.
 
-### 7.2 Public IBM reference system (preliminary testing reference)
+The two reference systems behind L1 and L2 (a public IBM sample and the industry partner's private staged example) are described in the [experiment plan](./experiment-plan.md#reference-systems).
 
-Repository: `IBM/application-modernization-javaee-quarkus` [V, with the summariser caveat]. It is also the reference system in the team's arc42 rendering research.
-
-Known from the repository page:
-- Description: "Application Modernization Sample: From Java EE (2010) to Cloud-Native (2021)". The README calls the legacy application a Java EE 6 application from 2008.
-- Apache-2.0 licence. 322 commits on the default branch at the time of reading. The page indicates the repository is **archived (read-only)**; the archive date is not recorded here because it has not been independently verified.
-- Languages and build tools: **not stated on the page [U]**.
-- Technologies named: Db2 (legacy monolith), Postgres (catalog service), Kafka (events), Quarkus, Open Liberty, WebSphere, OpenShift.
-- Ten modernisation steps in the README. Step 5 is the Open Liberty monolith. Step 6 is the strangled Quarkus catalog service plus the remaining monolith, with Kafka messaging.
-- Structure: the steps are **directories in one snapshot**, not tags or separate repositories. Examples are `monolith-websphere-855`, `monolith-open-liberty`, `monolith-quarkus-synch`, `service-catalog-quarkus-synch`, `service-catalog-quarkus-reactive`, `proxy`, three frontends (Dojo, single-spa/Vue), `db2`, and deployment scripts.
-
-Why it is relevant for preliminary AST extraction, dependency analysis and code-to-graph experiments:
-1. It contains a Java EE monolith, a strangled catalog service, Kafka and two databases. The same patterns are in the staged system [P].
-2. It is public and Apache-2.0, so no confidentiality limits apply and results can be shared in the team repository.
-3. It covers Java in several frameworks, JavaScript/Vue frontends, Db2 SQL and YAML/shell scripts. That tests language coverage (C4) and the split between AST and non-AST ingestion.
-4. It is already used in the arc42 research, so component names and coupling edges can be compared across research items. The arc42 trial's view model is hand-written, so it provides no extraction ground truth.
-5. It is archived, so the snapshot is stable during an experiment.
-
-Limits: a before/after pair has to be formed from directory subsets, not from a git diff. Ground truth must be built by hand. Whether the commit history supports historical checkouts is **[U]**. Because the example uses Quarkus, Spring-specific enrichment in some tools (§5.1) may not apply [A].
-
-### 7.3 Industry partner's staged reference system (project-specific validation, priority)
-
-The industry partner's private staged example consists of one umbrella repository and eight component repositories, with stages tagged `step-00` to `step-10`. Its location was shared privately with the team. **Access is pending and the contents have not been inspected.** All statements below come from the partner's emails and are [P].
-
-- It is derived from the IBM application, with added explanations, and is split into separate repositories as migrated components are developed.
-- Supporting documents: stage descriptions, derivation notes, a corrected question set (the earlier version is superseded), licence notices, and fix scripts. The fix scripts address unpinned container images and a proprietary Db2 driver, which matters for builds, probably not for static analysis [A].
-- Source code is described as unchanged and Apache-2.0; the partner's additions are also Apache-2.0. The licence notices have not been read.
-- **Minimum acceptance step: `step-05` → `step-06`, the extraction of the catalog service.** The system must explain what is newly covered (documents, classes, packages, deployments). `step-05` deliberately contains no catalog service, even though the original source history already had one.
-- Building and running the stages is now possible, and the partner states developers probably should try it (quoted in §2).
-- Acceptance criteria for the January demo: explain what remains in legacy and what is in the target; every answer cites file, commit or document; use existing AST parsers; answer "I don't know" when data is missing; document the acceptance run. Six named questions are rated by the partner as correct, partly correct or wrong. Stretch goals (arc42 views, further steps, scheduled runs) are not required.
-
-### 7.4 The two reference systems are not identical
-
-| Aspect | Public IBM repository | Industry partner's staged system |
-|---|---|---|
-| Access | Public | Private, pending |
-| Structure | One snapshot, steps as directories [V] | Nine repositories, stages as tags [P] |
-| Stage definition | README steps 1–10 [V] | `step-00`–`step-10`; `step-05` has no catalog service although the original history did [P] |
-| Added material | None | Explanations, fix scripts, acceptance questions [P] |
-| Contents verified | Page only | Not inspected |
-
-- The stage numbering of the two systems may not correspond (IBM steps run 1–10, the partner's 00–10). A pair such as "Open Liberty monolith alone" versus "monolith plus `service-catalog-quarkus-synch` and `proxy`" is a plausible analogue of the acceptance pair. This is an assumption [A], not a verified mapping.
-- The first-increment proposal draft placed the catalog extraction at "step-07". The partner's email says `step-05` → `step-06`. The email is treated as authoritative, and the proposal should be corrected.
-
-### 7.5 Validation rules (summary)
+### 7.2 Validation rules (summary)
 
 Preliminary results are labelled "preliminary, public stand-in"; project-specific validation needs the partner's staged system and separate approval; private content and derived outputs stay out of the public repository; tools never receive credentials; EXP-1 is static analysis only; every result records repository, tag or directory, tool version, date and command. The full rules are in the [experiment plan](./experiment-plan.md#validation-rules).
 
 ## 8. Legacy and target code (AC5)
 
 - Tree-sitter-based tools apply the same mechanism to any repository whose language they support [A].
-- The comparison unit is a stage pair. In the staged system it is `step-05` → `step-06`. In the public repository it is the directory subsets of §7.4.
+- The comparison unit is a stage pair. In the staged system it is `step-05` → `step-06`. In the public repository it is the directory subsets described in the [experiment plan](./experiment-plan.md#reference-systems).
 - Messaging routes, shared tables and deployment configuration are documented as Spring-specific schema entries for code-review-graph [V] and as contract matching and SQL lineage for repowise [V-claim]. None of this has been tested on either reference system.
 - AST and code facts are distinguished from documents and deployment files, which may need other ingestion methods. Each tool is recorded as "AST only" or "AST plus other" in the tests.
 - repowise declares `sqlglot>=26,<28` for version 0.59.0, while the design SBOM pins SQLGlot 30.22.0 [V]. The SBOM also lists repowise 0.58.0; whether that version has the same range is **[U]**. Installing both in one environment may fail [A].
@@ -294,7 +251,7 @@ This recommendation is a **justified shortlist based on documented capabilities 
 
 **Conclusion.** The preliminary stance is adapt: reuse an existing Tree-sitter-based analyser and write our own normalisation, evidence tagging and graph loading, as the partner's rule requires [P]. Build means only the layers around the parser. Adopt is not recommended without a graph-access test, and repowise remains the alternative. A lack of published advisories is not treated as proof of security.
 
-**What would change this.** A failed EXP-1 Phase A or B for the leading candidate; a licence ruling against the AGPL option; or the discovery that required language coverage or coupling extraction (including Quarkus messaging and SQL tables) is missing.
+**What would change this.** A failed EXP-1 Phase A or B for the leading candidate; a license ruling against the AGPL option; or the discovery that required language coverage or coupling extraction (including Quarkus messaging and SQL tables) is missing.
 
 ## 10. Validation experiment EXP-1 (summary; plan only, nothing executed)
 
@@ -305,27 +262,27 @@ The full procedures, safety conditions, tests, provisional thresholds and decisi
 **Priorities, in order:** (1) direct graph access and export; (2) AST and dependency extraction; (3) applicability to legacy and target code; (4) coupling extraction.
 
 **Phases (each step needs explicit approval)**
-- **Phase A (L1):** the public IBM repository, with a pinned snapshot recorded at the start. Before/after pairs are formed from directory subsets (§7.4 of this report). Ground truth is derived by hand from directory listings and a seeded sample of 25 files, reviewed by a second person.
+- **Phase A (L1):** the public IBM repository, with a pinned snapshot recorded at the start. Before/after pairs are formed from directory subsets (see [Reference systems](./experiment-plan.md#reference-systems)). Ground truth is derived by hand from directory listings and a seeded sample of 25 files, reviewed by a second person.
 - **Phase B (L2):** the industry partner's staged system once access is granted. Index `step-05` and `step-06` per repository from manual checkouts of each tag. Ground truth from the diff between the tags, the partner's step and question documents, and a second reviewer.
 - **Optional controlled test:** a small synthetic fixture (about 10–15 Java files per side) with known classes, calls, imports, a shared SQL table, a Kafka produce/consume pair and an HTTP route. It is written in a scratch directory and is used only if a known-answer check is needed.
 
-**Outcomes.** Each tool is rated suitable, partially suitable or not suitable against provisional thresholds that need team review. Licence (C7) and security (C11) remain separate gates. Phase A can eliminate a candidate or revise the shortlist; Phase B provides project-specific validation. The Issue #5 recommendation in §9 does not wait for either. See the [decision rule](./experiment-plan.md#decision-rule).
+**Outcomes.** Each tool is rated suitable, partially suitable or not suitable against provisional thresholds that need team review. License (C7) and security (C11) remain separate gates. Phase A can eliminate a candidate or revise the shortlist; Phase B provides project-specific validation. The Issue #5 recommendation in §9 does not wait for either. See the [decision rule](./experiment-plan.md#decision-rule).
 
 ## 11. Open questions and untested items
 
 | # | Open question | Detail in |
 |---|---|---|
 | 1 | Hands-on test of direct graph access for code-review-graph and repowise; needs approval to install. | [experiment plan](./experiment-plan.md#tests-same-in-both-phases) |
-| 2 | Access to the staged repositories; their languages, layout and build systems. | §7.3 |
-| 3 | Whether the stage numbering of the public repository corresponds to the staged system's. | §7.4 |
+| 2 | Access to the staged repositories; their languages, layout and build systems. | [experiment plan](./experiment-plan.md#reference-systems) |
+| 3 | Whether the stage numbering of the public repository corresponds to the staged system's. | [experiment plan](./experiment-plan.md#reference-systems) |
 | 4 | Whether commit history or a manual checkout can provide the stage pair in each repository. | [experiment plan](./experiment-plan.md#phases-each-step-needs-explicit-approval) |
 | 5 | TangleGuard's official source. | §3 |
-| 6 | Whether an AGPL tool may be used (Issue #30). | [security assessment](./security-assessment.md#licence-detail) |
+| 6 | Whether an AGPL tool may be used (Issue #30). | [security assessment](./security-assessment.md#license-detail) |
 | 7 | Full lockfile-level dependency scan of the chosen tool; transitive dependencies. | [security assessment](./security-assessment.md#method-and-limits) |
 | 8 | repowise and SQLGlot version-range conflict (0.59.0 verified; 0.58.0 untested). | §8; [security assessment, Appendix A.2](./security-assessment.md#a2-repowise-0590) |
 | 9 | Alignment of criteria with Issue #6. | §4 |
 | 10 | Whether derived data from private repositories may be committed to the public repository (assumed no). | [experiment plan](./experiment-plan.md#validation-rules) |
-| 11 | Correction of the "step-07" reference in the first-increment proposal draft. | §7.4 |
+| 11 | Correction of the "step-07" reference in the first-increment proposal draft. | [experiment plan](./experiment-plan.md#reference-systems) |
 | 12 | Whether D10 (no builds or execution of analysed repositories) stays, changes or is dropped, given the partner's guidance that building and running the stages is possible and encouraged. | §2; [experiment plan](./experiment-plan.md#safety-conditions) |
 | 13 | Whether code-review-graph's Spring-specific messaging edges work on Quarkus code, and whether either tool finds SQL-table coupling. | §5.1, §6.1; [experiment plan](./experiment-plan.md#tests-same-in-both-phases) |
 | 14 | Which mechanism disables repowise telemetry. | §5.1; [experiment plan](./experiment-plan.md#safety-conditions) |
