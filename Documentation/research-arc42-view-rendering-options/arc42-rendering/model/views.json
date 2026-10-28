@@ -1,0 +1,42 @@
+{
+  "system": {
+    "id": "cos",
+    "name": "Customer Order Services",
+    "description": "Storefront sample being migrated from Java EE (2010) to cloud-native (IBM reference repo)"
+  },
+  "actors": [
+    {"id": "shopper", "name": "Shopper", "description": "Browses the catalog and places orders"}
+  ],
+  "external_systems": [],
+  "containers": [
+    {"id": "monolith_was855", "name": "Monolith (WebSphere Traditional 8.5.5)", "tech": "Java EE 6, EJB, JAX-RS", "group": "legacy", "status": "decommissioned", "source": "monolith-websphere-855/"},
+    {"id": "frontend_dojo", "name": "Storefront UI (Dojo)", "tech": "Dojo Toolkit", "group": "legacy", "status": "decommissioned", "source": "frontend-dojo/"},
+    {"id": "monolith_liberty", "name": "Remaining monolith: orders, customers, cart", "tech": "Open Liberty, Java EE", "group": "legacy", "status": "legacy", "source": "monolith-open-liberty*/"},
+    {"id": "monolith_quarkus", "name": "Remaining monolith on Quarkus", "tech": "Quarkus native", "group": "target", "status": "in-development", "source": "monolith-quarkus*/"},
+    {"id": "catalog_service", "name": "Catalog service (strangled)", "tech": "Quarkus reactive", "group": "target", "status": "target", "source": "service-catalog-quarkus-reactive/"},
+    {"id": "frontend_spa", "name": "Micro-frontend web app", "tech": "single-spa, Vue.js, RxJS", "group": "target", "status": "target", "source": "frontend-single-spa*/"},
+    {"id": "db2", "name": "Order database", "tech": "Db2", "group": "data", "status": "legacy", "kind": "database"},
+    {"id": "postgres", "name": "Catalog database", "tech": "PostgreSQL", "group": "data", "status": "target", "kind": "database"},
+    {"id": "kafka", "name": "Event broker (price changes)", "tech": "Kafka", "group": "data", "status": "target", "kind": "queue"}
+  ],
+  "relationships": [
+    {"from": "shopper", "to": "frontend_spa", "label": "Uses", "tech": "HTTPS"},
+    {"from": "frontend_spa", "to": "catalog_service", "label": "Browses catalog", "tech": "REST"},
+    {"from": "frontend_spa", "to": "monolith_liberty", "label": "Cart, orders, account", "tech": "REST"},
+    {"from": "catalog_service", "to": "postgres", "label": "Reads/writes products", "tech": "reactive SQL"},
+    {"from": "catalog_service", "to": "kafka", "label": "Publishes price changes", "tech": "Kafka", "coupling": "messaging"},
+    {"from": "monolith_liberty", "to": "kafka", "label": "Subscribes to price changes", "tech": "Kafka", "coupling": "messaging"},
+    {"from": "monolith_liberty", "to": "db2", "label": "Reads/writes orders + catalog copy", "tech": "JDBC", "coupling": "shared-data"},
+    {"from": "monolith_quarkus", "to": "db2", "label": "Reads/writes orders", "tech": "JDBC", "coupling": "shared-data"},
+    {"from": "monolith_quarkus", "to": "kafka", "label": "Subscribes to price changes", "tech": "Kafka", "coupling": "messaging"}
+  ],
+  "deployment": {
+    "environment": "OpenShift (app-mod-dev)",
+    "nodes": [
+      {"id": "ocp", "name": "OpenShift cluster", "tech": "Kubernetes", "children": [
+        {"id": "ns_app", "name": "Namespace app-mod-dev", "tech": "Tekton-built images", "instances": ["frontend_spa", "catalog_service", "monolith_liberty"]},
+        {"id": "ns_data", "name": "Data services", "tech": "deploy-db2.sh / deploy-postgres.sh / deploy-kafka.sh", "instances": ["db2", "postgres", "kafka"]}
+      ]}
+    ]
+  }
+}
