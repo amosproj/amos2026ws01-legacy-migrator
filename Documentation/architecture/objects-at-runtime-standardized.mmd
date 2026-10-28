@@ -1,0 +1,26 @@
+%% SunsetTracker - Objects at Runtime (Architecture Deliverable, Sprint 02)
+%% Three columns like the lecture template: Web client / Application service /
+%% Persistence service. Object instances are noted as :ClassName.
+%% Frontend and backend are HOSTED SEPARATELY (industry partner requirement,
+%% no single origin). The LLM server belongs to the column "Application
+%% service" but is a separate server from the backend - it may run locally
+%% (e.g. Ollama) or remotely in the cloud (API key), exchangeable thanks to
+%% the OpenAI-compatible adapter inside the backend.
+%% Python version is intentionally left open (not yet fixed in the SBOM).
+flowchart LR
+    subgraph WEB["Web client"]
+        WA[":WebApp<br/>Vite + React + TS<br/>ChatUI and ViewsUI"]
+    end
+    subgraph APP["Application service"]
+        BE[":BackendServer<br/>Python + FastAPI (version open)<br/>McpFacade, ChatOrchestrator,<br/>LlmAdapter, IngestionPipeline, ViewGenerator"]
+        LLM[":LlmServer<br/>local, e.g. Ollama - or cloud"]
+    end
+    subgraph PERS["Persistence service"]
+        G[":GraphStore<br/>Neo4j (candidate)"]
+        GIT[":GitDepot<br/>local repositories, pinned steps"]
+    end
+
+    WA -- "HTTPS: REST / MCP<br/>no single origin" --> BE
+    BE -- "OpenAI-compatible HTTP API<br/>via LlmAdapter" --> LLM
+    BE -- "driver / Cypher" --> G
+    BE -- "git CLI (worktrees)" --> GIT

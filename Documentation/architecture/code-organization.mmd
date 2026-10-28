@@ -1,0 +1,50 @@
+flowchart TB
+%% MA-CONTRACT-1.0 | Accepted design; implementation verification pending
+%% Preserve existing schema. Offline local comparison MVP; future features explicitly marked.
+    ROOT["bootstrap/<br/>Composition root<br/>Construct and inject adapters"]
+    subgraph OWN["migration_assistant - proposed source packages"]
+        MCP["adapters/inbound/mcp/<br/>Tool schemas and authorization"]
+        USE["application/<br/>analyze_repo / history / compare<br/>migration_status / review / retrieve<br/>diff_snapshots / arc42_view / jobs"]
+        PORTS["application/ports/<br/>RepositoryPort / ExtractorPort / KnowledgeStorePort<br/>ChatModel / Embedder / ExternalDocsPort"]
+        DOMAIN["domain/<br/>Snapshot / ExtractionRun / evidence<br/>StepSelection / SnapshotSelector / ComparisonResult<br/>Pydantic canonical facts; existing schema retained"]
+        VIEWS["views/<br/>View-model projection<br/>Mermaid and Markdown emitters"]
+        GIT["adapters/outbound/git/<br/>Local ref resolution / history / diff<br/>Offline complete-object validation"]
+        EX["adapters/outbound/extractors/<br/>code-review-graph / SQLGlot<br/>markdown-it-py<br/>Custom deployment/config readers"]
+        ATL["Future adapters/outbound/atlassian/<br/>atlassian-python-api / markdownify"]
+        PG["adapters/outbound/postgres/<br/>asyncpg / AGE queries<br/>pgvector queries / job ledger"]
+        OL["adapters/outbound/ollama/<br/>Provider-specific clients isolated here<br/>Optional backend ChatModel / local Embedder"]
+        RUNNER["runtime/<br/>Worker loop / subprocess policy<br/>Resource limits and shutdown"]
+    end
+    TEST["tests/<br/>pytest<br/>Unit / contract / integration<br/>Golden-file view tests"]
+    OPS["deployment/ and ci/<br/>Pinned images and model artifacts<br/>LibreChat and FerretDB configuration<br/>cyclonedx-bom / Syft / pip-licenses"]
+
+    ROOT -.->|"imports / assembles"| MCP
+    ROOT -.-> USE
+    ROOT -.-> GIT
+    ROOT -.-> EX
+    ROOT -.-> ATL
+    ROOT -.-> PG
+    ROOT -.-> OL
+    ROOT -.-> RUNNER
+    MCP -.->|"invokes"| USE
+    RUNNER -.->|"invokes"| USE
+    USE -.->|"depends on abstractions"| PORTS
+    USE -.-> DOMAIN
+    USE -.-> VIEWS
+    PORTS -.-> DOMAIN
+    VIEWS -.-> DOMAIN
+    GIT -.->|"imports port contract"| PORTS
+    EX -.->|"imports port contract"| PORTS
+    ATL -.->|"imports port contract"| PORTS
+    PG -.->|"imports port contract"| PORTS
+    OL -.->|"imports port contract"| PORTS
+    TEST -.-> USE
+    TEST -.-> DOMAIN
+    TEST -.-> VIEWS
+    OPS -.->|"packages / configures; not a Python import"| ROOT
+
+    HOSTCFG["host configuration/<br/>LibreChat chat-provider adapter<br/>Ollama first; other implementations deferred<br/>Host owns chat tool loop"]
+    FAKE["tests/contract/<br/>Fake alternate provider<br/>Same normalized messages / tool proposals / errors"]
+    OPS -.-> HOSTCFG
+    FAKE -.-> PORTS
+    FAKE -.-> HOSTCFG

@@ -1,0 +1,57 @@
+%% SunsetTracker - Code Organization (Architecture Deliverable, Sprint 02)
+%% Horizontal layers like the lecture template: Application / Framework /
+%% Platform. The same component set as in runtime-architecture.mmd, now
+%% organized by where the code lives.
+%% FRONTEND AND BACKEND ARE TWO SEPARATE REPOSITORIES (built and hosted
+%% separately, no single origin). Python version is intentionally left open
+%% (not yet fixed in the SBOM). The LLM server is organized in the platform
+%% layer because we only operate it (local) or consume it (cloud) - we do not
+%% modify its code.
+classDiagram
+    direction TB
+
+    namespace ApplicationLayer {
+        class FrontendPackage["frontend"] {
+            +ChatUI
+            +ViewsUI
+        }
+        class BackendPackage["backend"] {
+            +api (incl. McpFacade)
+            +chat (incl. ChatOrchestrator)
+            +ingest (IngestionPipeline)
+            +views (ViewGenerator)
+            +adapters (incl. LlmAdapter)
+        }
+    }
+    namespace FrameworkLayer {
+        class ReactVite["React + Vite"]
+        class FastAPI["FastAPI + Pydantic"]
+        class McpSdk["MCP SDK"]
+        class Neo4jDriver["Neo4j driver"]
+        class OpenAiClient["OpenAI-compatible client"]
+    }
+    namespace PlatformLayer {
+        class NodeRuntime["Node.js"]
+        class Python["Python (version open)"]
+        class Neo4jServer["Neo4j server"]
+        class GitTool["Git"]
+        class LlmRuntime["LLM server (local or cloud)"]
+        class Docker["Docker Compose"]
+    }
+
+    FrontendPackage "1" --> "0..*" ReactVite : uses
+    BackendPackage "1" --> "0..*" FastAPI : uses
+    BackendPackage "1" --> "0..*" McpSdk : uses
+    BackendPackage "1" --> "0..*" Neo4jDriver : uses
+    BackendPackage "1" --> "0..*" OpenAiClient : uses
+
+    ReactVite "1" --> "1" NodeRuntime : runs on
+    FastAPI "1" --> "1" Python : runs on
+    Neo4jDriver "1" --> "1" Neo4jServer : connects to
+    OpenAiClient "1" --> "1" LlmRuntime : calls
+
+    BackendPackage ..> GitTool : invokes git CLI
+    Docker ..> NodeRuntime : orchestrates
+    Docker ..> Python : orchestrates
+    Docker ..> Neo4jServer : orchestrates
+    Docker ..> LlmRuntime : orchestrates (local)

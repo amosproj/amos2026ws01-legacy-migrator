@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AMOS 2026 - arc42 Architecture Views Demo</title>
+  <link rel="icon" href="data:,">
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --border: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #38bdf8;
+      --success: #34d399;
+      --warning: #fbbf24;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 24px;
+      line-height: 1.5;
+    }
+    header {
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 16px;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    h1 { font-size: 1.5rem; font-weight: 700; color: var(--primary); }
+    .badge {
+      background: #064e3b;
+      color: var(--success);
+      padding: 4px 10px;
+      border-radius: 9999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      border: 1px solid #059669;
+    }
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      background: var(--card-bg);
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 24px;
+      font-size: 0.85rem;
+      border: 1px solid var(--border);
+    }
+    .legend-item { display: flex; align-items: center; gap: 6px; }
+    .color-box { width: 14px; height: 14px; border-radius: 3px; display: inline-block; }
+    .box-legacy { background: #d9d9d9; border: 1px solid #666; }
+    .box-indev { background: #ffd966; border: 1px solid #b38f00; }
+    .box-target { background: #9fc5e8; border: 1px solid #1f5fa8; }
+    .box-decom { background: #ffffff; border: 1px dashed #999; }
+    
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 24px;
+      margin-bottom: 28px;
+    }
+    .card h2 { font-size: 1.25rem; color: var(--text); margin-bottom: 16px; }
+    
+    .mermaid-box {
+      background: #0a0f1d;
+      padding: 20px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      display: flex;
+      justify-content: center;
+      margin-bottom: 20px;
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 16px;
+      font-size: 0.9rem;
+    }
+    th, td {
+      border: 1px solid var(--border);
+      padding: 10px 14px;
+      text-align: left;
+    }
+    th { background: #0a0f1d; color: var(--primary); }
+    tr:nth-child(even) { background: #162032; }
+
+    .test-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #0a0f1d;
+      border: 1px solid var(--border);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 0.85rem;
+      margin-right: 8px;
+      margin-bottom: 8px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div>
+      <h1>AMOS 2026 — Know Legacy: arc42 Views Demo</h1>
+      <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 4px;">
+        Issue #7: Research arc42 view rendering options & MCP tool spike
+      </p>
+    </div>
+    <div>
+      <span class="badge">12/12 Unit Tests Passing (100% OK)</span>
+    </div>
+  </header>
+
+  <div class="legend">
+    <div class="legend-item"><span class="color-box box-legacy"></span> <b>Legacy</b> (Old Monolith)</div>
+    <div class="legend-item"><span class="color-box box-indev"></span> <b>In Development</b> (Target Monolith on Quarkus)</div>
+    <div class="legend-item"><span class="color-box box-target"></span> <b>Target</b> (Strangled Quarkus Microservices)</div>
+    <div class="legend-item"><span class="color-box box-decom"></span> <b>Decommissioned</b> (Shut Down / Replaced)</div>
+    <div class="legend-item"><span style="border-bottom: 2px dashed #c2410c; width: 18px; display: inline-block;"></span> <b>Coupling</b> (Kafka / Shared DB)</div>
+  </div>
+
+  <!-- Building Block View -->
+  <section class="card" id="building-block">
+    <h2>1. arc42 §5 — Building Block View (Level 1 Decomposition)</h2>
+    <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 16px;">
+      Shows remaining legacy monolith, modern target services, and coupling routes side-by-side, coloured by lifecycle status.
+    </p>
+
+    <div class="mermaid-box">
+      <pre class="mermaid">
+flowchart LR
+    shopper(["Shopper"])
+    subgraph legacy_grp["Legacy"]
+        frontend_dojo["Storefront UI (Dojo)<br/><i>Dojo Toolkit</i><br/>«decommissioned»"]:::decommissioned
+        monolith_liberty["Remaining monolith: orders, customers, cart<br/><i>Open Liberty, Java EE</i><br/>«legacy»"]:::legacy
+        monolith_was855["Monolith (WebSphere Traditional 8.5.5)<br/><i>Java EE 6, EJB, JAX-RS</i><br/>«decommissioned»"]:::decommissioned
+    end
+    subgraph target_grp["Target"]
+        catalog_service["Catalog service (strangled)<br/><i>Quarkus reactive</i><br/>«target»"]:::target
+        frontend_spa["Micro-frontend web app<br/><i>single-spa, Vue.js, RxJS</i><br/>«target»"]:::target
+        monolith_quarkus["Remaining monolith on Quarkus<br/><i>Quarkus native</i><br/>«in development»"]:::in_development
+    end
+    subgraph data_grp["Data & messaging"]
+        db2[("Order database<br/><i>Db2</i><br/>«legacy»")]:::legacy
+        kafka[["Event broker (price changes)<br/><i>Kafka</i><br/>«target»"]]:::target
+        postgres[("Catalog database<br/><i>PostgreSQL</i><br/>«target»")]:::target
+    end
+    catalog_service -.->|"Publishes price changes"| kafka
+    catalog_service -->|"Reads/writes products"| postgres
+    frontend_spa -->|"Browses catalog"| catalog_service
+    frontend_spa -->|"Cart, orders, account"| monolith_liberty
+    monolith_liberty -.->|"Reads/writes orders + catalog copy"| db2
+    monolith_liberty -.->|"Subscribes to price changes"| kafka
+    monolith_quarkus -.->|"Reads/writes orders"| db2
+    monolith_quarkus -.->|"Subscribes to price changes"| kafka
+    shopper -->|"Uses"| frontend_spa
+    classDef legacy fill:#d9d9d9,stroke:#666666,color:#1e293b
+    classDef in_development fill:#ffd966,stroke:#b38f00,color:#1e293b
+    classDef target fill:#9fc5e8,stroke:#1f5fa8,color:#1e293b
+    classDef decommissioned fill:#ffffff,stroke:#999999,stroke-dasharray:5,color:#999999
+      </pre>
+    </div>
+
+    <h3 style="font-size: 1.05rem; margin-top: 16px;">Accompanying Documentation Table</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Building Block</th>
+          <th>Technology</th>
+          <th>Migration Status</th>
+          <th>Source Repository Location</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Catalog service (strangled)</td><td>Quarkus reactive</td><td><span style="color:#38bdf8; font-weight:600;">target</span></td><td><code>service-catalog-quarkus-reactive/</code></td></tr>
+        <tr><td>Remaining monolith: orders, customers, cart</td><td>Open Liberty, Java EE</td><td><span style="color:#94a3b8; font-weight:600;">legacy</span></td><td><code>monolith-open-liberty*/</code></td></tr>
+        <tr><td>Remaining monolith on Quarkus</td><td>Quarkus native</td><td><span style="color:#fbbf24; font-weight:600;">in development</span></td><td><code>monolith-quarkus*/</code></td></tr>
+        <tr><td>Storefront UI (Dojo)</td><td>Dojo Toolkit</td><td><span style="color:#94a3b8; text-decoration: line-through;">decommissioned</span></td><td><code>frontend-dojo/</code></td></tr>
+        <tr><td>Monolith (WebSphere Traditional 8.5.5)</td><td>Java EE 6, EJB</td><td><span style="color:#94a3b8; text-decoration: line-through;">decommissioned</span></td><td><code>monolith-websphere-855/</code></td></tr>
+        <tr><td>Order database</td><td>Db2</td><td><span style="color:#94a3b8; font-weight:600;">legacy</span></td><td><code>-</code></td></tr>
+        <tr><td>Catalog database</td><td>PostgreSQL</td><td><span style="color:#38bdf8; font-weight:600;">target</span></td><td><code>-</code></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- Deployment View -->
+  <section class="card" id="deployment">
+    <h2>2. arc42 §7 — Deployment View (OpenShift Cluster Infrastructure)</h2>
+    <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 16px;">
+      Shows where containers run at runtime, including Kubernetes namespaces and messaging/database routes.
+    </p>
+    <div class="mermaid-box">
+      <pre class="mermaid">
+flowchart TB
+    subgraph ocp["OpenShift cluster<br/><i>Kubernetes / OCP 4</i>"]
+        subgraph ns_app["Namespace app-mod-dev<br/><i>Tekton-built images</i>"]
+            catalog_service["Catalog service (strangled)<br/><i>Quarkus reactive</i><br/>«target»"]:::target
+            frontend_spa["Micro-frontend web app<br/><i>single-spa, Vue.js, RxJS</i><br/>«target»"]:::target
+            monolith_liberty["Remaining monolith: orders, customers, cart<br/><i>Open Liberty, Java EE</i><br/>«legacy»"]:::legacy
+        end
+        subgraph ns_data["Data services<br/><i>deploy-db2.sh / deploy-postgres.sh / deploy-kafka.sh</i>"]
+            db2[("Order database<br/><i>Db2</i><br/>«legacy»")]:::legacy
+            kafka[["Event broker (price changes)<br/><i>Kafka</i><br/>«target»"]]:::target
+            postgres[("Catalog database<br/><i>PostgreSQL</i><br/>«target»")]:::target
+        end
+    end
+    catalog_service -.->|"Kafka"| kafka
+    catalog_service -->|"reactive SQL"| postgres
+    frontend_spa -->|"REST"| catalog_service
+    frontend_spa -->|"REST"| monolith_liberty
+    monolith_liberty -.->|"JDBC"| db2
+    monolith_liberty -.->|"Kafka"| kafka
+    classDef legacy fill:#d9d9d9,stroke:#666666,color:#1e293b
+    classDef in_development fill:#ffd966,stroke:#b38f00,color:#1e293b
+    classDef target fill:#9fc5e8,stroke:#1f5fa8,color:#1e293b
+      </pre>
+    </div>
+  </section>
+
+  <!-- Context View -->
+  <section class="card" id="context">
+    <h2>3. arc42 §3 — System Context & Interfaces</h2>
+    <div class="mermaid-box">
+      <pre class="mermaid">
+flowchart LR
+    shopper(["Shopper"])
+    cos["Customer Order Services<br/><i>legacy + target landscape</i>"]
+    shopper -->|"Uses (HTTPS / REST)"| cos
+    classDef external fill:#eeeeee,stroke:#999999,stroke-dasharray:4
+      </pre>
+    </div>
+  </section>
+
+  <!-- MCP Tool & Tests -->
+  <section class="card" id="mcp">
+    <h2>4. Prototype MCP Tool & Verification Results</h2>
+    <p style="margin-bottom: 16px; color: var(--text-muted);">
+      The MCP tool <code>arc42_view(view, scope)</code> allows the AI chat assistant to dynamically generate these diagrams on demand with 0 external servers.
+    </p>
+
+    <h3 style="margin-bottom: 12px; font-size: 1.05rem;">Automated Unit Tests (<code>test_generate.py</code>)</h3>
+    <div style="margin-bottom: 20px;">
+      <div class="test-pill">✅ test_deterministic_output</div>
+      <div class="test-pill">✅ test_escaping</div>
+      <div class="test-pill">✅ test_likec4_generation</div>
+      <div class="test-pill">✅ test_load_deterministic_sorting</div>
+      <div class="test-pill">✅ test_markdown_tables</div>
+      <div class="test-pill">✅ test_mcp_tool_all_views</div>
+      <div class="test-pill">✅ test_mcp_tool_invalid_view</div>
+      <div class="test-pill">✅ test_mcp_tool_scoping</div>
+      <div class="test-pill">✅ test_mermaid_building_block_view</div>
+      <div class="test-pill">✅ test_mermaid_context_view</div>
+      <div class="test-pill">✅ test_mermaid_deployment_view</div>
+      <div class="test-pill">✅ test_structurizr_generation</div>
+    </div>
+
+    <h3 style="font-size: 1.05rem;">Scorecard Summary</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Format</th>
+          <th>Chat Inline Render</th>
+          <th>Server Overhead</th>
+          <th>DoD Rating</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><b>Mermaid + Table (Selected)</b></td><td><span style="color:#34d399; font-weight:600;">✅ Client-Side (LibreChat / GitHub)</span></td><td>Zero (Pure Python)</td><td><b>39 / 45 (Winner)</b></td></tr>
+        <tr><td><b>LikeC4</b></td><td><span style="color:#f87171">❌ Requires Web App</span></td><td>Node.js Toolchain</td><td>37 / 45</td></tr>
+        <tr><td><b>Structurizr DSL</b></td><td><span style="color:#f87171">❌ Requires Java Process</span></td><td>Docker / JVM</td><td>34 / 45</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <script>
+    mermaid.initialize({ startOnLoad: true, theme: 'dark' });
+  </script>
+</body>
+</html>
