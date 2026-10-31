@@ -34,3 +34,8 @@ bin/
 
 # MacOS
 .DS_Store
+
+# Reference workspace cache
+.cache/
+
+.venv/
