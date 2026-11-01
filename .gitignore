@@ -39,3 +39,6 @@ bin/
 .cache/
 
 .venv/
+
+# Local Claude Code files
+.claude/
