@@ -47,6 +47,7 @@ class SkippedFile(_Model):
     repo_id: str
     path: str
     reason: str
+    detail: str | None = None
 
 
 class LoadCounts(_Model):

@@ -73,7 +73,13 @@ def _require_clean(member: ComponentCheckout) -> None:
     with tempfile.TemporaryDirectory(prefix="empty-hooks-") as hooks:
         try:
             completed = subprocess.run(
-                ["git", "-c", f"core.hooksPath={hooks}", "status", "--porcelain"],
+                [
+                    "git",
+                    "-c", f"core.hooksPath={hooks}",
+                    "-c", "core.longpaths=true",
+                    "-c", "core.fsmonitor=false",
+                    "status", "--porcelain",
+                ],
                 cwd=member.local_path,
                 capture_output=True,
                 text=True,
@@ -101,12 +107,20 @@ def _load_component(
     files: list[SourceFile],
     skipped: list[SkippedFile],
 ) -> None:
-    root = member.local_path.resolve()
+    plain_root = member.local_path.resolve()
+    root = _extended(plain_root)
 
-    def skip(path: str, reason: str) -> None:
-        skipped.append(SkippedFile(repo_id=member.repo_id, path=path, reason=reason))
+    def skip(path: str, reason: str, detail: str | None = None) -> None:
+        skipped.append(SkippedFile(repo_id=member.repo_id, path=path, reason=reason, detail=detail))
 
-    for directory, dirnames, filenames in os.walk(root, followlinks=False):
+    def folder_error(error: OSError) -> None:
+        try:
+            relative = _plain(Path(error.filename)).relative_to(plain_root).as_posix()
+        except (TypeError, ValueError):
+            relative = str(error.filename)
+        skip(relative, "unreadable_dir", str(error))
+
+    for directory, dirnames, filenames in os.walk(root, followlinks=False, onerror=folder_error):
         dirnames[:] = sorted(name for name in dirnames if name != ".git")
         for name in sorted(filenames) + [d for d in dirnames if (Path(directory) / d).is_symlink()]:
             full = Path(directory) / name
@@ -117,7 +131,7 @@ def _load_component(
             if full.is_symlink():
                 skip(relative, "symlink")
                 continue
-            if not _is_inside(full.resolve(), root):
+            if not _is_inside(_plain(full.resolve()), plain_root):
                 skip(relative, "outside_component")
                 continue
             if any(pattern.fullmatch(relative) for pattern in exclude):
@@ -127,11 +141,14 @@ def _load_component(
             if language is None:
                 skip(relative, "not_included")
                 continue
-            if full.stat().st_size > max_bytes:
-                skip(relative, "too_large")
+            try:
+                if full.stat().st_size > max_bytes:
+                    skip(relative, "too_large")
+                    continue
+                data = full.read_bytes()
+            except OSError as error:
+                skip(relative, "unreadable", str(error))
                 continue
-
-            data = full.read_bytes()
             if b"\x00" in data:
                 skip(relative, "binary")
                 continue
@@ -171,6 +188,26 @@ def _decode(data: bytes) -> tuple[str, str]:
         return data.decode("utf-8"), "utf-8"
     except UnicodeDecodeError:
         return data.decode("latin-1"), "latin-1"
+
+
+def _extended(path: Path) -> Path:
+    """On Windows, add the extended-length prefix so paths over 260 characters can be read."""
+    text = str(path)
+    if os.name != "nt" or text.startswith("\\\\?\\"):
+        return path
+    if text.startswith("\\\\"):
+        return Path("\\\\?\\UNC\\" + text[2:])
+    return Path("\\\\?\\" + text)
+
+
+def _plain(path: Path) -> Path:
+    """Remove the extended-length prefix again, for comparing paths."""
+    text = str(path)
+    if text.startswith("\\\\?\\UNC\\"):
+        return Path("\\\\" + text[8:])
+    if text.startswith("\\\\?\\"):
+        return Path(text[4:])
+    return path
 
 
 def _is_inside(path: Path, root: Path) -> bool:

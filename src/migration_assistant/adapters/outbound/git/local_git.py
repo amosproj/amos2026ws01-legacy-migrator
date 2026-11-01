@@ -142,7 +142,13 @@ class _Git:
     def run(self, *args: str, cwd: Path) -> str:
         if _is_inside(cwd.resolve(), self._source):
             raise CheckoutError(f"Refusing to run git inside the source: {cwd}")
-        command = ["git", "-c", f"core.hooksPath={self._hooks_dir}", *args]
+        command = [
+            "git",
+            "-c", f"core.hooksPath={self._hooks_dir}",
+            "-c", "core.longpaths=true",
+            "-c", "core.fsmonitor=false",
+            *args,
+        ]
         try:
             completed = subprocess.run(
                 command,
