@@ -17,7 +17,8 @@ class ReferenceSourceConfig(BaseModel):
 
     source: str = Field(min_length=1)
     public_url: str
-    stage: str = Field(pattern=r"^step-\d{2}$")
+    # Opaque key: only a safety check (not empty, no leading "-", limited characters).
+    stage: str = Field(pattern=r"^[A-Za-z0-9._/][A-Za-z0-9._/-]*$")
     components: list[str] = Field(min_length=1)
     workspace: Path
     include: list[str] = Field(min_length=1)
