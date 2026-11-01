@@ -50,3 +50,6 @@ exclude:
   - "**/.project"
   - "**/.settings/**"
   - "**/.factorypath"
+
+# Files larger than this are skipped (default 1024).
+max_file_size_kb: 1024

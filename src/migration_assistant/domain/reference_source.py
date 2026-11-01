@@ -22,6 +22,7 @@ class ReferenceSourceConfig(BaseModel):
     workspace: Path
     include: list[str] = Field(min_length=1)
     exclude: list[str]
+    max_file_size_kb: int = Field(default=1024, gt=0)
 
     @field_validator("public_url")
     @classmethod
