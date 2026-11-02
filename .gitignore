@@ -43,3 +43,5 @@ bin/
 # Local Claude Code files
 .claude/
 config/reference-source.local.yaml
+
+CLAUDE.local.md
