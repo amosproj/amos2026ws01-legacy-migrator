@@ -16,6 +16,8 @@ from migration_assistant.domain.checkout import CheckoutError
 from migration_assistant.domain.reference_source import (
     ConfigError,
     ReferenceSourceConfig,
+    default_config_path,
+    is_remote_source,
     load_config,
 )
 
@@ -45,7 +47,12 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
         prog="python -m migration_assistant.bootstrap.cli",
         description="Check out a stage of the reference source and load its files.",
     )
-    parser.add_argument("--config", default="config/reference-source.yaml")
+    parser.add_argument(
+        "--config",
+        type=Path,
+        help="config file (default: config/reference-source.local.yaml if it exists, "
+        "otherwise config/reference-source.yaml)",
+    )
     parser.add_argument("--stage", help="override the stage for this run")
     parser.add_argument("--components", nargs="+", help="override the components for this run")
     parser.add_argument("--out", type=Path, help="write the loaded files as JSONL")
@@ -54,13 +61,15 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
 
 
 def _run(args: argparse.Namespace) -> None:
-    config = _with_overrides(load_config(args.config), args)
+    config_path = args.config or default_config_path()
+    config = _with_overrides(load_config(config_path), args)
     if args.out is not None:
         _check_out_path(args.out, config)
 
     checkout = LocalGitAdapter().checkout(config)
     result = load_sources(config, checkout)
 
+    print(f"config: {Path(config_path).as_posix()}")
     print(f"stage: {checkout.stage}")
     print(f"umbrella: {checkout.umbrella_ref} {checkout.umbrella_commit_sha}")
     for member in checkout.members:
@@ -97,7 +106,10 @@ def _with_overrides(config: ReferenceSourceConfig, args: argparse.Namespace) -> 
 
 def _check_out_path(out: Path, config: ReferenceSourceConfig) -> None:
     target = out.resolve()
-    for label, protected in (("source repository", Path(config.source)), ("workspace", config.workspace)):
+    protected_paths = [("workspace", config.workspace)]
+    if not is_remote_source(config.source):
+        protected_paths.insert(0, ("source repository", Path(config.source)))
+    for label, protected in protected_paths:
         protected = protected.resolve()
         if target == protected or protected in target.parents:
             raise ConfigError(f"--out must not be inside the {label}: {protected}")

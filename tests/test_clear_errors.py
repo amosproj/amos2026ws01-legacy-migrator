@@ -1,11 +1,14 @@
 """Acceptance criterion 4: errors during loading are reported clearly."""
 
+import subprocess
+
 import pytest
 
 from migration_assistant.adapters.outbound.git.local_git import LocalGitAdapter
 from migration_assistant.adapters.outbound.git.source_loader import load_sources
 from migration_assistant.bootstrap import cli
 from migration_assistant.domain.checkout import (
+    CheckoutError,
     ComponentNotInStageError,
     SourceNotFoundError,
     UnknownStageError,
@@ -28,9 +31,60 @@ def test_source_not_found(reference, tmp_path):
         LocalGitAdapter().checkout(reference.config(source=str(tmp_path / "missing")))
 
 
-def test_remote_url_as_source_is_refused(reference):
-    with pytest.raises(SourceNotFoundError, match="Only a local path"):
-        LocalGitAdapter().checkout(reference.config(source="https://github.com/x/y"))
+@pytest.mark.parametrize(
+    "source",
+    ["http://github.com/x/y", "ssh://git@github.com/x/y", "file:///tmp/x", "ext::sh -c id", "https://user:secret@github.com/x/y"],
+)
+def test_unsupported_source_urls_are_refused(reference, source):
+    with pytest.raises((SourceNotFoundError,)):
+        LocalGitAdapter().checkout(reference.config(source=source))
+
+
+def test_https_source_clones_over_https_only_without_network_in_this_test(reference, monkeypatch):
+    url = "https://github.com/legacy-modernization-example/legacy-example-stages"
+    commands = []
+
+    def fake_run(command, *args, **kwargs):
+        commands.append(command)
+        raise subprocess.CalledProcessError(128, command, stderr="blocked in test")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    with pytest.raises(CheckoutError, match="blocked in test"):
+        LocalGitAdapter().checkout(reference.config(source=url))
+
+    (clone,) = commands
+    assert clone[0] == "git"
+    assert "protocol.allow=never" in clone and "protocol.https.allow=always" in clone
+    assert any(part.startswith("core.hooksPath=") for part in clone)
+    assert "core.longpaths=true" in clone and "core.fsmonitor=false" in clone
+    assert clone[clone.index("clone") :][:3] == ["clone", "--no-checkout", "--"]
+    assert clone[clone.index("--") + 1] == url
+    assert not any("file.allow" in part for part in clone)
+
+
+def test_workspace_from_another_source_is_not_reused(reference, monkeypatch):
+    LocalGitAdapter().checkout(reference.config())  # creates the workspace from the local source
+    commands = []
+
+    def forbidden(command, *args, **kwargs):
+        commands.append(command)
+        raise AssertionError("no clone or fetch may happen")
+
+    real_run = subprocess.run
+
+    def guarded(command, *args, **kwargs):
+        if "fetch" in command or "clone" in command:
+            return forbidden(command)
+        return real_run(command, *args, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", guarded)
+
+    with pytest.raises(CheckoutError, match="created from a different source"):
+        LocalGitAdapter().checkout(
+            reference.config(source="https://github.com/legacy-modernization-example/legacy-example-stages")
+        )
+    assert commands == []
 
 
 def test_dirty_component_in_workspace_is_refused(reference):
@@ -70,6 +124,20 @@ def test_cli_missing_config_is_a_single_error_line(tmp_path, capsys):
     lines = capsys.readouterr().err.splitlines()
     assert code == 1
     assert len(lines) == 1 and lines[0].startswith("ERROR: Config file not found")
+
+
+def test_cli_uses_local_override_file_when_present(reference, tmp_path, monkeypatch, capsys):
+    (tmp_path / "config").mkdir()
+    (tmp_path / "config" / "reference-source.local.yaml").write_text(
+        reference.config_path.read_text(encoding="utf-8"), encoding="utf-8"
+    )
+    monkeypatch.chdir(tmp_path)
+
+    code = cli.main([])
+
+    out = capsys.readouterr().out
+    assert code == 0
+    assert "config: config/reference-source.local.yaml" in out
 
 
 def test_cli_override_stage_04a(reference, capsys):

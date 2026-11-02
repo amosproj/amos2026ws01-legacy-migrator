@@ -2,8 +2,9 @@
 # Describes where the reference system is read from and which part of it is analysed.
 # Validated by migration_assistant.domain.reference_source.load_config().
 
-# GitHub URL or local path to the umbrella repository (legacy-example-stages).
-source: "D:/fAU/winter 26-27/Amos/Amos github/legacy-modernization-example/legacy-example-stages"
+# https:// URL of the umbrella repository (legacy-example-stages), or a local path.
+# To use a local copy, create config/reference-source.local.yaml (git-ignored); it replaces this file.
+source: "https://github.com/legacy-modernization-example/legacy-example-stages"
 
 # Base URL of the GitHub organisation. Used later to build GitHub links.
 public_url: "https://github.com/legacy-modernization-example"

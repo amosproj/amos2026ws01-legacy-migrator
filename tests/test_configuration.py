@@ -3,7 +3,13 @@
 import pytest
 import yaml
 
-from migration_assistant.domain.reference_source import ConfigError, load_config
+from pathlib import Path
+
+from migration_assistant.domain.reference_source import (
+    ConfigError,
+    default_config_path,
+    load_config,
+)
 
 
 def _rewrite(reference, **changes):
@@ -28,7 +34,19 @@ def test_valid_config_loads(reference):
 def test_real_project_config_loads():
     config = load_config("config/reference-source.yaml")
 
+    assert config.source == "https://github.com/legacy-modernization-example/legacy-example-stages"
+
     assert config.max_file_size_kb == 1024
+
+
+def test_local_override_is_preferred_when_it_exists(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    assert default_config_path() == Path("config/reference-source.yaml")
+
+    (tmp_path / "config").mkdir()
+    (tmp_path / "config" / "reference-source.local.yaml").write_text("source: x\n", encoding="utf-8")
+
+    assert default_config_path() == Path("config/reference-source.local.yaml")
 
 
 def test_missing_field_is_reported_by_name(reference):

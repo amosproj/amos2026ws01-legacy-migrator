@@ -1,7 +1,8 @@
-"""Local Git adapter: checks out one stage of the reference source (Issue #17).
+"""Git adapter: checks out one stage of the reference source (Issue #17).
 
-Git is run with argument lists only, with hooks disabled. Nothing is ever
-written inside ``config.source``; all writes go to the workspace copy.
+The source is a local repository path or an https:// URL. Git is run with
+argument lists only, with hooks disabled. Nothing is ever written inside a
+local ``config.source``; all writes go to the workspace copy.
 """
 
 import json
@@ -10,6 +11,7 @@ import shutil
 import subprocess
 import tempfile
 from pathlib import Path
+from urllib.parse import urlparse
 
 from migration_assistant.domain.checkout import (
     CheckoutError,
@@ -21,16 +23,19 @@ from migration_assistant.domain.checkout import (
     SubmoduleError,
     UnknownStageError,
 )
-from migration_assistant.domain.reference_source import ReferenceSourceConfig
+from migration_assistant.domain.reference_source import ReferenceSourceConfig, is_remote_source
 
 UMBRELLA_DIR = "legacy-example-stages"
+
+# For an https:// source only the https transport may be used.
+HTTPS_ONLY = ("-c", "protocol.allow=never", "-c", "protocol.https.allow=always")
 
 
 class LocalGitAdapter:
     """Implements the GitRepo port using the git command line."""
 
     def checkout(self, config: ReferenceSourceConfig) -> CheckoutResult:
-        source = _resolve_source(config.source)
+        source, url = _resolve_source(config.source)
         if shutil.which("git") is None:
             raise GitNotInstalledError("git was not found on PATH")
 
@@ -39,12 +44,17 @@ class LocalGitAdapter:
 
         with tempfile.TemporaryDirectory(prefix="empty-hooks-") as hooks:
             git = _Git(hooks, source)
+            transport = HTTPS_ONLY if url else ()
 
             if umbrella.exists():
-                git.run("fetch", "--tags", "origin", cwd=umbrella)
+                _require_same_origin(git, umbrella, source, url)
+                git.run(*transport, "fetch", "--tags", "origin", cwd=umbrella)
             else:
                 workspace.mkdir(parents=True, exist_ok=True)
-                git.run("clone", "--no-checkout", str(source), str(umbrella), cwd=workspace)
+                git.run(
+                    *transport, "clone", "--no-checkout", "--", url or str(source), str(umbrella),
+                    cwd=workspace,
+                )
 
             umbrella_ref = f"refs/tags/{config.stage}"
             umbrella_sha = self._resolve_stage(git, umbrella, umbrella_ref, config.stage)
@@ -60,7 +70,7 @@ class LocalGitAdapter:
                     )
 
             members = [
-                self._checkout_component(git, config, source, umbrella, name, pinned[name])
+                self._checkout_component(git, config, source, transport, umbrella, name, pinned[name])
                 for name in config.components
             ]
 
@@ -82,7 +92,8 @@ class LocalGitAdapter:
         self,
         git: "_Git",
         config: ReferenceSourceConfig,
-        source: Path,
+        source: Path | None,
+        transport: tuple[str, ...],
         umbrella: Path,
         name: str,
         pinned: dict,
@@ -101,16 +112,17 @@ class LocalGitAdapter:
         except CheckoutError:
             raise SubmoduleError(f"Submodule '{path}' is not declared in .gitmodules") from None
 
-        local_source = source / "components" / name
-        if not local_source.exists():
-            raise SubmoduleError(f"Submodule '{name}' is missing in the source: {local_source}")
-
-        git.run("config", url_key, str(local_source), cwd=umbrella)
-        git.run(
-            "-c", "protocol.file.allow=always",
-            "submodule", "update", "--init", "--checkout", "--", path,
-            cwd=umbrella,
-        )
+        if source is not None:
+            # Submodule URLs are relative; point them at the local source copy.
+            local_source = source / "components" / name
+            if not local_source.exists():
+                raise SubmoduleError(f"Submodule '{name}' is missing in the source: {local_source}")
+            git.run("config", url_key, str(local_source), cwd=umbrella)
+            access = ("-c", "protocol.file.allow=always")
+        else:
+            # Relative submodule URLs resolve against the https origin.
+            access = transport
+        git.run(*access, "submodule", "update", "--init", "--checkout", "--", path, cwd=umbrella)
 
         component_dir = umbrella / path
         if not component_dir.exists():
@@ -135,12 +147,12 @@ class LocalGitAdapter:
 class _Git:
     """Runs git with hooks disabled, and never inside the read-only source."""
 
-    def __init__(self, hooks_dir: str, source: Path) -> None:
+    def __init__(self, hooks_dir: str, source: Path | None) -> None:
         self._hooks_dir = hooks_dir
         self._source = source
 
     def run(self, *args: str, cwd: Path) -> str:
-        if _is_inside(cwd.resolve(), self._source):
+        if self._source is not None and _is_inside(cwd.resolve(), self._source):
             raise CheckoutError(f"Refusing to run git inside the source: {cwd}")
         command = [
             "git",
@@ -175,15 +187,35 @@ def _is_inside(path: Path, parent: Path) -> bool:
     return path == parent or parent in path.parents
 
 
-def _resolve_source(value: str) -> Path:
-    if "://" in value:
-        raise SourceNotFoundError(f"Only a local path is supported as source, got: {value}")
+def _resolve_source(value: str) -> tuple[Path | None, str | None]:
+    """Return (local path, None) for a local repository or (None, url) for an https:// URL."""
+    if is_remote_source(value):
+        parsed = urlparse(value)
+        if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password:
+            raise SourceNotFoundError(
+                "Only https:// URLs (without credentials) and local paths are supported as source"
+            )
+        return None, value.rstrip("/")
     source = Path(value).resolve()
     if not source.is_dir():
         raise SourceNotFoundError(f"Source not found: {source}")
     if not (source / ".git").exists():
         raise SourceNotFoundError(f"Source is not a Git repository: {source}")
-    return source
+    return source, None
+
+
+def _require_same_origin(git: "_Git", umbrella: Path, source: Path | None, url: str | None) -> None:
+    """The workspace copy must come from the configured source; never mix sources."""
+    origin = git.run("remote", "get-url", "origin", cwd=umbrella)
+    if url is not None:
+        same = origin.rstrip("/") == url
+    else:
+        same = not is_remote_source(origin) and Path(origin).resolve() == source
+    if not same:
+        raise CheckoutError(
+            f"The workspace {umbrella} was created from a different source ({origin}); "
+            "delete the workspace folder or choose another workspace"
+        )
 
 
 def _read_stage_components(umbrella: Path, stage: str) -> dict:

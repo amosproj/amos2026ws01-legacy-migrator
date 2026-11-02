@@ -40,6 +40,20 @@ class ReferenceSourceConfig(BaseModel):
         return values
 
 
+DEFAULT_CONFIG = Path("config/reference-source.yaml")
+LOCAL_CONFIG = Path("config/reference-source.local.yaml")
+
+
+def default_config_path() -> Path:
+    """The git-ignored local override if it exists, otherwise the committed default."""
+    return LOCAL_CONFIG if LOCAL_CONFIG.is_file() else DEFAULT_CONFIG
+
+
+def is_remote_source(value: str) -> bool:
+    """True if ``value`` is a URL rather than a local path."""
+    return "://" in value
+
+
 def load_config(path: str | Path) -> ReferenceSourceConfig:
     """Read and validate the YAML file at ``path``.
 
