@@ -1,8 +1,17 @@
-"""Pytest coverage for the query API request/response contract (ticket #24)."""
+"""Pytest coverage for the query API request/response contract (tickets #24/#25)."""
 
+import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
+
+
+@pytest.fixture(autouse=True)
+def _mock_llm_environment(monkeypatch: pytest.MonkeyPatch) -> None:
+    """No provider configured: the API must run on the mock LLM provider."""
+    monkeypatch.delenv("LLM_BASE_URL", raising=False)
+    monkeypatch.delenv("LLM_NAME", raising=False)
+    monkeypatch.delenv("LLM_API_KEY", raising=False)
 
 
 def test_health_returns_ok() -> None:
@@ -23,7 +32,7 @@ def test_chat_returns_structured_mock_answer() -> None:
     assert response.status_code == 200
     body = response.json()
     assert isinstance(body["answer"], str) and body["answer"]
-    assert "Mock answer" in body["answer"]
+    assert "Mock LLM reply" in body["answer"]
     assert isinstance(body["sources"], list)
     assert all(isinstance(source, str) for source in body["sources"])
 
