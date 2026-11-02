@@ -1,9 +1,10 @@
-# Start the SunsetTracker backend plus a local Ollama server in Windows Terminal.
-# One wt window, one tab per process. Closing the window stops them all, since each
-# process is a child of its tab. Add a third tab here later for the frontend (Vite).
+# Start the SunsetTracker backend, a local Ollama server and the frontend in
+# Windows Terminal. One wt window, one tab per process. Closing the window stops
+# them all, since each process is a child of its tab.
 
 $ErrorActionPreference = "Stop"
-$backendDir = $PSScriptRoot
+$backendDir  = $PSScriptRoot
+$frontendDir = Join-Path (Split-Path $backendDir -Parent) "frontend"
 
 $ollamaPort = if ($env:OLLAMA_PORT) { $env:OLLAMA_PORT } else { "11434" }
 $apiHost    = if ($env:HOST)        { $env:HOST }        else { "127.0.0.1" }
@@ -18,5 +19,12 @@ $backendCmd = "Set-Location '$backendDir'; " +
               "uv sync; " +
               "uv run uvicorn app.main:app --host $apiHost --port $apiPort"
 
+# Frontend tab: install deps if needed, build, then preview.
+$frontendCmd = "Set-Location '$frontendDir'; " +
+               "if (-not (Test-Path node_modules)) { npm install }; " +
+               "npm run build; " +
+               "npm run preview"
+
 wt -w new new-tab -t "Ollama" pwsh -NoExit -Command "ollama serve" `; `
-   new-tab -t "Backend" pwsh -NoExit -Command $backendCmd
+   new-tab -t "Backend" pwsh -NoExit -Command $backendCmd `; `
+   new-tab -t "Frontend" pwsh -NoExit -Command $frontendCmd

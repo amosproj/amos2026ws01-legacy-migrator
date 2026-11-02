@@ -1,4 +1,4 @@
-import { QueryResponse, SourceEvidence } from '../types/chat';
+import { SourceEvidence } from '../types/chat';
 import { Arc42ViewMetadata } from '../types/arc42';
 
 export const INITIAL_SUGGESTIONS: string[] = [
@@ -47,85 +47,6 @@ export const MOCK_EVIDENCES: Record<string, SourceEvidence[]> = {
       description: "Legacy background batch still queries the shared inventory table, blocking final schema drop."
     }
   ]
-};
-
-export const MOCK_RESPONSES: Record<string, QueryResponse> = {
-  decommissioned: {
-    stepId: "step-06",
-    executionTimeMs: 412,
-    answer: `### Decommissioned Legacy Components (Step-06 Status)
-
-Based on AST analysis and commit history between **Step-05** and **Step-06**, the following components have been decommissioned:
-
-1. **\`CatalogItemResource\`** in \`legacy-example-monolith\`:
-   * **Route:** \`/api/v1/legacy/catalog\` has been switched off.
-   * **Status:** Ingress routed completely through the modern Strangler facade.
-   * **Verification:** Zero incoming direct HTTP invocations in Step-06 integration tests.
-
-2. **\`LegacyPricingCalculator\`**:
-   * Replaced by the domain service in the target repository.
-   * Legacy class marked \`@Deprecated\` and excluded from current active Spring application contexts.`,
-    evidence: [MOCK_EVIDENCES.catalog[0], MOCK_EVIDENCES.catalog[1]],
-    suggestedNextQueries: [
-      "Which legacy and target components still share database tables or routes?",
-      "What are the top candidates for the next decommissioning step?"
-    ]
-  },
-  catalog: {
-    stepId: "step-06",
-    executionTimeMs: 520,
-    answer: `### Catalog Service Migration: Step-05 → Step-06
-
-In **Step-06**, the Catalog Service reached autonomous domain completion:
-
-* **Bounded Context:** \`Catalog & Product Information\` is now 92% migrated.
-* **Target Implementation:** \`catalog-service-target\` incorporates autonomous entity persistence, REST API v2 endpoints, and domain events published to Apache Kafka.
-* **Remaining Legacy Dependency:** Only read-replica replication on \`T_LEGACY_INVENTORY\` remains active until the Order Service transition in Step-07.`,
-    evidence: [MOCK_EVIDENCES.catalog[1], MOCK_EVIDENCES.catalog[2]],
-    suggestedNextQueries: [
-      "Which parts of the legacy system have already been decommissioned in Step-06?",
-      "Show arc42 Building Block View for Step-06"
-    ]
-  },
-  coupling: {
-    stepId: "step-06",
-    executionTimeMs: 480,
-    answer: `### Remaining Coupling Analysis (Step-06)
-
-Our deterministic dependency extractor identified **1 database table** and **1 synchronous REST route** still coupling the legacy and target systems:
-
-1. **Shared Database Table (\`T_LEGACY_INVENTORY\`):**
-   * **Legacy Reader:** \`OrderProcessingJob\` in \`legacy-example-monolith\`.
-   * **Target Writer:** \`ItemStockService\` in \`catalog-service-target\`.
-   * **Risk Level:** **High**. Prevents dropping the legacy schema until Order Processing is migrated.
-
-2. **Synchronous Fallback Route:**
-   * Fallback hook in \`LegacyBillingBridge\` for backwards-compatible currency conversions.`,
-    evidence: [MOCK_EVIDENCES.catalog[2], MOCK_EVIDENCES.catalog[0]],
-    suggestedNextQueries: [
-      "What are the top candidates for the next decommissioning step?",
-      "What is currently implemented in Catalog Service (Step-06 vs Step-05)?"
-    ]
-  },
-  decommission_candidate: {
-    stepId: "step-06",
-    executionTimeMs: 610,
-    answer: `### Recommended Next Decommissioning Candidates
-
-Using the migration graph and remaining coupling metrics, the recommended priority queue for **Step-07** is:
-
-1. **\`CatalogItemResource\` and Legacy Ingress Handler:**
-   * **Feasibility:** 100% ready. All traffic has safely transitioned to target Catalog Service.
-   * **Action:** Delete dead code in \`legacy-example-monolith\` and retire unused route definitions.
-
-2. **\`T_LEGACY_INVENTORY\` Dual-Write Trigger:**
-   * **Prerequisite:** Finalize CDC (Change Data Capture) pipeline or migrate \`OrderProcessingJob\` to read from target API.`,
-    evidence: [MOCK_EVIDENCES.catalog[0], MOCK_EVIDENCES.catalog[2]],
-    suggestedNextQueries: [
-      "Which parts of the legacy system have already been decommissioned in Step-06?",
-      "Which legacy and target components still share database tables or routes?"
-    ]
-  }
 };
 
 export const MOCK_ARC42_VIEWS: Arc42ViewMetadata[] = [

@@ -45,16 +45,27 @@ describe('Frontend API Service', () => {
       expect(res.evidence[0].filePath).toBe('llm:openai-compatible (gemini-2.5-flash)');
     });
 
-    it('falls back to deterministic mock response when backend fetch fails', async () => {
+    it('throws a visible error when the backend is unreachable', async () => {
       globalThis.fetch = vi.fn().mockRejectedValue(new Error('Backend down'));
 
-      const res = await submitMigrationQuery({
-        query: 'Which parts of the legacy system have already been decommissioned in Step-06?',
-        stepId: 'step-06',
-      });
-      expect(res.answer).toBeTruthy();
-      expect(res.evidence.length).toBeGreaterThan(0);
-      expect(res.stepId).toBe('step-06');
+      await expect(
+        submitMigrationQuery({
+          query: 'Which parts of the legacy system have already been decommissioned in Step-06?',
+          stepId: 'step-06',
+        }),
+      ).rejects.toThrow('Backend unreachable');
+    });
+
+    it('throws a visible error when the backend returns a non-2xx status', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 502,
+        json: async () => ({ detail: 'LLM provider request failed' }),
+      } as unknown as Response);
+
+      await expect(
+        submitMigrationQuery({ query: 'anything', stepId: 'step-06' }),
+      ).rejects.toThrow('HTTP 502: LLM provider request failed');
     });
   });
 });

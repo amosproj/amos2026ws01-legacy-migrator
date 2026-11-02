@@ -1,5 +1,5 @@
 import { QueryRequest, QueryResponse, SourceEvidence } from '../types/chat';
-import { MOCK_RESPONSES, MOCK_EVIDENCES, INITIAL_SUGGESTIONS } from './mockData';
+import { MOCK_EVIDENCES, INITIAL_SUGGESTIONS } from './mockData';
 
 const API_BASE_URL = '/api';
 
@@ -55,82 +55,68 @@ function getFallbackEvidence(query: string): SourceEvidence[] {
 export async function submitMigrationQuery(req: QueryRequest): Promise<QueryResponse> {
   const startTime = Date.now();
 
-  // First attempt to call the real FastAPI backend (/api/chat, ticket #24 & #25)
+  const controller = new AbortController();
+  // Allow long inference on CPU (model loading can take minutes)
+  const timeoutId = setTimeout(() => controller.abort(), 300000);
+
+  let res: Response;
   try {
-    const controller = new AbortController();
-    // Allow long inference on CPU (models loading can take 60s+)
-    const timeoutId = setTimeout(() => controller.abort(), 90000);
-    const res = await fetch(`${API_BASE_URL}/chat`, {
+    res = await fetch(`${API_BASE_URL}/chat`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         query: req.query,
         conversation_id: req.stepId || 'step-06',
       }),
       signal: controller.signal,
     });
+  } catch (err: unknown) {
     clearTimeout(timeoutId);
-
-    if (res.ok) {
-      const data = await res.json();
-      const elapsed = Date.now() - startTime;
-      const answer: string = data.answer ?? data.message ?? '';
-
-      // Map backend sources (e.g. "llm:openai-compatible" or "llm:mock") into evidence
-      const rawSources: string[] = Array.isArray(data.sources) ? data.sources : [];
-      const backendEvidence: SourceEvidence[] = rawSources.map((src: string, index: number) => ({
-        id: `ev-backend-${index}-${Date.now()}`,
-        repoId: 'IBM/application-modernization-javaee-quarkus',
-        repoUrl: 'https://github.com/IBM/application-modernization-javaee-quarkus',
-        filePath: src,
-        commitSha: '69f984a9e5b5658e370a6d091e70e9f603c7347a',
-        status: 'migrated',
-        description: `Verified inference source: ${src}`,
-      }));
-
-      // Enrich with verified AST traces from reference system
-      const fallbackEvidence = getFallbackEvidence(req.query);
-      const combinedEvidence = [...backendEvidence, ...fallbackEvidence];
-
-      return {
-        answer,
-        evidence: combinedEvidence,
-        stepId: data.conversation_id || req.stepId || 'step-06',
-        executionTimeMs: elapsed,
-        suggestedNextQueries: INITIAL_SUGGESTIONS,
-      };
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      throw new Error('Request timed out (5 min). The LLM server may still be loading the model.');
     }
-  } catch {
-    // Graceful fallback to deterministic mock response matching the query intent
+    throw new Error('Backend unreachable. Is the backend running on port 8000?');
+  }
+  clearTimeout(timeoutId);
+
+  if (!res.ok) {
+    let detail = '';
+    try {
+      const body = await res.json();
+      detail = body.detail ?? '';
+    } catch { /* non-JSON error body */ }
+    throw new Error(`Backend returned HTTP ${res.status}${detail ? `: ${detail}` : ''}`);
   }
 
-  // Realistic mock response logic matching keywords
-  const normalized = req.query.toLowerCase();
-  
-  // Simulate brief processing delay
-  await new Promise((resolve) => setTimeout(resolve, 400));
-
-  if (normalized.includes('decommission') && normalized.includes('candidate')) {
-    return MOCK_RESPONSES.decommission_candidate;
-  }
-  if (normalized.includes('decommission') || normalized.includes('switch') || normalized.includes('switched off')) {
-    return MOCK_RESPONSES.decommissioned;
-  }
-  if (normalized.includes('catalog') || normalized.includes('step-06') || normalized.includes('step-05')) {
-    return MOCK_RESPONSES.catalog;
-  }
-  if (normalized.includes('coupl') || normalized.includes('share') || normalized.includes('table') || normalized.includes('route')) {
-    return MOCK_RESPONSES.coupling;
+  const data = await res.json();
+  const answer: string = data.answer ?? data.message ?? '';
+  if (!answer) {
+    throw new Error('Backend returned an empty answer.');
   }
 
-  // Default fallback response with evidence
+  const elapsed = Date.now() - startTime;
+
+  // Map backend sources (e.g. "llm:openai-compatible (qwen3.5:0.8b)") into evidence cards
+  const rawSources: string[] = Array.isArray(data.sources) ? data.sources : [];
+  const backendEvidence: SourceEvidence[] = rawSources.map((src: string, index: number) => ({
+    id: `ev-backend-${index}-${Date.now()}`,
+    repoId: 'IBM/application-modernization-javaee-quarkus',
+    repoUrl: 'https://github.com/IBM/application-modernization-javaee-quarkus',
+    filePath: src,
+    commitSha: '69f984a9e5b5658e370a6d091e70e9f603c7347a',
+    status: 'migrated',
+    description: `Verified inference source: ${src}`,
+  }));
+
+  // Enrich with illustrative source evidence for the demonstrator
+  const fallbackEvidence = getFallbackEvidence(req.query);
+  const combinedEvidence = [...backendEvidence, ...fallbackEvidence];
+
   return {
-    stepId: req.stepId || 'step-06',
-    executionTimeMs: 450,
-    answer: `### Query Result for: "${req.query}"\n\nAnalyzed **Step-06** state against the knowledge graph. The system identified corresponding structural entities in \`legacy-example-monolith\` and \`catalog-service-target\` with verified AST bindings.\n\nPlease inspect the attached **Source Evidence** below for line-level git traceability.`,
-    evidence: MOCK_RESPONSES.catalog.evidence,
+    answer,
+    evidence: combinedEvidence,
+    stepId: data.conversation_id || req.stepId || 'step-06',
+    executionTimeMs: elapsed,
     suggestedNextQueries: INITIAL_SUGGESTIONS,
   };
 }

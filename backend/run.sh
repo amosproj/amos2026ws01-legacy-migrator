@@ -5,6 +5,7 @@
 set -euo pipefail
 
 cd "$(dirname "$0")"
+FRONTEND_DIR="$(cd ../frontend && pwd)"
 
 command -v uv >/dev/null 2>&1 || { echo "error: uv is required (https://docs.astral.sh/uv/)" >&2; exit 1; }
 
@@ -33,7 +34,33 @@ else
     done
 fi
 
+# Start the frontend in a second terminal window: build, then preview.
+# The preview server is a child of that window, so closing it stops the frontend.
+start_frontend_window() {
+    if ! command -v npm >/dev/null 2>&1; then
+        echo "note: npm not found; skipping the frontend window (backend only)."
+        return 0
+    fi
+    local cmd="cd '$FRONTEND_DIR' && { [ -d node_modules ] || npm install; } && npm run build && npm run preview"
+    if command -v foot >/dev/null 2>&1; then
+        foot -- /bin/sh -c "$cmd" >/dev/null 2>&1 &
+    elif command -v gnome-terminal >/dev/null 2>&1; then
+        gnome-terminal -- /bin/sh -c "$cmd" >/dev/null 2>&1 &
+    elif command -v konsole >/dev/null 2>&1; then
+        konsole -e /bin/sh -c "$cmd" >/dev/null 2>&1 &
+    elif command -v xterm >/dev/null 2>&1; then
+        xterm -T "SunsetTracker Frontend" -e /bin/sh -c "$cmd" >/dev/null 2>&1 &
+    else
+        echo "note: no supported terminal (foot/gnome-terminal/konsole/xterm) found;"
+        echo "      running the frontend in this window's background instead."
+        ( cd "$FRONTEND_DIR" && { [ -d node_modules ] || npm install; } && npm run build && npm run preview ) &
+    fi
+    return 0
+}
+start_frontend_window
+
 HOST="${HOST:-127.0.0.1}"
 PORT="${PORT:-8000}"
 echo "Starting backend on http://${HOST}:${PORT} (model: ${LLM_NAME})"
+echo "Frontend preview: http://localhost:3000 (once the build in the other window finishes)"
 uv run uvicorn app.main:app --host "$HOST" --port "$PORT"
