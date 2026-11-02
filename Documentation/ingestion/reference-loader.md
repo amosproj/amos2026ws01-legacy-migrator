@@ -32,6 +32,16 @@ A local source needs no network. An `https://` source is fetched once into the c
    .venv\Scripts\Activate.ps1
    ```
 
+   No `py` launcher? Use conda only to get Python 3.12, then create the same `.venv`:
+
+   ```powershell
+   conda create -n py312 python=3.12 -y
+   conda activate py312
+   python -m venv .venv
+   conda deactivate
+   .venv\Scripts\Activate.ps1
+   ```
+
 3. Install the dependencies listed in `pyproject.toml`:
 
    ```powershell
@@ -110,6 +120,25 @@ files skipped: 119
 ```
 
 Running it again gives the same result. Changing `--stage` in the same workspace is fine.
+
+## Use from Python
+
+The ingestion pipeline can call the loader directly:
+
+```python
+from migration_assistant.adapters.outbound.git.local_git import LocalGitAdapter
+from migration_assistant.adapters.outbound.git.source_loader import load_sources
+from migration_assistant.domain.reference_source import default_config_path, load_config
+
+config = load_config(default_config_path())
+checkout = LocalGitAdapter().checkout(config)
+result = load_sources(config, checkout)
+
+for file in result.files:
+    print(file.path, file.language, file.github_url)
+```
+
+After the checkout the code is a normal folder at the pinned commit, so a parser can also run directly on a component folder (`checkout.members[0].local_path`) instead of using the loaded file contents.
 
 ## Output
 
