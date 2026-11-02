@@ -2,8 +2,8 @@
 
 Minimal FastAPI application exposing the query endpoint the frontend needs:
 
-- ``POST /api/chat``        submit a query, get a structured answer
-- ``GET  /api/health``      liveness check
+- ``POST /api/chat``        submit a query, receive an NDJSON answer stream
+- ``GET  /api/health``      liveness check (includes the active model name)
 - ``GET  /api/repositories`` repository list for the frontend picker (mock stub)
 
 The frontend (ticket #27, branch ``create-basic-query-interface``) is hosted
@@ -15,17 +15,19 @@ seam: without ``LLM_BASE_URL``/``LLM_NAME`` a mock provider answers, with them
 any OpenAI-compatible endpoint (local Ollama or a future external API).
 """
 
+import json
 import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 
 from .llm import LlmError, create_llm_provider
 from .query_service import QueryService, create_query_service
 from .repositories import list_repositories
-from .schemas import ChatRequest, ChatResponse, HealthResponse
+from .schemas import ChatRequest, HealthResponse
 
 SERVICE_NAME = "sunsettracker-backend"
 VERSION = "0.2.0"
@@ -61,28 +63,42 @@ app.add_middleware(
 )
 
 
+def _event(kind: str, text: str) -> str:
+    """One newline-delimited JSON stream event."""
+    return json.dumps({"type": kind, "text": text}) + "\n"
+
+
 @app.get("/api/health", response_model=HealthResponse)
 def health() -> HealthResponse:
-    return HealthResponse(status="ok", service=SERVICE_NAME, version=VERSION)
+    return HealthResponse(
+        status="ok",
+        service=SERVICE_NAME,
+        version=VERSION,
+        model=app.state.llm_provider.name,
+    )
 
 
-@app.post("/api/chat", response_model=ChatResponse)
-async def chat(request: ChatRequest) -> ChatResponse:
-    """Submit one migration-status query and receive a structured answer.
+@app.post("/api/chat")
+async def chat(request: ChatRequest) -> StreamingResponse:
+    """Submit one migration-status query and receive a streamed answer.
 
-    Invalid requests (empty/oversized query, wrong types) are rejected with
-    HTTP 422 by the Pydantic request model.
+    The response is newline-delimited JSON: a ``sources`` event with the
+    evidence labels, then ``content`` events with answer text deltas, or a
+    single ``error`` event when the LLM provider fails. Invalid requests
+    (empty/oversized query, wrong types) are rejected with HTTP 422 by the
+    Pydantic request model.
     """
     service: QueryService = app.state.query_service
-    try:
-        result = await service.answer(request.query, request.conversation_id)
-    except LlmError as exc:
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
-    return ChatResponse(
-        answer=result.answer,
-        conversation_id=request.conversation_id,
-        sources=list(result.sources),
-    )
+
+    async def events() -> AsyncIterator[str]:
+        yield _event("sources", json.dumps(service.sources()))
+        try:
+            async for delta in service.stream_answer(request.query):
+                yield _event("content", delta)
+        except LlmError as exc:
+            yield _event("error", str(exc))
+
+    return StreamingResponse(events(), media_type="application/x-ndjson")
 
 
 @app.get("/api/repositories")

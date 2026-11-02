@@ -1,20 +1,39 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { checkBackendHealth, submitMigrationQuery } from './api';
 
+function ndjsonBody(lines: string[]): ReadableStream<Uint8Array> {
+  const encoder = new TextEncoder();
+  const text = lines.map((l) => `${l}\n`).join('');
+  return new ReadableStream({
+    start(controller) {
+      controller.enqueue(encoder.encode(text));
+      controller.close();
+    },
+  });
+}
+
+const noopCallbacks = { onSources: () => {}, onDelta: () => {} };
+
 describe('Frontend API Service', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
   });
 
   describe('checkBackendHealth', () => {
-    it('returns backendAvailable=true when /api/health responds with 200', async () => {
+    it('returns backendAvailable=true and the model when /api/health responds 200', async () => {
       globalThis.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: async () => ({ status: 'ok', service: 'sunsettracker-backend', version: '0.2.0' }),
+        json: async () => ({
+          status: 'ok',
+          service: 'sunsettracker-backend',
+          version: '0.2.0',
+          model: 'openai-compatible (qwen3.5:0.8b)',
+        }),
       } as unknown as Response);
 
       const status = await checkBackendHealth();
       expect(status.backendAvailable).toBe(true);
+      expect(status.model).toBe('openai-compatible (qwen3.5:0.8b)');
       expect(status.message).toContain('sunsettracker-backend v0.2.0');
     });
 
@@ -28,31 +47,50 @@ describe('Frontend API Service', () => {
   });
 
   describe('submitMigrationQuery', () => {
-    it('successfully maps backend response and sources', async () => {
+    it('streams content deltas and assembles the answer', async () => {
       globalThis.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: async () => ({
-          answer: 'Catalog service was migrated in step-06',
-          conversation_id: 'step-06',
-          sources: ['llm:openai-compatible (gemini-2.5-flash)'],
-        }),
+        body: ndjsonBody([
+          JSON.stringify({ type: 'sources', text: JSON.stringify(['llm:mock']) }),
+          JSON.stringify({ type: 'content', text: 'Catalog service ' }),
+          JSON.stringify({ type: 'content', text: 'was migrated.' }),
+        ]),
       } as unknown as Response);
 
-      const res = await submitMigrationQuery({ query: 'Tell me about catalog', stepId: 'step-06' });
-      expect(res.answer).toBe('Catalog service was migrated in step-06');
+      const deltas: string[] = [];
+      const res = await submitMigrationQuery(
+        { query: 'Tell me about catalog', stepId: 'step-06' },
+        { onSources: () => {}, onDelta: (t) => deltas.push(t) },
+      );
+
+      expect(res.answer).toBe('Catalog service was migrated.');
+      expect(deltas).toEqual(['Catalog service ', 'was migrated.']);
       expect(res.stepId).toBe('step-06');
       expect(res.evidence.length).toBeGreaterThan(0);
-      expect(res.evidence[0].filePath).toBe('llm:openai-compatible (gemini-2.5-flash)');
+    });
+
+    it('throws a visible error on an error stream event', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        body: ndjsonBody([
+          JSON.stringify({ type: 'sources', text: JSON.stringify([]) }),
+          JSON.stringify({ type: 'error', text: 'LLM provider request failed' }),
+        ]),
+      } as unknown as Response);
+
+      await expect(
+        submitMigrationQuery({ query: 'anything', stepId: 'step-06' }, noopCallbacks),
+      ).rejects.toThrow('LLM provider request failed');
     });
 
     it('throws a visible error when the backend is unreachable', async () => {
       globalThis.fetch = vi.fn().mockRejectedValue(new Error('Backend down'));
 
       await expect(
-        submitMigrationQuery({
-          query: 'Which parts of the legacy system have already been decommissioned in Step-06?',
-          stepId: 'step-06',
-        }),
+        submitMigrationQuery(
+          { query: 'Which parts are decommissioned?', stepId: 'step-06' },
+          noopCallbacks,
+        ),
       ).rejects.toThrow('Backend unreachable');
     });
 
@@ -64,7 +102,7 @@ describe('Frontend API Service', () => {
       } as unknown as Response);
 
       await expect(
-        submitMigrationQuery({ query: 'anything', stepId: 'step-06' }),
+        submitMigrationQuery({ query: 'anything', stepId: 'step-06' }, noopCallbacks),
       ).rejects.toThrow('HTTP 502: LLM provider request failed');
     });
   });

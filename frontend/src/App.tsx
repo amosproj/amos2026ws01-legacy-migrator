@@ -9,8 +9,7 @@ export const App: React.FC = () => {
   const [selectedStep, setSelectedStep] = useState<string>('step-06');
   const [health, setHealth] = useState<HealthStatus>({
     backendAvailable: false,
-    mcpAvailable: false,
-    graphAvailable: false,
+    model: 'none',
     message: 'Checking connection...'
   });
 

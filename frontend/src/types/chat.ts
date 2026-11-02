@@ -32,7 +32,6 @@ export interface ChatMessage {
 export interface QueryRequest {
   query: string;
   stepId?: string;
-  includeEvidence?: boolean;
 }
 
 export interface QueryResponse {

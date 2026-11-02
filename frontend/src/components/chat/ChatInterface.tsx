@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Trash2, Loader2, AlertCircle } from 'lucide-react';
+import { Send, Trash2, Loader2, AlertCircle, Square } from 'lucide-react';
 import { ChatMessage as ChatMessageType } from '../../types/chat';
 import { ChatMessage } from './ChatMessage';
 import { SuggestedQueries } from './SuggestedQueries';
@@ -26,6 +26,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedStep }) =>
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -34,6 +35,10 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedStep }) =>
   useEffect(() => {
     scrollToBottom();
   }, [messages, isLoading]);
+
+  const handleStop = () => {
+    abortControllerRef.current?.abort();
+  };
 
   const handleSend = async (queryText?: string) => {
     const textToSend = (queryText || input).trim();
@@ -49,31 +54,66 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedStep }) =>
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
 
-    setMessages((prev) => [...prev, userMessage]);
+    const assistantId = `asst-${Date.now()}`;
+    const streamingMessage: ChatMessageType = {
+      id: assistantId,
+      role: 'assistant',
+      content: '',
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      status: 'streaming',
+    };
+
+    setMessages((prev) => [...prev, userMessage, streamingMessage]);
     setIsLoading(true);
 
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     try {
-      const response = await submitMigrationQuery({
-        query: textToSend,
-        stepId: selectedStep,
-        includeEvidence: true,
-      });
+      const response = await submitMigrationQuery(
+        { query: textToSend, stepId: selectedStep },
+        {
+          onDelta: (text) => {
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantId ? { ...m, content: m.content + text } : m
+              )
+            );
+          },
+          onSources: () => {
+            // Sources arrive before content; evidence is attached on completion.
+          },
+        },
+        controller.signal,
+      );
 
-      const assistantMessage: ChatMessageType = {
-        id: `asst-${Date.now()}`,
-        role: 'assistant',
-        content: response.answer,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        evidence: response.evidence,
-        executionTimeMs: response.executionTimeMs,
-        suggestedNextQueries: response.suggestedNextQueries,
-      };
-
-      setMessages((prev) => [...prev, assistantMessage]);
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === assistantId
+            ? {
+                ...m,
+                content: response.answer,
+                evidence: response.evidence,
+                executionTimeMs: response.executionTimeMs,
+                suggestedNextQueries: response.suggestedNextQueries,
+                status: 'done',
+              }
+            : m
+        )
+      );
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Query execution failed';
-      setError(msg);
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        // User cancelled: keep the partial answer, mark as done.
+        setMessages((prev) =>
+          prev.map((m) => (m.id === assistantId ? { ...m, status: 'done' } : m))
+        );
+      } else {
+        const msg = err instanceof Error ? err.message : 'Query execution failed';
+        setError(msg);
+        setMessages((prev) => prev.filter((m) => m.id !== assistantId));
+      }
     } finally {
+      abortControllerRef.current = null;
       setIsLoading(false);
       textareaRef.current?.focus();
     }
@@ -131,11 +171,11 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedStep }) =>
           <ChatMessage key={msg.id} message={msg} />
         ))}
 
-        {isLoading && (
+        {isLoading && messages[messages.length - 1]?.content === '' && (
           <div className="flex gap-3 py-3">
             <div className="bg-[#ffffff] border border-[#ebebeb] rounded-[6px] p-4 text-[#737373] text-xs font-mono shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex items-center gap-2.5">
               <Loader2 className="w-4 h-4 animate-spin text-[#171717]" />
-              <span>Querying Neo4j code graph & resolving source evidence...</span>
+              <span>Waiting for the LLM to start answering...</span>
             </div>
           </div>
         )}
@@ -177,16 +217,25 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedStep }) =>
             </div>
 
             <button
-              onClick={() => handleSend()}
-              disabled={!input.trim() || isLoading}
-              className="h-8 px-4 bg-[#171717] hover:bg-[#333333] text-[#ffffff] font-medium text-xs font-sans rounded-[6px] flex items-center justify-center gap-1.5 transition-all disabled:opacity-30 disabled:cursor-not-allowed shrink-0"
+              onClick={() => (isLoading ? handleStop() : handleSend())}
+              disabled={!isLoading && !input.trim()}
+              className={`h-8 px-4 font-medium text-xs font-sans rounded-[6px] flex items-center justify-center gap-1.5 transition-all disabled:opacity-30 disabled:cursor-not-allowed shrink-0 ${
+                isLoading
+                  ? 'bg-[#dc2626] hover:bg-[#b91c1c] text-[#ffffff]'
+                  : 'bg-[#171717] hover:bg-[#333333] text-[#ffffff]'
+              }`}
             >
               {isLoading ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin text-[#ffffff]" />
+                <>
+                  <Square className="w-3 h-3 text-[#ffffff]" />
+                  <span>Stop</span>
+                </>
               ) : (
-                <Send className="w-3 h-3 text-[#ffffff]" />
+                <>
+                  <Send className="w-3 h-3 text-[#ffffff]" />
+                  <span>Query Graph</span>
+                </>
               )}
-              <span>Query Graph</span>
             </button>
           </div>
         </div>

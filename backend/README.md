@@ -13,13 +13,14 @@ endpoint is used (a local Ollama server or a future external API provider).
 
 | Endpoint | Method | Purpose |
 |---|---|---|
-| `/api/chat` | POST | Submit a query: `{"query": "...", "conversation_id"?: "..."}` → `{"answer": "...", "conversation_id"?: "...", "sources": [...]}` |
-| `/api/health` | GET | Liveness check (`{"status": "ok", ...}`) |
+| `/api/chat` | POST | Submit a query: `{"query": "...", "conversation_id"?: "..."}` → NDJSON stream: `sources` event, then `content` text deltas, or an `error` event |
+| `/api/health` | GET | Liveness check (`{"status": "ok", ..., "model": "..."}`) |
 | `/api/repositories` | GET | Mock repository list for the frontend picker (real loading is ticket #17) |
 
-The request/response contract matches the frontend adapters on the
-`create-basic-query-interface` branch (`frontend/src/lib/chatAdapter.ts`,
-`frontend/src/config/env.ts`). Invalid requests are rejected with HTTP 422.
+The chat answer is streamed as newline-delimited JSON so the frontend can
+render tokens as they arrive and cancel long-running generations. Invalid
+requests are rejected with HTTP 422; LLM failures arrive as an `error` event
+inside the stream.
 
 ## Setup and start
 
@@ -85,9 +86,6 @@ plugged in later without changing the API layer.
 
 ## Known limitations / future work
 
-- **No streaming yet.** Chat answers are currently returned as one complete
-  JSON response, not streamed. For a smoother chat experience this should be
-  replaced with NDJSON/SSE streaming in a future ticket — together with the
-  frontend query interface
-  ([#27](https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/27)),
-  which currently expects a single JSON response.
+- **No knowledge-graph context yet.** Answers come from the LLM alone; the
+  ingestion and graph query logic (tickets #17, #52) will feed evidence into
+  the prompt later.

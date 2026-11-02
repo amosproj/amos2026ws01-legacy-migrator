@@ -30,8 +30,15 @@ The application runs at **`http://localhost:3000`**.
 ## Architecture & Integration
 
 * **Decoupled Deployment:** Frontend and Backend are hosted independently.
-* **Backend Proxy:** The Vite development server automatically proxies `/api` requests to `http://127.0.0.1:8000`.
-* **Graceful Standalone / Mock Fallback:** If the FastAPI backend is not running, the application seamlessly operates in offline mock mode, allowing full UI testing and demonstration of realistic migration inquiries.
+* **Backend Proxy:** Both the Vite development server (`npm run dev`) and the
+  preview server (`npm run preview`) proxy `/api` requests to
+  `http://127.0.0.1:8000`.
+* **Streaming Chat:** Chat answers are streamed from the backend as
+  newline-delimited JSON and rendered token by token; a Stop button cancels
+  long-running generations. Connection and LLM errors are shown in the chat.
+* **Illustrative Evidence:** Source evidence cards are illustrative mock data
+  for the demonstrator until the ingestion pipeline provides real evidence.
+  The arc42 views are likewise rendered from mock view definitions.
 * **Licensing Compliance:** Built entirely using permissive open-source packages (MIT / Apache-2.0 / BSD).
 
 ## Verification & Build

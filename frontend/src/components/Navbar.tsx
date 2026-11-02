@@ -86,6 +86,9 @@ export const Navbar: React.FC<NavbarProps> = ({
           >
             <span className={`w-1.5 h-1.5 rounded-full ${health.backendAvailable ? 'bg-[#059669]' : 'bg-[#d97706]'}`}></span>
             <span>{health.backendAvailable ? 'API Online' : 'Mock Mode'}</span>
+            {health.backendAvailable && health.model !== 'none' && (
+              <span className="text-[#a3a3a3] hidden md:inline">· {health.model}</span>
+            )}
             <RefreshCw className="w-3 h-3 text-[#a3a3a3] hover:text-[#171717]" />
           </button>
 

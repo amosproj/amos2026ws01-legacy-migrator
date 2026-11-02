@@ -1,9 +1,8 @@
 """Request/response models for the query API (ticket #24).
 
-The chat contract mirrors what the frontend expects (see
-``frontend/src/lib/chatAdapter.ts`` and ``frontend/src/config/env.ts`` on the
-``create-basic-query-interface`` branch): ``POST /api/chat`` receives
-``{query, conversation_id?}`` and returns ``{answer, conversation_id?, sources?}``.
+``POST /api/chat`` receives ``{query, conversation_id?}`` and answers with a
+newline-delimited JSON stream (see ``main.py``): a ``sources`` event first,
+then ``content`` text deltas, or an ``error`` event on failure.
 """
 
 from typing import Annotated
@@ -21,20 +20,13 @@ class ChatRequest(BaseModel):
     conversation_id: Annotated[str | None, Field(max_length=200)] = None
 
 
-class ChatResponse(BaseModel):
-    """Structured answer; ``sources`` carries evidence labels for the reply."""
-
-    answer: str
-    conversation_id: str | None = None
-    sources: list[str] = Field(default_factory=list)
-
-
 class HealthResponse(BaseModel):
     """Service liveness info; any 2xx counts as 'connected' for the frontend."""
 
     status: str
     service: str
     version: str
+    model: str
 
 
 class Repository(BaseModel):

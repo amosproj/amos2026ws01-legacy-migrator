@@ -127,10 +127,36 @@ def test_factory_returns_openai_compatible_with_configuration(
 def test_provider_protocol_is_satisfied_by_both_implementations() -> None:
     """Both implementations fulfil the seam; consumers depend only on it."""
     providers: list[LlmProvider] = [MockLlmProvider()]
-    assert all(hasattr(p, "complete") and hasattr(p, "aclose") for p in providers)
+    assert all(
+        hasattr(p, "complete") and hasattr(p, "stream_reply") and hasattr(p, "aclose")
+        for p in providers
+    )
 
 
-def test_query_service_sends_system_and_user_messages() -> None:
+def test_openai_compatible_provider_streams_content_deltas() -> None:
+    sse = (
+        'data: {"choices":[{"delta":{"content":"Hello"}}]}\n\n'
+        'data: {"choices":[{"delta":{"content":" world"}}]}\n\n'
+        "data: [DONE]\n\n"
+    )
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        body = json.loads(request.content)
+        assert body["stream"] is True
+        return httpx2.Response(200, text=sse)
+
+    provider = OpenAiCompatibleProvider(
+        "http://fake/v1", "test-model", "", transport=httpx2.MockTransport(handler)
+    )
+
+    async def collect() -> list[str]:
+        return [delta async for delta in provider.stream_reply([{"role": "user", "content": "hi"}])]
+
+    assert asyncio.run(collect()) == ["Hello", " world"]
+    asyncio.run(provider.aclose())
+
+
+def test_query_service_streams_system_and_user_messages() -> None:
     """The query service sends system + user messages in OpenAI chat format."""
     captured: list[list[dict[str, Any]]] = []
 
@@ -138,16 +164,21 @@ def test_query_service_sends_system_and_user_messages() -> None:
         name = "recording"
 
         async def complete(self, messages: list[dict[str, Any]]) -> str:
-            captured.append(messages)
             return "ok"
+
+        async def stream_reply(self, messages: list[dict[str, Any]]):
+            captured.append(messages)
+            yield "ok"
 
         async def aclose(self) -> None:
             pass
 
     service = LlmQueryService(RecordingProvider())
-    result = asyncio.run(service.answer("What is coupled?", None))
 
-    assert result.answer == "ok"
-    assert result.sources == ["llm:recording"]
+    async def collect() -> list[str]:
+        return [delta async for delta in service.stream_answer("What is coupled?")]
+
+    assert asyncio.run(collect()) == ["ok"]
+    assert service.sources() == ["llm:recording"]
     assert captured[0][0]["role"] == "system"
     assert captured[0][1] == {"role": "user", "content": "What is coupled?"}
