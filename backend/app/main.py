@@ -30,11 +30,14 @@ from .schemas import ChatRequest, ChatResponse, HealthResponse
 SERVICE_NAME = "sunsettracker-backend"
 VERSION = "0.2.0"
 
-# Comma-separated list of allowed origins, e.g. "http://localhost:5173".
-# Defaults to the Vite dev server origin.
+# Comma-separated list of allowed origins, e.g. "http://localhost:3000,http://localhost:5173".
+# Defaults to the Vite dev server origins.
 CORS_ORIGINS = [
     origin.strip()
-    for origin in os.environ.get("CORS_ORIGINS", "http://localhost:5173").split(",")
+    for origin in os.environ.get(
+        "CORS_ORIGINS",
+        "http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,http://127.0.0.1:5173",
+    ).split(",")
     if origin.strip()
 ]
 
