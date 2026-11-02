@@ -34,3 +34,14 @@ bin/
 
 # MacOS
 .DS_Store
+
+# Reference workspace cache
+.cache/
+
+.venv/
+
+# Local Claude Code files
+.claude/
+backend/config/reference-source.local.yaml
+
+CLAUDE.local.md
