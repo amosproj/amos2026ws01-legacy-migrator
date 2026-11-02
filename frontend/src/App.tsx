@@ -20,9 +20,25 @@ export const App: React.FC = () => {
   };
 
   useEffect(() => {
-    refreshHealth();
-    const interval = setInterval(refreshHealth, 15000);
-    return () => clearInterval(interval);
+    let isMounted = true;
+    checkBackendHealth().then((status) => {
+      if (isMounted) {
+        setHealth(status);
+      }
+    });
+
+    const interval = setInterval(() => {
+      checkBackendHealth().then((status) => {
+        if (isMounted) {
+          setHealth(status);
+        }
+      });
+    }, 15000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
   }, []);
 
   return (
