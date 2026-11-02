@@ -1,57 +1,148 @@
-import { useEffect, useState } from 'react'
-import { Bot, ExternalLink, Loader2, UserRound } from 'lucide-react'
-import { ChatMessage as ChatMessageData } from '../../lib/chatAdapter'
+import React, { useState } from 'react';
+import { Clock, FileCheck2, ChevronDown, ChevronUp } from 'lucide-react';
+import { ChatMessage as ChatMessageType } from '../../types/chat';
+import { SourceEvidenceCard } from './SourceEvidenceCard';
 
-type ChatMessageProps = {
-  message: ChatMessageData
+interface ChatMessageProps {
+  message: ChatMessageType;
 }
 
-export function ChatMessage({ message }: ChatMessageProps) {
+export const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
+  const isUser = message.role === 'user';
+  const [showEvidence, setShowEvidence] = useState<boolean>(true);
+
+  // Markdown renderer respecting Vercel typography tokens
+  const renderFormattedContent = (content: string) => {
+    const lines = content.split('\n');
+    return lines.map((line, idx) => {
+      if (line.startsWith('### ')) {
+        return (
+          <h3 key={idx} className="text-sm font-semibold text-[#171717] tracking-tight mt-3 mb-1.5 flex items-center gap-1.5">
+            <span className="text-[#a3a3a3] font-mono text-xs">#</span>
+            {line.replace('### ', '')}
+          </h3>
+        );
+      }
+      if (line.startsWith('## ')) {
+        return (
+          <h2 key={idx} className="text-base font-semibold text-[#171717] tracking-tight mt-3.5 mb-1.5">
+            {line.replace('## ', '')}
+          </h2>
+        );
+      }
+      if (line.startsWith('* ') || line.startsWith('- ')) {
+        return (
+          <li key={idx} className="ml-4 list-disc text-[#333333] my-1 leading-relaxed text-sm">
+            {formatInlineText(line.substring(2))}
+          </li>
+        );
+      }
+      if (/^\d+\.\s/.test(line)) {
+        const itemText = line.replace(/^\d+\.\s/, '');
+        return (
+          <div key={idx} className="ml-2 my-1.5 text-[#333333] text-sm leading-relaxed flex gap-2">
+            <span className="font-mono text-[#737373] text-xs font-semibold">{line.match(/^\d+\./)?.[0]}</span>
+            <div>{formatInlineText(itemText)}</div>
+          </div>
+        );
+      }
+      if (line.trim() === '') {
+        return <div key={idx} className="h-2" />;
+      }
+      return (
+        <p key={idx} className="leading-relaxed text-[#333333] text-sm my-1 font-sans">
+          {formatInlineText(line)}
+        </p>
+      );
+    });
+  };
+
+  const formatInlineText = (text: string) => {
+    const parts = text.split(/(`[^`]+`|\*\*[^*]+\*\*)/g);
+    return parts.map((part, i) => {
+      if (part.startsWith('`') && part.endsWith('`')) {
+        return (
+          <code key={i} className="px-1.5 py-0.5 bg-[#f5f5f5] text-[#171717] border border-[#ebebeb] rounded-[3px] font-mono text-[12px]">
+            {part.slice(1, -1)}
+          </code>
+        );
+      }
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return (
+          <strong key={i} className="text-[#171717] font-semibold">
+            {part.slice(2, -2)}
+          </strong>
+        );
+      }
+      return part;
+    });
+  };
+
   return (
-    <article className={`message-row ${message.role}`}>
-      <div className={`avatar ${message.role === 'assistant' ? 'assistant-avatar' : ''}`}>{message.role === 'assistant' ? <Bot size={17} /> : <UserRound size={16} />}</div>
-      <div className="message-content">
-        <span className="message-author">{message.role === 'assistant' ? 'Migration assistant' : 'You'}</span>
-        <p>{message.content}</p>
-        {message.sources && message.sources.length > 0 && <div className="message-sources" aria-label="Sources">{message.sources.map((source) => <Source key={source} value={source} />)}</div>}
+    <div className={`flex gap-3 py-3 ${isUser ? 'justify-end' : 'justify-start'}`}>
+      <div
+        className={`max-w-[88%] rounded-[6px] p-4 transition-all ${
+          isUser
+            ? 'bg-[#171717] text-[#ffffff] shadow-[0_1px_2px_rgba(0,0,0,0.06)]'
+            : 'bg-[#ffffff] border border-[#ebebeb] text-[#171717] shadow-[0_1px_3px_rgba(0,0,0,0.02)]'
+        }`}
+      >
+        {/* Message metadata bar */}
+        <div
+          className={`flex items-center justify-between gap-4 mb-2 pb-1.5 border-b text-[11px] font-mono ${
+            isUser ? 'border-[#333333] text-[#a3a3a3]' : 'border-[#f5f5f5] text-[#737373]'
+          }`}
+        >
+          <span className="font-medium tracking-wide flex items-center gap-1.5">
+            {!isUser && <span className="text-[#000000] font-sans font-bold text-xs">▲</span>}
+            {isUser ? 'DEVELOPER INQUIRY' : 'SUNSET TRACKER ORCHESTRATOR'}
+          </span>
+          <div className="flex items-center gap-2.5">
+            {message.executionTimeMs && (
+              <span className="inline-flex items-center gap-1">
+                <Clock className="w-3 h-3 text-[#a3a3a3]" />
+                {message.executionTimeMs}ms
+              </span>
+            )}
+            <span>{message.timestamp}</span>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="text-sm font-sans">
+          {isUser ? (
+            <p className="leading-relaxed whitespace-pre-wrap text-sm text-[#f5f5f5] font-sans">{message.content}</p>
+          ) : (
+            renderFormattedContent(message.content)
+          )}
+        </div>
+
+        {/* Source Code Evidence Section (Wolfgang's requirement) */}
+        {!isUser && message.evidence && message.evidence.length > 0 && (
+          <div className="mt-4 pt-3 border-t border-[#f0f0f0]">
+            <button
+              onClick={() => setShowEvidence(!showEvidence)}
+              className="flex items-center justify-between w-full text-xs font-mono font-medium text-[#171717] hover:text-[#000000] py-1 transition-colors"
+            >
+              <div className="flex items-center gap-1.5">
+                <FileCheck2 className="w-3.5 h-3.5 text-[#297a3a]" />
+                <span className="uppercase tracking-wider">
+                  Verified AST Evidence ({message.evidence.length} trace points)
+                </span>
+              </div>
+              {showEvidence ? <ChevronUp className="w-3.5 h-3.5 text-[#737373]" /> : <ChevronDown className="w-3.5 h-3.5 text-[#737373]" />}
+            </button>
+
+            {showEvidence && (
+              <div className="mt-2.5 space-y-2">
+                {message.evidence.map((ev) => (
+                  <SourceEvidenceCard key={ev.id} evidence={ev} />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
-    </article>
-  )
-}
-
-function Source({ value }: { value: string }) {
-  let url: URL | null = null
-  try {
-    const parsedUrl = new URL(value)
-    if (parsedUrl.protocol === 'http:' || parsedUrl.protocol === 'https:') url = parsedUrl
-  } catch {
-    url = null
-  }
-  if (!url) return <span className="source-badge">{value}</span>
-
-  return <a className="source-badge source-link" href={url.href} target="_blank" rel="noreferrer">{value}<ExternalLink size={11} /></a>
-}
-
-export function LoadingMessage() {
-  const [showHint, setShowHint] = useState(false)
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => setShowHint(true), 3000)
-    return () => window.clearTimeout(timer)
-  }, [])
-
-  return (
-  <div className="message-row assistant">
-    <div className="avatar assistant-avatar">
-      <Bot size={17} />
     </div>
-    <div className="message-content">
-      <span className="message-author">Migration assistant</span>
-      <div className="loading">
-        <Loader2 size={16} className="spin" /> Thinking...
-        {showHint && <span className="loading-hint">The first response can take a few minutes while the model loads.</span>}
-      </div>
-    </div>
-  </div>
-  )
-}
+  );
+};

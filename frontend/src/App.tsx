@@ -1,28 +1,56 @@
-import { useState } from 'react'
-import { DiffReview } from './components/diff/DiffReview'
-import { ChatView } from './components/chat/ChatView'
-import { Sidebar, type AppView } from './components/layout/Sidebar'
-import { Topbar } from './components/layout/Topbar'
+import React, { useState, useEffect } from 'react';
+import { Navbar } from './components/Navbar';
+import { ChatInterface } from './components/chat/ChatInterface';
+import { ViewsInterface } from './components/views/ViewsInterface';
+import { checkBackendHealth, HealthStatus } from './services/api';
 
-function App() {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-  const [activeView, setActiveView] = useState<AppView>('chat')
-  const [chatSessionKey, setChatSessionKey] = useState(0)
+export const App: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<'chat' | 'views'>('chat');
+  const [selectedStep, setSelectedStep] = useState<string>('step-06');
+  const [health, setHealth] = useState<HealthStatus>({
+    backendAvailable: false,
+    mcpAvailable: false,
+    graphAvailable: false,
+    message: 'Checking connection...'
+  });
 
-  const selectView = (view: AppView) => {
-    setActiveView(view)
-    setIsSidebarOpen(false)
-  }
+  const refreshHealth = async () => {
+    const status = await checkBackendHealth();
+    setHealth(status);
+  };
+
+  useEffect(() => {
+    refreshHealth();
+    const interval = setInterval(refreshHealth, 15000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
-    <div className="app-shell">
-      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} onNewConversation={() => setChatSessionKey((key) => key + 1)} activeView={activeView} onViewChange={selectView} />
-      <main className="main-content">
-        <Topbar onOpenNavigation={() => setIsSidebarOpen(true)} />
-        {activeView === 'diff' ? <DiffReview /> : <ChatView key={chatSessionKey} />}
-      </main>
-    </div>
-  )
-}
+    <div className="min-h-screen bg-[#fafafa] text-[#171717] flex flex-col font-sans">
+      <Navbar
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        selectedStep={selectedStep}
+        onStepChange={setSelectedStep}
+        health={health}
+        onRefreshHealth={refreshHealth}
+      />
 
-export default App
+      <main className="flex-1 px-4 sm:px-6 py-5 flex flex-col justify-center">
+        {activeTab === 'chat' ? (
+          <ChatInterface selectedStep={selectedStep} />
+        ) : (
+          <ViewsInterface />
+        )}
+      </main>
+
+      {/* Vercel minimalist footer */}
+      <footer className="py-3 px-6 border-t border-[#ebebeb] bg-[#ffffff] text-[11px] font-mono text-[#8f8f8f] flex flex-wrap items-center justify-between gap-2 max-w-7xl mx-auto w-full">
+        <span>AMOS Winter Semester 2026/27 · Project 1 (iteratec) · SunsetTracker</span>
+        <span>Deterministic Code Ingestion · AST Traceability · Neo4j & PostgreSQL 17</span>
+      </footer>
+    </div>
+  );
+};
+
+export default App;
