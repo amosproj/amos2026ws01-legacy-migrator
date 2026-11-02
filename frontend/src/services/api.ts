@@ -73,9 +73,9 @@ export async function submitMigrationQuery(req: QueryRequest): Promise<QueryResp
   } catch (err: unknown) {
     clearTimeout(timeoutId);
     if (err instanceof DOMException && err.name === 'AbortError') {
-      throw new Error('Request timed out (5 min). The LLM server may still be loading the model.');
+      throw new Error('Request timed out (5 min). The LLM server may still be loading the model.', { cause: err });
     }
-    throw new Error('Backend unreachable. Is the backend running on port 8000?');
+    throw new Error('Backend unreachable. Is the backend running on port 8000?', { cause: err });
   }
   clearTimeout(timeoutId);
 
