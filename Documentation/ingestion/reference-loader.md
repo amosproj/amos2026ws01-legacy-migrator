@@ -18,14 +18,14 @@ In `Documentation/SBOM/sbom-a-architecture.mmd` this matches three boxes:
 |---|---|---|
 | RES | Resolve a ref to a full commit SHA | Resolves the stage tag to a full SHA and checks that each component is at the SHA in `stage.json` |
 | CO | Ingest worker / local Git CLI, reads an exact SHA, no builds or code execution | Runs git with safe settings and only reads files |
-| RC | Local repo cache | The `workspace` folder (default `.cache/reference`) |
+| RC | Local repo cache | The `workspace` folder (default `.cache/reference`, so `backend/.cache/reference` when run from `backend/`) |
 
 A local source needs no network. An `https://` source is fetched once into the cache; the diagram expects that preparation to happen before offline use.
 
 ## Setup
 
 1. Python 3.12 (see `.python-version`).
-2. Create and activate a virtual environment:
+2. In the repository root, create and activate a virtual environment:
 
    ```powershell
    py -3.12 -m venv .venv
@@ -42,26 +42,29 @@ A local source needs no network. An `https://` source is fetched once into the c
    .venv\Scripts\Activate.ps1
    ```
 
-3. Install the dependencies listed in `pyproject.toml`:
+3. Install the dependencies listed in `backend/pyproject.toml`:
 
    ```powershell
    pip install "pydantic>=2" "pyyaml>=6"   # runtime
    pip install "pytest>=8"                  # dev group, only needed for the tests
    ```
 
-   `pyproject.toml` has no build backend yet, so `pip install .` is not supported. That is why the source folder is put on the path:
+   `backend/pyproject.toml` has no build backend yet, so `pip install .` is not supported. That is why the source folder is put on the path.
+   The code is in `backend/`: run all commands below from there. The `.venv` stays in the repository root, which is why the commands use `..\.venv\...`.
 
    ```powershell
+   cd backend
    $env:PYTHONPATH = "src"     # PowerShell
    ```
 
    ```bash
+   cd backend
    export PYTHONPATH=src       # bash
    ```
 
 ## Configuration
 
-Default file: `config/reference-source.yaml` (committed).
+Default file: `backend/config/reference-source.yaml` (committed). Relative paths in this guide are relative to `backend/`.
 
 | Field | Meaning |
 |---|---|
@@ -69,12 +72,12 @@ Default file: `config/reference-source.yaml` (committed).
 | `public_url` | Base URL of the GitHub organisation, used to build links |
 | `stage` | Stage tag to load, for example `step-00` or `step-04a`. Any tag name is allowed; letters, digits, `.`, `_`, `/`, `-`, and it must not start with `-` |
 | `components` | Component repositories to load, for example `[monolith]` |
-| `workspace` | Cache folder for the checkout (git-ignored, default `.cache/reference`) |
+| `workspace` | Cache folder for the checkout, relative to where the command runs (git-ignored, default `.cache/reference`) |
 | `include` | File extensions (`.java`) and exact file names (`Dockerfile`) to load |
 | `exclude` | Glob patterns on repository-relative paths, `/` separated. `**` crosses folders. Checked before `include` |
 | `max_file_size_kb` | Larger files are skipped. Default 1024 |
 
-**Local copy (recommended for the offline demo).** Create `config/reference-source.local.yaml` (git-ignored) with the same fields and your local path as `source`. If this file exists it is used instead of the default file. It replaces the default file completely; nothing is merged.
+**Local copy (recommended for the offline demo).** Create `backend/config/reference-source.local.yaml` (git-ignored) with the same fields and your local path as `source`. If this file exists it is used instead of the default file. It replaces the default file completely; nothing is merged.
 
 Command-line options:
 
@@ -92,13 +95,13 @@ The config file itself is never changed by these options.
 
 ```powershell
 # Default run: stage and components from the config file
-.venv\Scripts\python.exe -m migration_assistant.bootstrap.cli
+..\.venv\Scripts\python.exe -m migration_assistant.bootstrap.cli
 
 # Another stage, two components
-.venv\Scripts\python.exe -m migration_assistant.bootstrap.cli --stage step-04a --components monolith catalog-service
+..\.venv\Scripts\python.exe -m migration_assistant.bootstrap.cli --stage step-04a --components monolith catalog-service
 
 # Also write the files as JSONL
-.venv\Scripts\python.exe -m migration_assistant.bootstrap.cli --out .cache/output/step-00.jsonl
+..\.venv\Scripts\python.exe -m migration_assistant.bootstrap.cli --out .cache/output/step-00.jsonl
 ```
 
 Example output of the default run (local copy, stage `step-00`):
@@ -193,7 +196,7 @@ Errors print one line to stderr, starting with `ERROR:`. Config problems with se
 ## Safety
 
 - The original repository is never modified. All clones, fetches and checkouts happen in the workspace folder, and git is refused if its working directory is inside a local source.
-- The workspace (`.cache/reference`) is git-ignored and can be deleted at any time.
+- The workspace (`backend/.cache/reference`) is git-ignored and can be deleted at any time.
 - Every git call uses an argument list (never a shell), with `core.hooksPath` pointing at an empty folder (hooks off), `core.fsmonitor=false`, `core.longpaths=true` and no terminal prompts.
 - Only the selected submodules are initialised, never recursively.
 - An `https://` source uses the https transport only (`protocol.allow=never`, `protocol.https.allow=always`). Other URL types are refused.
@@ -204,7 +207,7 @@ Errors print one line to stderr, starting with `ERROR:`. Config problems with se
 ## Tests
 
 ```powershell
-.venv\Scripts\python.exe -m pytest -v
+..\.venv\Scripts\python.exe -m pytest -v
 ```
 
 52 tests are collected. The suite builds a small fake reference setup with real git in a temporary folder and does not use the network.
@@ -213,7 +216,7 @@ Optional integration test against your real local copy (skipped when the variabl
 
 ```powershell
 $env:REFERENCE_SOURCE = "D:/path/to/legacy-example-stages"
-.venv\Scripts\python.exe -m pytest tests/test_real_reference_source.py -v
+..\.venv\Scripts\python.exe -m pytest tests/test_real_reference_source.py -v
 ```
 
 ```bash
@@ -224,11 +227,11 @@ REFERENCE_SOURCE=/path/to/legacy-example-stages python -m pytest tests/test_real
 
 | # | Criterion | Test file |
 |---|---|---|
-| 1 | The reference repository can be configured as an input source | `tests/test_configuration.py` |
-| 2 | Relevant source files are detected and loaded | `tests/test_load_sources.py` |
-| 3 | The loading process can be executed repeatedly | `tests/test_repeatable.py` |
-| 4 | Errors during loading are reported clearly | `tests/test_clear_errors.py` (and the error cases in `tests/test_configuration.py`) |
-| 5 | The original reference repository is not modified | `tests/test_original_unchanged.py` |
+| 1 | The reference repository can be configured as an input source | `backend/tests/test_configuration.py` |
+| 2 | Relevant source files are detected and loaded | `backend/tests/test_load_sources.py` |
+| 3 | The loading process can be executed repeatedly | `backend/tests/test_repeatable.py` |
+| 4 | Errors during loading are reported clearly | `backend/tests/test_clear_errors.py` (and the error cases in `backend/tests/test_configuration.py`) |
+| 5 | The original reference repository is not modified | `backend/tests/test_original_unchanged.py` |
 
 ## Known limitations
 
