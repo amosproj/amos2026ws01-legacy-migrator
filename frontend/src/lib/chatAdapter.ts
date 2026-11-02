@@ -6,6 +6,7 @@ export type ChatMessage = {
   id: string
   role: ChatRole
   content: string
+  sources?: string[]
   createdAt: string
 }
 
@@ -30,6 +31,10 @@ type BackendResponse = {
   message?: unknown
   conversation_id?: unknown
   sources?: unknown
+}
+
+type BackendErrorResponse = {
+  detail?: unknown
 }
 
 const mockAnswer =
@@ -62,9 +67,7 @@ export const chatAdapter: ChatAdapter = {
       signal,
     })
 
-    if (!response.ok) {
-      throw new Error(`The backend returned ${response.status}. Please try again.`)
-    }
+    if (!response.ok) throw new Error(await backendErrorMessage(response))
 
     const payload = (await response.json()) as BackendResponse
     const answer = payload.answer ?? payload.response ?? payload.message
@@ -78,4 +81,20 @@ export const chatAdapter: ChatAdapter = {
       sources: Array.isArray(payload.sources) && payload.sources.every((source) => typeof source === 'string') ? payload.sources : undefined,
     }
   },
+}
+
+async function backendErrorMessage(response: Response) {
+  const fallback = `The backend returned ${response.status}. Please try again.`
+  const body = await response.text()
+  if (!body) return fallback
+
+  try {
+    const payload = JSON.parse(body) as BackendErrorResponse
+    if (typeof payload.detail === 'string' && payload.detail.trim()) return payload.detail
+    if (Array.isArray(payload.detail) && payload.detail.length > 0) return `The request was invalid: ${payload.detail.map(String).join(', ')}`
+  } catch {
+    return fallback
+  }
+
+  return fallback
 }

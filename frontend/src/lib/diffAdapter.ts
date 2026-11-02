@@ -51,7 +51,7 @@ const mockDiff: DiffExplanation = {
 
 export const diffAdapter: DiffAdapter = {
   async explain(request) {
-    if (clientConfig.useMockApi) {
+    if (clientConfig.useMockApi || clientConfig.useMockDiffApi) {
       await new Promise((resolve) => window.setTimeout(resolve, clientConfig.mockDelays.diff))
       return mockDiff
     }

@@ -23,6 +23,7 @@ describe('authAdapter', () => {
 
   it('loads the backend session through the provider-neutral contract', async () => {
     vi.stubEnv('VITE_USE_MOCK_API', 'false')
+    vi.stubEnv('VITE_USE_MOCK_AUTH_API', 'false')
     vi.resetModules()
     const session = { authenticated: true, user: { provider: 'github', username: 'demo', display_name: 'Demo', avatar_url: null } }
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify(session), { status: 200 }))

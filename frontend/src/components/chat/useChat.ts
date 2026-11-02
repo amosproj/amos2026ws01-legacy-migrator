@@ -54,7 +54,7 @@ export function useChat() {
       const response = await chatAdapter.ask({ query, conversationId: conversationId.current }, controller.signal)
       if (controller.signal.aborted) return
       conversationId.current = response.conversationId
-      dispatch({ type: 'request/succeeded', message: { id: crypto.randomUUID(), role: 'assistant', content: response.answer, createdAt: new Date().toISOString() } })
+      dispatch({ type: 'request/succeeded', message: { id: crypto.randomUUID(), role: 'assistant', content: response.answer, sources: response.sources, createdAt: new Date().toISOString() } })
     } catch (requestError) {
       if (controller.signal.aborted) return
       dispatch({ type: 'request/failed', error: requestError instanceof Error ? requestError.message : 'Something went wrong. Please try again.' })

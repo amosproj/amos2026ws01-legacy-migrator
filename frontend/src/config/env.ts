@@ -3,6 +3,8 @@ const backendUrl = (import.meta.env.VITE_BACKEND_URL ?? '').replace(/\/+$/, '')
 export const clientConfig = {
   backendUrl,
   useMockApi: import.meta.env.VITE_USE_MOCK_API !== 'false',
+  useMockDiffApi: import.meta.env.VITE_USE_MOCK_DIFF_API !== 'false',
+  useMockAuthApi: import.meta.env.VITE_USE_MOCK_AUTH_API !== 'false',
   apiPaths: {
     chat: import.meta.env.VITE_API_CHAT_PATH ?? '/api/chat',
     diffExplain: import.meta.env.VITE_API_DIFF_EXPLAIN_PATH ?? '/api/diff/explain',

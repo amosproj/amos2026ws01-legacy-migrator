@@ -20,10 +20,10 @@ export interface AuthAdapter {
 }
 
 export const authAdapter: AuthAdapter = {
-  isMockMode: clientConfig.useMockApi,
+  isMockMode: clientConfig.useMockApi || clientConfig.useMockAuthApi,
 
   async session() {
-    if (clientConfig.useMockApi) return { authenticated: false }
+    if (this.isMockMode) return { authenticated: false }
 
     const response = await fetch(`${clientConfig.backendUrl}${clientConfig.apiPaths.authSession}`, {
       credentials: 'include',
@@ -33,12 +33,13 @@ export const authAdapter: AuthAdapter = {
   },
 
   signIn(provider) {
+    if (this.isMockMode) return
     const authPath = clientConfig.apiPaths.authStart.replace('{provider}', provider)
     window.location.assign(`${clientConfig.backendUrl}${authPath}`)
   },
 
   async logout() {
-    if (clientConfig.useMockApi) return
+    if (this.isMockMode) return
 
     const response = await fetch(`${clientConfig.backendUrl}${clientConfig.apiPaths.authLogout}`, {
       method: 'POST',

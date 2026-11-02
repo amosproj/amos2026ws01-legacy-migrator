@@ -81,6 +81,13 @@ VITE_BACKEND_URL=http://localhost:8000
 The adapter sends `POST /api/chat` with `{ "query": "...", "conversation_id": "..." }`
 and accepts an answer in `answer`, `response`, or `message` in the JSON response.
 It also preserves an optional `conversation_id` and `sources` array.
+Sources with an `http` or `https` URL are rendered as links; source labels such
+as `llm:openai-compatible (qwen3.5:0.8b)` are rendered as badges. Backend
+errors expose the server's `detail` message when available.
+
+The backend may take several minutes for its first CPU request while the model
+loads. The chat shows an additional wait hint after a few seconds and supports
+request cancellation when the page is left or a conversation is reset.
 
 Runtime API paths and mock delays are configurable through the `VITE_API_*` and
 `VITE_MOCK_*` variables in `.env.local`; `.env.example` contains the complete
@@ -107,6 +114,11 @@ frontend environment variables.
 The top bar includes a GitHub sign-in entry point. In backend mode it redirects
 to the server's `/api/auth/github/start` route; OAuth credentials and the
 resulting access token remain server-side.
+
+The current backend slice only exposes chat. Diff explanations and
+authentication remain mocked by default even when `VITE_USE_MOCK_API=false`;
+set `VITE_USE_MOCK_DIFF_API=false` or `VITE_USE_MOCK_AUTH_API=false` only after
+the corresponding backend routes are available.
 
 ## Source structure
 

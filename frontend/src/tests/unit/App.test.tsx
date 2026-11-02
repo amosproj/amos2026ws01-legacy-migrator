@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import App from '../../App'
 import { chatAdapter } from '../../lib/chatAdapter'
+import { LoadingMessage } from '../../components/chat/ChatMessage'
 
 afterEach(() => {
   vi.restoreAllMocks()
@@ -26,6 +27,7 @@ describe('App', () => {
       answer: 'The customer portal is ready for review.',
       conversationId: 'conversation-1',
     })
+
     render(<App />)
 
     await user.click(screen.getByRole('button', { name: 'What should we decommission next?' }))
@@ -36,6 +38,21 @@ describe('App', () => {
     await waitFor(() => expect(screen.getByText('The customer portal is ready for review.')).toBeInTheDocument())
     expect(chatAdapter.ask).toHaveBeenCalledWith({ query: 'What should we decommission next?', conversationId: undefined }, expect.any(AbortSignal))
     expect(screen.queryByRole('button', { name: 'What should we decommission next?' })).not.toBeInTheDocument()
+  })
+
+  it('renders response sources as badges and links', async () => {
+    const user = userEvent.setup()
+    vi.spyOn(chatAdapter, 'ask').mockResolvedValue({
+      answer: 'The response includes evidence.',
+      sources: ['llm:openai-compatible (qwen3.5:0.8b)', 'https://example.com/evidence'],
+    })
+    render(<App />)
+
+    await user.type(screen.getByRole('textbox', { name: 'Question' }), 'Show evidence')
+    await user.keyboard('{Enter}')
+
+    expect(await screen.findByText('llm:openai-compatible (qwen3.5:0.8b)')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /https:\/\/example.com\/evidence/ })).toHaveAttribute('href', 'https://example.com/evidence')
   })
 
   it('submits with Enter and displays the loading state while waiting', async () => {
@@ -85,6 +102,16 @@ describe('App', () => {
 
     expect(screen.getByText(/Hi, I’m your migration assistant/)).toBeInTheDocument()
     expect(screen.queryByText('A response.')).not.toBeInTheDocument()
+  })
+
+  it('explains when a backend request has been running for a while', async () => {
+    vi.useFakeTimers()
+    render(<LoadingMessage />)
+
+    expect(screen.queryByText(/first response can take/)).not.toBeInTheDocument()
+    await act(async () => vi.advanceTimersByTime(3000))
+    expect(screen.getByText(/first response can take/)).toBeInTheDocument()
+    vi.useRealTimers()
   })
 
   it('explains a Git comparison from the change explanations view', async () => {
