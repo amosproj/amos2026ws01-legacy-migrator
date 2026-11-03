@@ -1,15 +1,20 @@
 # Backend
 
-Python/FastAPI application server of SunsetTracker. Built and hosted separately
-from the frontend (no single origin).
+Python backend of SunsetTracker. It has two parts:
 
-This is the minimal query API from ticket #24 ("Create Backend Query API")
-plus the LLM provider interface from ticket #25 ("Implementation LLM Provider
-Interface"). LLM access is abstracted behind a provider-agnostic seam: without
-configuration a mock provider answers; with configuration any OpenAI-compatible
-endpoint is used (a local Ollama server or a future external API provider).
+1. **Query API** (FastAPI, tickets #24/#25): the application server the
+   frontend talks to. It streams LLM-backed answers through a provider-agnostic
+   seam: without configuration a mock provider answers; with configuration any
+   OpenAI-compatible endpoint is used (a local Ollama server or a future
+   external API provider).
+2. **Reference loader** (ticket #17): checks out one stage of the reference
+   system and loads its source files for analysis. Setup, configuration, usage
+   and tests are described in the
+   [usage guide](../Documentation/ingestion/reference-loader.md).
 
-## API
+Run all commands from this folder.
+
+## API (query server)
 
 | Endpoint | Method | Purpose |
 |---|---|---|
@@ -63,19 +68,19 @@ LLM_BASE_URL=http://127.0.0.1:11434/v1 LLM_NAME=qwen3.5:0.8b \
 
 ```
 backend/
-├── app/
-│   ├── main.py            # FastAPI app, routes, CORS, provider lifecycle
-│   ├── schemas.py         # Pydantic request/response models
-│   ├── query_service.py   # QueryService seam (mock + LLM-backed)
-│   ├── llm.py             # LlmProvider seam (mock + OpenAI-compatible)
-│   └── repositories.py    # mock repository list (ticket #17 stub)
-├── tests/
-│   ├── test_api.py        # API contract tests
-│   └── test_llm.py        # LLM provider seam tests
+├── app/                      # query API (FastAPI)
+│   ├── main.py               # app, routes, CORS, provider lifecycle
+│   ├── schemas.py            # Pydantic request/response models
+│   ├── query_service.py      # QueryService seam (mock + LLM-backed)
+│   ├── llm.py                # LlmProvider seam (mock + OpenAI-compatible)
+│   └── repositories.py       # mock repository list
+├── src/migration_assistant/  # reference loader (ticket #17)
+├── tests/                    # tests for both parts
+├── config/                   # reference loader configuration
 ├── pyproject.toml
-├── run.sh                 # one-command start (Linux)
-├── run.ps1                # one-command start (Windows Terminal)
-└── SETUP.md               # installation instructions (Linux and Windows)
+├── run.sh                    # one-command start (Linux)
+├── run.ps1                   # one-command start (Windows Terminal)
+└── SETUP.md                  # installation instructions (Linux and Windows)
 ```
 
 The `LlmProvider` protocol in `app/llm.py` is the seam for ticket #25: adding a
@@ -84,12 +89,22 @@ configuration — consuming components never change. The `QueryService` protocol
 in `app/query_service.py` is where the knowledge-graph query logic will be
 plugged in later without changing the API layer.
 
+## Reference loader
+
+The reference loader (ticket #17) checks out a pinned stage of the reference
+repository and loads its relevant source files without modifying the original.
+It ships its own CLI:
+
+```bash
+cd backend
+uv run migration-assistant --help
+```
+
+Details: [reference loader usage guide](../Documentation/ingestion/reference-loader.md).
+
 ## Known limitations / future work
 
 - **No knowledge-graph context yet.** Answers come from the LLM alone; the
-  ingestion and graph query logic (tickets #17, #52) will feed evidence into
-  the prompt later.
-Python backend of the migration assistant. So far it contains the reference loader (Issue #17):
-it checks out one stage of the reference system and loads its source files for analysis.
-Setup, configuration, usage and tests are described in the
-[usage guide](../Documentation/ingestion/reference-loader.md). Run all commands from this folder.
+  deterministic ingestion and graph query logic (ticket #52 and follow-ups)
+  will feed evidence into the prompt later.
+
