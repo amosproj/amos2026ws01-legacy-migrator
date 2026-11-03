@@ -25,4 +25,8 @@ export default defineConfig({
     port: 3000,
     proxy: apiProxy,
   },
+  test: {
+    environment: 'jsdom',
+    setupFiles: './src/test/setup.ts',
+  },
 });

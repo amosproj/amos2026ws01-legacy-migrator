@@ -16,6 +16,7 @@ any OpenAI-compatible endpoint (local Ollama or a future external API).
 """
 
 import json
+import logging
 import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -27,10 +28,11 @@ from fastapi.responses import StreamingResponse
 from .llm import LlmError, create_llm_provider
 from .query_service import QueryService, create_query_service
 from .repositories import list_repositories
-from .schemas import ChatRequest, HealthResponse
+from .schemas import ChatRequest, DiffFile, DiffRequest, DiffResponse, HealthResponse
 
 SERVICE_NAME = "sunsettracker-backend"
 VERSION = "0.2.0"
+logger = logging.getLogger(__name__)
 
 # Comma-separated list of allowed origins, e.g. "http://localhost:3000,http://localhost:5173".
 # Defaults to the Vite dev server origins.
@@ -109,3 +111,52 @@ def repositories() -> list[dict]:
     vertical slice testable.
     """
     return [repo.model_dump(by_alias=True) for repo in list_repositories()]
+
+
+@app.post("/api/diff/explain", response_model=DiffResponse)
+async def explain_diff(request: DiffRequest) -> DiffResponse:
+    """Return a deterministic comparison until provider-backed Git access exists."""
+    logger.info(
+        "diff request received provider=%s repository=%s base=%s head=%s",
+        request.provider,
+        request.repository,
+        request.base,
+        request.head,
+    )
+    return DiffResponse(
+        summary=(
+            "Moves account lookups from the legacy service to the target API "
+            "while preserving the billing worker contract."
+        ),
+        risk="medium",
+        files=[
+            DiffFile(
+                path="src/account/account-service.ts",
+                status="modified",
+                additions=24,
+                deletions=8,
+                explanation=(
+                    "Replaces the direct legacy database lookup with the typed "
+                    "target Account API client."
+                ),
+                patch=(
+                    "- const account = legacyDb.findAccount(accountId)\n"
+                    "+ const account = await accountApi.getAccount(accountId)\n"
+                    "+ return account"
+                ),
+            ),
+            DiffFile(
+                path="src/account/account-api.ts",
+                status="added",
+                additions=38,
+                deletions=0,
+                explanation="Adds the HTTP boundary used by the migrated account service.",
+                patch=(
+                    "+ export async function getAccount(accountId: string) {\n"
+                    "+   return client.get(`/accounts/${accountId}`)\n"
+                    "+ }"
+                ),
+            ),
+        ],
+        warnings=["The billing worker still calls the legacy account service directly."],
+    )

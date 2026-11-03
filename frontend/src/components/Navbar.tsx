@@ -1,10 +1,10 @@
 import React from 'react';
-import { Terminal, Layers, RefreshCw, GitBranch } from 'lucide-react';
+import { Terminal, Layers, RefreshCw, GitBranch, GitCompare } from 'lucide-react';
 import { HealthStatus } from '../services/api';
 
 interface NavbarProps {
-  activeTab: 'chat' | 'views';
-  onTabChange: (tab: 'chat' | 'views') => void;
+  activeTab: 'chat' | 'views' | 'diff';
+  onTabChange: (tab: 'chat' | 'views' | 'diff') => void;
   selectedStep: string;
   onStepChange: (step: string) => void;
   health: HealthStatus;
@@ -47,6 +47,18 @@ export const Navbar: React.FC<NavbarProps> = ({
           >
             <Terminal className="w-3.5 h-3.5" />
             <span>Query Terminal</span>
+          </button>
+
+          <button
+            onClick={() => onTabChange('diff')}
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-[5px] text-xs font-mono transition-all ${
+              activeTab === 'diff'
+                ? 'bg-[#ffffff] text-[#171717] font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.06)]'
+                : 'text-[#737373] hover:text-[#171717]'
+            }`}
+          >
+            <GitCompare className="w-3.5 h-3.5" />
+            <span>Git Comparisons</span>
           </button>
 
           <button
