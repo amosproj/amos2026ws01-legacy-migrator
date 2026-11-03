@@ -12,7 +12,7 @@ function ndjsonBody(lines: string[]): ReadableStream<Uint8Array> {
   });
 }
 
-const noopCallbacks = { onSources: () => {}, onDelta: () => {} };
+const noopCallbacks = { onSources: () => {}, onThinking: () => {}, onDelta: () => {} };
 
 describe('Frontend API Service', () => {
   beforeEach(() => {
@@ -60,13 +60,38 @@ describe('Frontend API Service', () => {
       const deltas: string[] = [];
       const res = await submitMigrationQuery(
         { query: 'Tell me about catalog', stepId: 'step-06' },
-        { onSources: () => {}, onDelta: (t) => deltas.push(t) },
+        { onSources: () => {}, onThinking: () => {}, onDelta: (t) => deltas.push(t) },
       );
 
       expect(res.answer).toBe('Catalog service was migrated.');
       expect(deltas).toEqual(['Catalog service ', 'was migrated.']);
       expect(res.stepId).toBe('step-06');
       expect(res.evidence.length).toBeGreaterThan(0);
+    });
+
+    it('streams thinking deltas and reports them in the response', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        body: ndjsonBody([
+          JSON.stringify({ type: 'sources', text: JSON.stringify(['llm:mock']) }),
+          JSON.stringify({ type: 'thinking', text: 'Let me' }),
+          JSON.stringify({ type: 'thinking', text: ' check' }),
+          JSON.stringify({ type: 'content', text: 'Yes.' }),
+        ]),
+      } as unknown as Response);
+
+      const thinking: string[] = [];
+      const deltas: string[] = [];
+      const onThinking = (t: string) => thinking.push(t);
+      const onDelta = (t: string) => deltas.push(t);
+      const res = await submitMigrationQuery(
+        { query: 'anything', stepId: 'step-06' },
+        { onSources: () => {}, onThinking, onDelta },
+      );
+
+      expect(thinking).toEqual(['Let me', ' check']);
+      expect(deltas).toEqual(['Yes.']);
+      expect(res.thinking).toBe('Let me check');
     });
 
     it('throws a visible error on an error stream event', async () => {

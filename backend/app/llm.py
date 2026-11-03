@@ -21,7 +21,7 @@ switching models or servers only means changing that config.
 import json
 import os
 from collections.abc import AsyncIterator
-from typing import Any, Protocol
+from typing import Any, Literal, Protocol
 
 import httpx2
 from pydantic import BaseModel
@@ -53,9 +53,10 @@ class LlmProvider(Protocol):
         """Return one non-streaming completion for the given chat messages."""
         ...
 
-    def stream_reply(self, messages: list[dict[str, Any]]) -> AsyncIterator[str]:
-        """Yield answer text deltas as they arrive from the model."""
-        ...
+    def stream_reply(
+        self, messages: list[dict[str, Any]]
+    ) -> AsyncIterator[tuple[Literal["thinking", "content"], str]]:
+        """Yield ``(kind, text)`` deltas as they arrive; reasoning as "thinking"."""
 
     async def aclose(self) -> None: ...
 
@@ -87,8 +88,10 @@ class MockLlmProvider:
             f"sent anywhere. Echo of the last user message: {str(last_user)[:120]!r}."
         )
 
-    async def stream_reply(self, messages: list[dict[str, Any]]) -> AsyncIterator[str]:
-        yield await self.complete(messages)
+    async def stream_reply(
+        self, messages: list[dict[str, Any]]
+    ) -> AsyncIterator[tuple[Literal["thinking", "content"], str]]:
+        yield ("content", await self.complete(messages))
 
     async def aclose(self) -> None:
         pass
@@ -140,7 +143,9 @@ class OpenAiCompatibleProvider:
             return ""
         return (completion.choices[0].message.content or "").strip()
 
-    async def stream_reply(self, messages: list[dict[str, Any]]) -> AsyncIterator[str]:
+    async def stream_reply(
+        self, messages: list[dict[str, Any]]
+    ) -> AsyncIterator[tuple[Literal["thinking", "content"], str]]:
         payload = {
             "model": self._model_name,
             "messages": messages,
@@ -164,9 +169,12 @@ class OpenAiCompatibleProvider:
                         delta = json.loads(data)["choices"][0]["delta"]
                     except (json.JSONDecodeError, KeyError, IndexError):
                         continue
+                    reasoning = delta.get("reasoning") or delta.get("reasoning_content")
+                    if reasoning:
+                        yield ("thinking", reasoning)
                     content = delta.get("content")
                     if content:
-                        yield content
+                        yield ("content", content)
         except httpx2.HTTPError as exc:
             raise LlmError(f"LLM provider request failed: {exc}") from exc
 

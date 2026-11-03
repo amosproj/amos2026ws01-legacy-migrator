@@ -22,6 +22,8 @@ export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant' | 'system';
   content: string;
+  thinking?: string;
+  isThinkingOpen?: boolean;
   timestamp: string;
   evidence?: SourceEvidence[];
   status?: 'sending' | 'streaming' | 'done' | 'error';
@@ -36,6 +38,7 @@ export interface QueryRequest {
 
 export interface QueryResponse {
   answer: string;
+  thinking?: string;
   evidence: SourceEvidence[];
   stepId: string;
   executionTimeMs: number;

@@ -51,6 +51,7 @@ function getFallbackEvidence(query: string): SourceEvidence[] {
 
 export interface StreamCallbacks {
   onSources: (sources: string[]) => void;
+  onThinking: (text: string) => void;
   onDelta: (text: string) => void;
 }
 
@@ -58,8 +59,9 @@ export interface StreamCallbacks {
  * Submit a migration query and stream the answer.
  *
  * The backend answers with newline-delimited JSON: a `sources` event, then
- * `content` text deltas, or an `error` event. Deltas are forwarded to
- * `onDelta` as they arrive; the returned promise resolves with the complete
+ * `thinking` reasoning deltas (when the model produces them), `content` text
+ * deltas, or an `error` event. Deltas are forwarded to the callbacks as they
+ * arrive; the returned promise resolves with the complete
  * response once the stream ends, and rejects on connection or LLM errors.
  */
 export async function submitMigrationQuery(
@@ -102,6 +104,7 @@ export async function submitMigrationQuery(
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
   let answer = '';
+  let thinking = '';
   let buffer = '';
   let backendSources: string[] = [];
 
@@ -118,6 +121,9 @@ export async function submitMigrationQuery(
       if (event.type === 'content') {
         answer += event.text;
         callbacks.onDelta(event.text);
+      } else if (event.type === 'thinking') {
+        thinking += event.text;
+        callbacks.onThinking(event.text);
       } else if (event.type === 'sources') {
         backendSources = JSON.parse(event.text) as string[];
         callbacks.onSources(backendSources);
@@ -150,6 +156,7 @@ export async function submitMigrationQuery(
 
   return {
     answer,
+    thinking: thinking || undefined,
     evidence: combinedEvidence,
     stepId: req.stepId || 'step-06',
     executionTimeMs: elapsed,

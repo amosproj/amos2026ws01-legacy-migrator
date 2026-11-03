@@ -15,7 +15,6 @@ $model      = if ($env:LLM_NAME)    { $env:LLM_NAME }    else { "qwen3.5:0.8b" }
 $backendCmd = "Set-Location '$backendDir'; " +
               "`$env:LLM_BASE_URL='http://127.0.0.1:$ollamaPort/v1'; " +
               "`$env:LLM_NAME='$model'; " +
-              "`$env:LLM_EXTRA_BODY='{`\"think`\": false}'; " +
               "uv sync; " +
               "uv run uvicorn app.main:app --host $apiHost --port $apiPort"
 

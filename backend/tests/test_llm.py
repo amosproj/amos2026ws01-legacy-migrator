@@ -149,10 +149,36 @@ def test_openai_compatible_provider_streams_content_deltas() -> None:
         "http://fake/v1", "test-model", "", transport=httpx2.MockTransport(handler)
     )
 
-    async def collect() -> list[str]:
+    async def collect() -> list[tuple[str, str]]:
         return [delta async for delta in provider.stream_reply([{"role": "user", "content": "hi"}])]
 
-    assert asyncio.run(collect()) == ["Hello", " world"]
+    assert asyncio.run(collect()) == [("content", "Hello"), ("content", " world")]
+    asyncio.run(provider.aclose())
+
+
+def test_openai_compatible_provider_streams_reasoning_as_thinking() -> None:
+    sse = (
+        'data: {"choices":[{"delta":{"reasoning":"Let me"}}]}\n\n'
+        'data: {"choices":[{"delta":{"content":"Answer"}}]}\n\n'
+        'data: {"choices":[{"delta":{"reasoning_content":" think"}}]}\n\n'
+        "data: [DONE]\n\n"
+    )
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        return httpx2.Response(200, text=sse)
+
+    provider = OpenAiCompatibleProvider(
+        "http://fake/v1", "test-model", "", transport=httpx2.MockTransport(handler)
+    )
+
+    async def collect() -> list[tuple[str, str]]:
+        return [delta async for delta in provider.stream_reply([{"role": "user", "content": "hi"}])]
+
+    assert asyncio.run(collect()) == [
+        ("thinking", "Let me"),
+        ("content", "Answer"),
+        ("thinking", " think"),
+    ]
     asyncio.run(provider.aclose())
 
 
@@ -168,17 +194,17 @@ def test_query_service_streams_system_and_user_messages() -> None:
 
         async def stream_reply(self, messages: list[dict[str, Any]]):
             captured.append(messages)
-            yield "ok"
+            yield ("content", "ok")
 
         async def aclose(self) -> None:
             pass
 
     service = LlmQueryService(RecordingProvider())
 
-    async def collect() -> list[str]:
+    async def collect() -> list[tuple[str, str]]:
         return [delta async for delta in service.stream_answer("What is coupled?")]
 
-    assert asyncio.run(collect()) == ["ok"]
+    assert asyncio.run(collect()) == [("content", "ok")]
     assert service.sources() == ["llm:recording"]
     assert captured[0][0]["role"] == "system"
     assert captured[0][1] == {"role": "user", "content": "What is coupled?"}

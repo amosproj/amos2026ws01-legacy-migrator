@@ -8,6 +8,7 @@ from fastapi.testclient import TestClient
 
 from app.llm import LlmError
 from app.main import app
+from app.query_service import LlmQueryService
 
 
 @pytest.fixture(autouse=True)
@@ -47,6 +48,39 @@ def test_chat_streams_sources_then_content() -> None:
     assert "Mock LLM reply" in content
 
 
+def test_chat_streams_thinking_events_from_provider() -> None:
+    """Reasoning deltas from the provider surface as thinking events."""
+    class ThinkingMockProvider:
+        name = "thinking-mock"
+
+        async def complete(self, messages):
+            return "done"
+
+        async def stream_reply(self, messages):
+            yield ("thinking", "reasoning step")
+            yield ("content", "Answer")
+            yield ("content", " text")
+
+        async def aclose(self) -> None:
+            pass
+
+    original_state = dict(app.state._state)
+    try:
+        with TestClient(app) as client:
+            app.state.query_service = LlmQueryService(ThinkingMockProvider())
+            response = client.post("/api/chat", json={"query": "q"})
+    finally:
+        app.state._state.clear()
+        app.state._state.update(original_state)
+
+    events = _parse_events(response)
+    kinds = [e["type"] for e in events]
+    assert kinds == ["sources", "thinking", "content", "content"]
+    assert events[1] == {"type": "thinking", "text": "reasoning step"}
+    content = "".join(e["text"] for e in events if e["type"] == "content")
+    assert content == "Answer text"
+
+
 def test_chat_passes_query_to_query_service() -> None:
     calls: list[str] = []
 
@@ -54,10 +88,10 @@ def test_chat_passes_query_to_query_service() -> None:
         def sources(self) -> list[str]:
             return ["test:source"]
 
-        def stream_answer(self, query: str) -> AsyncIterator[str]:
+        def stream_answer(self, query: str):
             calls.append(query)
-            async def stream() -> AsyncIterator[str]:
-                yield "recorded"
+            async def stream():
+                yield ("content", "recorded")
 
             return stream()
 

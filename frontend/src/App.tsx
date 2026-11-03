@@ -63,7 +63,7 @@ export const App: React.FC = () => {
       </main>
 
       {/* Vercel minimalist footer */}
-      <footer className="py-3 px-6 border-t border-[#ebebeb] bg-[#ffffff] text-[11px] font-mono text-[#8f8f8f] flex flex-wrap items-center justify-between gap-2 max-w-7xl mx-auto w-full">
+      <footer className="py-1.5 px-6 border-t border-[#ebebeb] bg-[#ffffff] text-[11px] font-mono text-[#8f8f8f] flex flex-wrap items-center justify-between gap-2 max-w-7xl mx-auto w-full">
         <span>AMOS Winter Semester 2026/27 · Project 1 (iteratec) · SunsetTracker</span>
         <span>Deterministic Code Ingestion · AST Traceability · Neo4j & PostgreSQL 17</span>
       </footer>

@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
-import { Clock, FileCheck2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Clock, FileCheck2, ChevronDown, ChevronUp, ChevronRight, BrainCircuit } from 'lucide-react';
 import { ChatMessage as ChatMessageType } from '../../types/chat';
 import { SourceEvidenceCard } from './SourceEvidenceCard';
 
 interface ChatMessageProps {
   message: ChatMessageType;
+  onToggleThinking: (id: string) => void;
 }
 
-export const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
+export const ChatMessage: React.FC<ChatMessageProps> = ({ message, onToggleThinking }) => {
   const isUser = message.role === 'user';
   const [showEvidence, setShowEvidence] = useState<boolean>(true);
 
@@ -89,7 +90,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
       >
         {/* Message metadata bar */}
         <div
-          className={`flex items-center justify-between gap-4 mb-2 pb-1.5 border-b text-[11px] font-mono ${
+          className={`flex items-center justify-between gap-4 mb-1.5 pb-1 border-b text-[11px] font-mono ${
             isUser ? 'border-[#333333] text-[#a3a3a3]' : 'border-[#f5f5f5] text-[#737373]'
           }`}
         >
@@ -108,14 +109,42 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
           </div>
         </div>
 
+        {/* Thinking process (collapsible) */}
+        {!isUser && message.thinking && (
+          <div className="mt-2 text-xs">
+            <button
+              type="button"
+              onClick={() => onToggleThinking(message.id)}
+              className="flex cursor-pointer select-none items-center gap-1.5 font-medium text-[#737373] transition-colors hover:text-[#171717]"
+              title={message.isThinkingOpen ? 'Collapse thought process' : 'Expand thought process'}
+            >
+              {message.isThinkingOpen ? (
+                <ChevronDown className="h-3.5 w-3.5 shrink-0" />
+              ) : (
+                <ChevronRight className="h-3.5 w-3.5 shrink-0" />
+              )}
+              <BrainCircuit className="h-3.5 w-3.5 shrink-0" />
+              {message.status === 'streaming' && !message.content ? 'Thinking...' : 'Thought process'}
+            </button>
+
+            {message.isThinkingOpen && (
+              <div className="mt-2 max-h-72 overflow-y-auto whitespace-pre-wrap border-l-2 border-[#d4d4d4] pl-3 leading-relaxed text-[#737373]">
+                {message.thinking}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Content */}
-        <div className="text-sm font-sans">
-          {isUser ? (
-            <p className="leading-relaxed whitespace-pre-wrap text-sm text-[#f5f5f5] font-sans">{message.content}</p>
-          ) : (
-            renderFormattedContent(message.content)
-          )}
-        </div>
+        {(message.content || isUser || !message.thinking) && (
+          <div className="text-sm font-sans">
+            {isUser ? (
+              <p className="leading-relaxed whitespace-pre-wrap text-sm text-[#f5f5f5] font-sans">{message.content}</p>
+            ) : (
+              renderFormattedContent(message.content)
+            )}
+          </div>
+        )}
 
         {/* Source Code Evidence Section (Wolfgang's requirement) */}
         {!isUser && message.evidence && message.evidence.length > 0 && (

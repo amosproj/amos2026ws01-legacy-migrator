@@ -85,7 +85,8 @@ async def chat(request: ChatRequest) -> StreamingResponse:
     """Submit one migration-status query and receive a streamed answer.
 
     The response is newline-delimited JSON: a ``sources`` event with the
-    evidence labels, then ``content`` events with answer text deltas, or a
+    evidence labels, then ``thinking`` events with reasoning deltas (when the
+    model produces them) and ``content`` events with answer text deltas, or a
     single ``error`` event when the LLM provider fails. Invalid requests
     (empty/oversized query, wrong types) are rejected with HTTP 422 by the
     Pydantic request model.
@@ -95,8 +96,8 @@ async def chat(request: ChatRequest) -> StreamingResponse:
     async def events() -> AsyncIterator[str]:
         yield _event("sources", json.dumps(service.sources()))
         try:
-            async for delta in service.stream_answer(request.query):
-                yield _event("content", delta)
+            async for kind, delta in service.stream_answer(request.query):
+                yield _event(kind, delta)
         except LlmError as exc:
             yield _event("error", str(exc))
 
