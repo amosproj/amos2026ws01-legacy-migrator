@@ -39,9 +39,11 @@ bin/
 .cache/
 
 .venv/
+.venvs/
 
 # Local Claude Code files
 .claude/
 backend/config/reference-source.local.yaml
+backend/code-ingestion-pipeline/config/reference-source.local.yaml
 
 CLAUDE.local.md
