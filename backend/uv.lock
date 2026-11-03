@@ -482,12 +482,13 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "fastapi" },
+    { name = "httpx2" },
+    { name = "pydantic" },
     { name = "uvicorn", extra = ["standard"] },
 ]
 
 [package.dev-dependencies]
 dev = [
-    { name = "httpx2" },
     { name = "pytest" },
     { name = "ruff" },
 ]
@@ -495,12 +496,13 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "fastapi", specifier = "==0.141.1" },
+    { name = "httpx2", specifier = "==2.16.0" },
+    { name = "pydantic", specifier = ">=2" },
     { name = "uvicorn", extras = ["standard"], specifier = "==0.52.4" },
 ]
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "httpx2" },
     { name = "pytest", specifier = "==9.1.1" },
     { name = "ruff", specifier = "==0.16.8" },
 ]
