@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { Send, Trash2, AlertCircle, Square } from 'lucide-react';
 import { ChatMessage as ChatMessageType } from '../../types/chat';
 import { ChatMessageList } from './ChatMessageList';
@@ -27,17 +27,8 @@ Select a verified inquiry below or submit a custom question.`,
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages, isLoading]);
 
   const handleStop = () => {
     abortControllerRef.current?.abort();
@@ -206,8 +197,6 @@ Select a verified inquiry below or submit a custom question.`,
             <span>{error}</span>
           </div>
         )}
-
-        <div ref={messagesEndRef} />
       </div>
 
       {/* Docked Query Input Area */}
