@@ -34,6 +34,14 @@ else
     done
 fi
 
+# Fail early when the local model is missing; skipped for remote providers.
+if [[ "$LLM_BASE_URL" == *127.0.0.1* || "$LLM_BASE_URL" == *localhost* ]]; then
+    if ! ollama list 2>/dev/null | awk 'NR > 1 { print $1 }' | grep -qx "$LLM_NAME"; then
+        echo "error: model '$LLM_NAME' is not pulled. Run: ollama pull $LLM_NAME" >&2
+        exit 1
+    fi
+fi
+
 # Start the frontend in a second terminal window: build, then preview.
 # The preview server is a child of that window, so closing it stops the frontend.
 start_frontend_window() {
