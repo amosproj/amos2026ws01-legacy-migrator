@@ -15,6 +15,7 @@ _MOCK_REPOSITORIES = [
         full_name="IBM/application-modernization-javaee-quarkus",
         description="Synthetic reference system (legacy monolith, migration stages)",
         default_branch="main",
+        branches=["main", "feature/account-api"],
         is_private=False,
     ),
     Repository(
@@ -24,6 +25,12 @@ _MOCK_REPOSITORIES = [
         full_name="amosproj/amos2026ws01-legacy-migrator",
         description="SunsetTracker prototype repository",
         default_branch="main",
+        branches=[
+            "main",
+            "develop",
+            "create-basic-query-interface",
+            "umbrella/24-25-27-vertical-slice",
+        ],
         is_private=False,
     ),
 ]

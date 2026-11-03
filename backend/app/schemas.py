@@ -5,7 +5,7 @@ newline-delimited JSON stream (see ``main.py``): a ``sources`` event first,
 then ``content`` text deltas, or an ``error`` event on failure.
 """
 
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
@@ -44,4 +44,34 @@ class Repository(BaseModel):
     full_name: str
     description: str | None = None
     default_branch: str
+    branches: list[str] = Field(default_factory=list)
     is_private: bool
+
+
+class DiffRequest(BaseModel):
+    """A repository revision comparison requested by the frontend."""
+
+    repository: Annotated[str, Field(min_length=1, max_length=500)]
+    provider: Literal["github", "gitlab", "bitbucket"]
+    base: Annotated[str, Field(min_length=1, max_length=200)]
+    head: Annotated[str, Field(min_length=1, max_length=200)]
+
+
+class DiffFile(BaseModel):
+    """A changed file explanation in a repository comparison."""
+
+    path: str
+    status: Literal["modified", "added", "deleted"]
+    additions: int = Field(ge=0)
+    deletions: int = Field(ge=0)
+    explanation: str
+    patch: str
+
+
+class DiffResponse(BaseModel):
+    """Structured migration-risk summary for a repository comparison."""
+
+    summary: str
+    risk: Literal["low", "medium", "high"]
+    files: list[DiffFile] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)

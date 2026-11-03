@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Navbar } from './components/Navbar';
 import { ChatInterface } from './components/chat/ChatInterface';
 import { ViewsInterface } from './components/views/ViewsInterface';
+import { DiffInterface } from './components/diff/DiffInterface';
 import { checkBackendHealth, HealthStatus } from './services/api';
 
 export const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'chat' | 'views'>('chat');
+  const [activeTab, setActiveTab] = useState<'chat' | 'views' | 'diff'>('chat');
   const [selectedStep, setSelectedStep] = useState<string>('step-06');
   const [health, setHealth] = useState<HealthStatus>({
     backendAvailable: false,
@@ -54,6 +55,8 @@ export const App: React.FC = () => {
       <main className="flex-1 px-4 sm:px-6 py-5 flex flex-col justify-center">
         {activeTab === 'chat' ? (
           <ChatInterface selectedStep={selectedStep} />
+        ) : activeTab === 'diff' ? (
+          <DiffInterface />
         ) : (
           <ViewsInterface />
         )}

@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Trash2, Loader2, AlertCircle, Square } from 'lucide-react';
+import { Send, Trash2, AlertCircle, Square } from 'lucide-react';
 import { ChatMessage as ChatMessageType } from '../../types/chat';
-import { ChatMessage } from './ChatMessage';
+import { ChatMessageList } from './ChatMessageList';
+import { ChatLoadingState } from './ChatLoadingState';
 import { SuggestedQueries } from './SuggestedQueries';
 import { submitMigrationQuery } from '../../services/api';
 import { INITIAL_SUGGESTIONS } from '../../services/mockData';
@@ -139,6 +140,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedStep }) =>
     setError(null);
   };
 
+  const hasUserMessage = messages.some((message) => message.role === 'user');
   const latestSuggestions = messages[messages.length - 1]?.suggestedNextQueries || INITIAL_SUGGESTIONS;
 
   return (
@@ -167,18 +169,9 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedStep }) =>
 
       {/* Messages Scroll Container */}
       <div className="flex-1 overflow-y-auto px-6 py-4 space-y-2 bg-[#fafafa]">
-        {messages.map((msg) => (
-          <ChatMessage key={msg.id} message={msg} />
-        ))}
+        <ChatMessageList messages={messages} />
 
-        {isLoading && messages[messages.length - 1]?.content === '' && (
-          <div className="flex gap-3 py-3">
-            <div className="bg-[#ffffff] border border-[#ebebeb] rounded-[6px] p-4 text-[#737373] text-xs font-mono shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex items-center gap-2.5">
-              <Loader2 className="w-4 h-4 animate-spin text-[#171717]" />
-              <span>Waiting for the LLM to start answering...</span>
-            </div>
-          </div>
-        )}
+        {isLoading && <ChatLoadingState />}
 
         {error && (
           <div className="flex items-center gap-2.5 p-3 bg-[#fef2f2] border border-[#fecaca] rounded-[6px] text-xs font-mono text-[#991b1b] my-2">
@@ -192,11 +185,13 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedStep }) =>
 
       {/* Docked Query Input Area */}
       <div className="p-4 border-t border-[#ebebeb] bg-[#ffffff] space-y-3">
-        <SuggestedQueries
-          queries={latestSuggestions}
-          onSelect={(q) => handleSend(q)}
-          disabled={isLoading}
-        />
+        {!hasUserMessage && (
+          <SuggestedQueries
+            queries={latestSuggestions}
+            onSelect={(q) => handleSend(q)}
+            disabled={isLoading}
+          />
+        )}
 
         <div className="border border-[#ebebeb] focus-within:border-[#171717] focus-within:ring-1 focus-within:ring-[#171717] rounded-[6px] p-2 bg-[#ffffff] transition-all shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
           <textarea

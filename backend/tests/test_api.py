@@ -1,10 +1,12 @@
 """Pytest coverage for the query API request/response contract (tickets #24/#25)."""
 
 import json
+from collections.abc import AsyncIterator
 
 import pytest
 from fastapi.testclient import TestClient
 
+from app.llm import LlmError
 from app.main import app
 
 
@@ -45,6 +47,31 @@ def test_chat_streams_sources_then_content() -> None:
     assert "Mock LLM reply" in content
 
 
+def test_chat_passes_query_to_query_service() -> None:
+    calls: list[str] = []
+
+    class RecordingQueryService:
+        def sources(self) -> list[str]:
+            return ["test:source"]
+
+        def stream_answer(self, query: str) -> AsyncIterator[str]:
+            calls.append(query)
+            async def stream() -> AsyncIterator[str]:
+                yield "recorded"
+
+            return stream()
+
+    with TestClient(app) as client:
+        app.state.query_service = RecordingQueryService()
+        response = client.post(
+            "/api/chat", json={"query": "test", "conversation_id": "step-06"}
+        )
+
+    assert response.status_code == 200
+    assert calls == ["test"]
+    assert "recorded" in response.text
+
+
 def test_chat_rejects_empty_query() -> None:
     with TestClient(app) as client:
         response = client.post("/api/chat", json={"query": ""})
@@ -73,6 +100,27 @@ def test_chat_rejects_wrong_type() -> None:
     assert response.status_code == 422
 
 
+def test_chat_maps_llm_abort_error_to_actionable_gateway_error() -> None:
+    class FailingQueryService:
+        def sources(self) -> list[str]:
+            return []
+
+        def stream_answer(self, query: str) -> AsyncIterator[str]:
+            async def stream() -> AsyncIterator[str]:
+                raise LlmError("signal is aborted without reason")
+                yield ""
+
+            return stream()
+
+    with TestClient(app) as client:
+        app.state.query_service = FailingQueryService()
+        response = client.post("/api/chat", json={"query": "test"})
+
+    assert response.status_code == 200
+    events = _parse_events(response)
+    assert events[-1] == {"type": "error", "text": "signal is aborted without reason"}
+
+
 def test_repositories_returns_camel_case_list() -> None:
     with TestClient(app) as client:
         response = client.get("/api/repositories")
@@ -84,3 +132,38 @@ def test_repositories_returns_camel_case_list() -> None:
     # The frontend Repository type expects camelCase field names.
     for key in ("id", "provider", "providerLabel", "fullName", "defaultBranch", "isPrivate"):
         assert key in first
+    assert first["branches"]
+
+
+def test_diff_explain_returns_structured_comparison() -> None:
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/diff/explain",
+            json={
+                "repository": "amosproj/example",
+                "provider": "github",
+                "base": "main",
+                "head": "feature/account-api",
+            },
+        )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["risk"] == "medium"
+    assert body["files"][0]["path"] == "src/account/account-service.ts"
+    assert body["warnings"]
+
+
+def test_diff_explain_rejects_invalid_provider() -> None:
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/diff/explain",
+            json={
+                "repository": "amosproj/example",
+                "provider": "unknown",
+                "base": "main",
+                "head": "feature",
+            },
+        )
+
+    assert response.status_code == 422
