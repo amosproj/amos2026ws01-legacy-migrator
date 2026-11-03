@@ -5,8 +5,8 @@ description = "SunsetTracker backend query API (AMOS 2026 WS01, ticket #24)"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi==0.141.1",
-    "httpx2==2.16.0",
     "pydantic>=2",
+    "pyyaml>=6",
     "uvicorn[standard]==0.52.4",
 ]
 
@@ -14,6 +14,7 @@ dependencies = [
 dev = [
     "pytest==9.1.1",
     "ruff==0.16.8",
+    "httpx2",
 ]
 
 [tool.ruff]
@@ -28,4 +29,4 @@ select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["."]
+pythonpath = [".", "src"]

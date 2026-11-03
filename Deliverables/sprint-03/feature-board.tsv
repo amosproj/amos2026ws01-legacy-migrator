@@ -1,13 +1,15 @@
 Title	URL	Assignees	Status
+Load Reference Repository	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/17	nudelisidle, RafaelMcMarques, RaihanFAU	Awaiting Review
+Create basic query interface	https://github.com/amosproj/amos2026ws01-legacy-migrator/pull/62	AdriansRubins	Feature Archive
+Select and design the synthetic reference system	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/4	AdriansRubins, nudelisidle	Feature Archive
+Create Basic Query Interface	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/27	3liAf, AdriansRubins	Awaiting Review
+Connect Query Interface to Backend	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/28	AdriansRubins, nudelisidle	Awaiting Review
+Create Backend Query API	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/24	nudelisidle	Awaiting Review
+Implementation LLM Provider Interface	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/25	nudelisidle	Awaiting Review
+Validate the Catalog Service Migration from Step-05 to Step-06	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/33	ppohlitze	Awaiting Review
 Research existing code-analysis and code-to-graph tooling	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/5	RafaelMcMarques, RaihanFAU	Feature Archive
-Select and design the synthetic reference system	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/4	AdriansRubins, nudelisidle	Sprint Backlog
-Create Backend Query API	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/24	nudelisidle	In Progress
-Implementation LLM Provider Interface	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/25	nudelisidle	In Progress
-Validate the Catalog Service Migration from Step-05 to Step-06	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/33	ppohlitze	In Progress
-Create Basic Query Interface	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/27	3liAf, AdriansRubins	In Progress
-Load Reference Repository	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/17	nudelisidle, RafaelMcMarques, RaihanFAU	In Progress
-Implementation Existing Code Parser	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/18	RafaelMcMarques	Sprint Backlog
-Implement Deterministic Reference-System Ingestion	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/52		Sprint Backlog
+Implementation Existing Code Parser	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/18	RafaelMcMarques	In Progress
+Implement Deterministic Reference-System Ingestion	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/52	nudelisidle	In Progress
 Research arc42 view rendering options	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/7	3liAf, AdriansRubins	Feature Archive
 Research arc42 view rendering options	https://github.com/amosproj/amos2026ws01-legacy-migrator/pull/41	3liAf, AdriansRubins	Feature Archive
 Select and design the synthetic reference system	https://github.com/amosproj/amos2026ws01-legacy-migrator/pull/43	AdriansRubins	Feature Archive
@@ -17,10 +19,9 @@ Extract Code Relationships	https://github.com/amosproj/amos2026ws01-legacy-migra
 Implement Initial Graph Schema	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/21		Product Backlog
 Persist Code Knowledge in Graph	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/22		Product Backlog
 Persist Source Evidence with Extracted Facts	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/53		Product Backlog
-Clarify Licensing Constraints for Candidate Tools	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/30		Product Backlog
 Implement Basic Graph Query	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/23		Product Backlog
+Clarify Licensing Constraints for Candidate Tools	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/30		Product Backlog
 Generate Answer from Graph Result	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/26		Product Backlog
-Connect Query Interface to Backend	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/28		Product Backlog
 Test Direct Access to Generated Code Graph	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/29		Product Backlog
 Establish Migration Questions as Acceptance-Test Baseline	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/31		Product Backlog
 Provide Source Evidence for Generated Answers	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/34		Product Backlog
@@ -36,3 +37,4 @@ docs(issue-5): research code-analysis and code-to-graph tools	https://github.com
 added doc with open technical and architectural decisions	https://github.com/amosproj/amos2026ws01-legacy-migrator/pull/47		Feature Archive
 Document open technical decisions and evaluation criteria	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/6	ppohlitze	Feature Archive
 Implement First Migration-Status Query	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/54		Product Backlog
+feat: vertical slice — backend query API, LLM provider, and query interface (#24, #25, #27, #28)	https://github.com/amosproj/amos2026ws01-legacy-migrator/pull/64	3liAf, AdriansRubins, nudelisidle	

@@ -1,0 +1,56 @@
+# Reference source configuration (Issue #17).
+# Describes where the reference system is read from and which part of it is analysed.
+# Validated by migration_assistant.domain.reference_source.load_config().
+
+# https:// URL of the umbrella repository (legacy-example-stages), or a local path.
+# To use a local copy, create config/reference-source.local.yaml (git-ignored); it replaces this file.
+source: "https://github.com/legacy-modernization-example/legacy-example-stages"
+
+# Base URL of the GitHub organisation. Used later to build GitHub links.
+public_url: "https://github.com/legacy-modernization-example"
+
+# Stage tag to analyse (step-00 ... step-10).
+stage: step-00
+
+# Component repositories to include.
+components:
+  - monolith
+
+# Local working directory for checkouts. Ignored by Git (.cache/ in .gitignore).
+workspace: .cache/reference
+
+# Files to read: extensions, plus exact file names such as Dockerfile.
+include:
+  - .java
+  - .xml
+  - .properties
+  - .sql
+  - .conf
+  - .yaml
+  - .yml
+  - .js
+  - .vue
+  - .html
+  - .sh
+  - Dockerfile
+
+# Glob patterns, matched against repository-relative paths with "/" separators.
+exclude:
+  # Dependencies and build output
+  - "**/node_modules/**"
+  - "**/target/**"
+  # Images
+  - "**/*.png"
+  - "**/*.jpg"
+  - "**/*.jpeg"
+  - "**/*.gif"
+  - "**/*.svg"
+  - "**/*.ico"
+  # Eclipse files
+  - "**/.classpath"
+  - "**/.project"
+  - "**/.settings/**"
+  - "**/.factorypath"
+
+# Files larger than this are skipped (default 1024).
+max_file_size_kb: 1024
