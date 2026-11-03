@@ -35,6 +35,10 @@ bin/
 # MacOS
 .DS_Store
 
+# Environment variables
+.env
+.env.*
+!.env.example
 # Reference workspace cache
 .cache/
 
