@@ -13,7 +13,6 @@ command -v uv >/dev/null 2>&1 || { echo "error: uv is required (https://docs.ast
 OLLAMA_PORT="${OLLAMA_PORT:-11434}"
 export LLM_BASE_URL="${LLM_BASE_URL:-http://127.0.0.1:${OLLAMA_PORT}/v1}"
 export LLM_NAME="${LLM_NAME:-qwen3.5:0.8b}"
-export LLM_EXTRA_BODY="${LLM_EXTRA_BODY:-{\"think\": false}}"
 
 uv sync
 

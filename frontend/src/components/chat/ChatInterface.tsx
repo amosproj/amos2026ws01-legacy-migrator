@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { Send, Trash2, AlertCircle, Square } from 'lucide-react';
 import { ChatMessage as ChatMessageType } from '../../types/chat';
 import { ChatMessageList } from './ChatMessageList';
@@ -16,7 +16,9 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedStep }) =>
     {
       id: 'welcome-1',
       role: 'assistant',
-      content: `Welcome to **SunsetTracker** · Legacy Migration Knowledge Base.\n\nThis system indexes deterministic code facts across **legacy-example-monolith** and target repositories without running untrusted code. Every analysis answer connects directly to GitHub AST observations, commit provenance, and coupling boundaries.\n\nSelect a verified inquiry below or submit a custom question.`,
+      content: `Welcome to **SunsetTracker** · Legacy Migration Knowledge Base.
+This system indexes deterministic code facts across **legacy-example-monolith** and target repositories without running untrusted code. Every analysis answer connects directly to GitHub AST observations, commit provenance, and coupling boundaries.
+Select a verified inquiry below or submit a custom question.`,
       timestamp: 'Just now',
       suggestedNextQueries: INITIAL_SUGGESTIONS
     }
@@ -25,20 +27,17 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedStep }) =>
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages, isLoading]);
-
   const handleStop = () => {
     abortControllerRef.current?.abort();
+  };
+
+  const toggleThinking = (id: string) => {
+    setMessages((prev) =>
+      prev.map((m) => (m.id === id ? { ...m, isThinkingOpen: !m.isThinkingOpen } : m))
+    );
   };
 
   const handleSend = async (queryText?: string) => {
@@ -60,6 +59,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedStep }) =>
       id: assistantId,
       role: 'assistant',
       content: '',
+      thinking: '',
+      isThinkingOpen: false,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       status: 'streaming',
     };
@@ -77,7 +78,22 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedStep }) =>
           onDelta: (text) => {
             setMessages((prev) =>
               prev.map((m) =>
-                m.id === assistantId ? { ...m, content: m.content + text } : m
+                m.id === assistantId
+                  ? { ...m, content: m.content + text, isThinkingOpen: false }
+                  : m
+              )
+            );
+          },
+          onThinking: (text) => {
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantId
+                  ? {
+                      ...m,
+                      thinking: (m.thinking ?? '') + text,
+                      isThinkingOpen: true,
+                    }
+                  : m
               )
             );
           },
@@ -94,6 +110,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedStep }) =>
             ? {
                 ...m,
                 content: response.answer,
+                thinking: response.thinking,
+                isThinkingOpen: false,
                 evidence: response.evidence,
                 executionTimeMs: response.executionTimeMs,
                 suggestedNextQueries: response.suggestedNextQueries,
@@ -144,9 +162,9 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedStep }) =>
   const latestSuggestions = messages[messages.length - 1]?.suggestedNextQueries || INITIAL_SUGGESTIONS;
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8.5rem)] max-w-5xl mx-auto w-full bg-[#ffffff] border border-[#ebebeb] rounded-[6px] shadow-[0_1px_3px_rgba(0,0,0,0.03)] overflow-hidden">
+    <div className="flex flex-col h-[calc(100vh-7rem)] max-w-5xl mx-auto w-full bg-[#ffffff] border border-[#ebebeb] rounded-[6px] shadow-[0_1px_3px_rgba(0,0,0,0.03)] overflow-hidden">
       {/* Session Breadcrumb Header */}
-      <div className="flex items-center justify-between px-5 py-2.5 border-b border-[#ebebeb] bg-[#fafafa]">
+      <div className="flex items-center justify-between px-5 py-1.5 border-b border-[#ebebeb] bg-[#fafafa]">
         <div className="flex items-center gap-2 text-xs font-mono text-[#737373]">
           <span className="text-[#171717] font-semibold">sunset-tracker</span>
           <span>/</span>
@@ -169,7 +187,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedStep }) =>
 
       {/* Messages Scroll Container */}
       <div className="flex-1 overflow-y-auto px-6 py-4 space-y-2 bg-[#fafafa]">
-        <ChatMessageList messages={messages} />
+        <ChatMessageList messages={messages} onToggleThinking={toggleThinking} />
 
         {isLoading && <ChatLoadingState />}
 
@@ -179,8 +197,6 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedStep }) =>
             <span>{error}</span>
           </div>
         )}
-
-        <div ref={messagesEndRef} />
       </div>
 
       {/* Docked Query Input Area */}

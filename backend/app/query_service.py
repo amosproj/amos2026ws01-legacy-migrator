@@ -8,7 +8,7 @@ same seam.
 """
 
 from collections.abc import AsyncIterator
-from typing import Protocol
+from typing import Literal, Protocol
 
 from .llm import LlmProvider
 
@@ -27,8 +27,10 @@ class QueryService(Protocol):
         """Evidence source labels attached to every answer."""
         ...
 
-    def stream_answer(self, query: str) -> AsyncIterator[str]:
-        """Yield answer text deltas for one query."""
+    def stream_answer(
+        self, query: str
+    ) -> AsyncIterator[tuple[Literal["thinking", "content"], str]]:
+        """Yield ``(kind, text)`` deltas for one query: thinking and content."""
         ...
 
 
@@ -50,7 +52,9 @@ class LlmQueryService:
     def sources(self) -> list[str]:
         return [f"llm:{self._provider.name}"]
 
-    def stream_answer(self, query: str) -> AsyncIterator[str]:
+    def stream_answer(
+        self, query: str
+    ) -> AsyncIterator[tuple[Literal["thinking", "content"], str]]:
         messages = [
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": query},

@@ -39,11 +39,11 @@ describe('ChatInterface', () => {
     );
 
     const { container } = renderChat();
-    expect(container.textContent).toContain('Accepted Migration Verification Queries');
+    expect(container.textContent).toContain('Suggested queries');
 
     enterQuery(container, 'How far along is the migration?');
 
-    expect(container.textContent).not.toContain('Accepted Migration Verification Queries');
+    expect(container.textContent).not.toContain('Suggested queries');
     expect(container.textContent).toContain('The LLM is warming up.');
     expect(container.textContent).not.toContain('Waiting for the LLM to start answering');
     expect(container.textContent).toContain('DEVELOPER INQUIRY');

@@ -25,7 +25,6 @@ if ($llmBaseUrl -match "127\.0\.0\.1|localhost") {
 $backendCmd = "Set-Location '$backendDir'; " +
               "`$env:LLM_BASE_URL='http://127.0.0.1:$ollamaPort/v1'; " +
               "`$env:LLM_NAME='$model'; " +
-              "`$env:LLM_EXTRA_BODY='{`\"think`\": false}'; " +
               "uv sync; " +
               "uv run uvicorn app.main:app --host $apiHost --port $apiPort"
 
