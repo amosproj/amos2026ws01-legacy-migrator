@@ -35,15 +35,18 @@ bin/
 # MacOS
 .DS_Store
 
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Python virtual environments
+.venv/
+
 # Reference workspace cache
 .cache/
 
-.venv/
-.venvs/
-
 # Local Claude Code files
 .claude/
-backend/config/reference-source.local.yaml
-backend/code-ingestion-pipeline/config/reference-source.local.yaml
-
 CLAUDE.local.md
+backend/config/reference-source.local.yaml
