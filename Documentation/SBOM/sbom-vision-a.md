@@ -5,14 +5,14 @@ Project: `migration-assistant` **0.1.0** (planning version), licence `Apache-2.0
 | # | Component | Version | Type | Supplier | Licence (SPDX) | Package URL (purl) | Scope | Ev. | Notes |
 |---|---|---|---|---|---|---|---|---|---|
 | 1 | python | 3.12 | container | Python Software Foundation | `PSF-2.0` | `pkg:docker/library/python@3.12-slim` | required | P | Base image for pipeline and MCP server; code-review-graph needs Python >= 3.10 |
-| 2 | git | unpinned (resolve at first lockfile) | application | Git project | `GPL-2.0-only` | `pkg:deb/debian/git` | required | P | Host/base-image tool for git worktree checkouts; invoked as a separate process, not linked or modified |
+| 2 | git | unpinned (resolve at first lockfile) | application | Git project | `GPL-2.0-only` | `pkg:deb/debian/git` | required | P | Host/base-image tool for git worktree checkouts; invoked as a separate process, not linked or modified; also used by the Issue #17 reference loader for clone, fetch, checkout and submodule update in `.cache/reference` (git 2.37.3 on the development machine; licence from Git's own licence text) |
 | 3 | code-review-graph | 2.3.9 | library | Tirth (tirth8205) | `MIT` | `pkg:pypi/code-review-graph@2.3.9` | required | V | Primary structural extractor (PyPI release 18 Sep 2026) |
 | 4 | sqlglot | 30.22.0 | library | Toby Mao and contributors | `MIT` | `pkg:pypi/sqlglot@30.22.0` | required | S | SQL read/write extraction (release 9 Oct 2026) |
 | 5 | atlassian-python-api | 5.0.5 | library | atlassian-api community (not Atlassian) | `Apache-2.0` | `pkg:pypi/atlassian-python-api@5.0.5` | required | S | Jira and Confluence connectors (Cloud and Server/DC); licence V, version from docs (S) |
 | 6 | markdown-it-py | unpinned (resolve at first lockfile) | library | Executable Books | `MIT` | `pkg:pypi/markdown-it-py` | required | P | Markdown parsing (headings, links, code spans) |
 | 7 | markdownify | unpinned (resolve at first lockfile) | library | Matthew Tretter and contributors | `MIT` | `pkg:pypi/markdownify` | required | P | Confluence storage format (XHTML) to markdown |
 | 8 | mcp | unpinned (resolve at first lockfile) | library | Model Context Protocol project | `MIT` | `pkg:pypi/mcp` | required | P | MCP tool server SDK |
-| 9 | pydantic | unpinned (resolve at first lockfile) | library | Pydantic Services Inc. and contributors | `MIT` | `pkg:pypi/pydantic` | required | P | Canonical fact schema and validation |
+| 9 | pydantic | unpinned (resolve at first lockfile) | library | Pydantic Services Inc. and contributors | `MIT` | `pkg:pypi/pydantic` | required | P | Canonical fact schema and validation; pyproject `>=2`, installed 2.14.2; licence MIT verified from installed metadata |
 | 10 | ollama (Python client) | unpinned (resolve at first lockfile) | library | Ollama Inc. | `MIT` | `pkg:pypi/ollama` | required | P | Chat and embedding calls to the local model runtime |
 | 11 | asyncpg | unpinned (resolve at first lockfile) | library | MagicStack Inc. | `Apache-2.0` | `pkg:pypi/asyncpg` | required | P | PostgreSQL driver; chosen instead of psycopg (LGPL-3.0) to keep Vision A permissive. AGE is queried via SQL cypher() calls, not the psycopg-based AGE driver |
 | 12 | ollama | 0.40.9 | container | Ollama Inc. | `MIT` | `pkg:github/ollama/ollama@v0.40.9` | required | S | Local LLM runtime. Sources disagree on latest (0.40.5 / 0.40.9 / 0.40.10); pinned 0.40.9. Cloud features must be disabled (offline configuration) |
@@ -24,13 +24,14 @@ Project: `migration-assistant` **0.1.0** (planning version), licence `Apache-2.0
 | 18 | pgvector | unpinned (resolve at first lockfile) | library | Andrew Kane and contributors | `PostgreSQL` | `pkg:github/pgvector/pgvector` | required | P | Vector index in PostgreSQL |
 | 19 | gpt-oss-20b | revision unpinned (resolve at first lockfile) | machine-learning-model | OpenAI | `Apache-2.0` | `pkg:huggingface/openai/gpt-oss-20b` | required | V | Chat model; Apache-2.0 plus the gpt-oss usage policy |
 | 20 | Qwen3-Embedding-0.6B | revision unpinned (resolve at first lockfile) | machine-learning-model | Qwen team, Alibaba Cloud | `Apache-2.0` | `pkg:huggingface/Qwen/Qwen3-Embedding-0.6B` | required | P | Embedding model; check licence on the model card (Qwen licences differ per checkpoint) |
-| 21 | pytest | unpinned (resolve at first lockfile) | library | pytest-dev | `MIT` | `pkg:pypi/pytest` | optional | P | Dev-only: tests (DoD) |
+| 21 | pytest | unpinned (resolve at first lockfile) | library | pytest-dev | `MIT` | `pkg:pypi/pytest` | optional | P | Dev-only: tests (DoD); pyproject `>=8` (dev group), installed 9.2.0; licence MIT verified from installed metadata |
 | 22 | cyclonedx-bom (cyclonedx-py) | unpinned (resolve at first lockfile) | application | OWASP CycloneDX | `Apache-2.0` | `pkg:pypi/cyclonedx-bom` | optional | P | Dev-only: generates the build SBOM from the lockfile |
 | 23 | syft | unpinned (resolve at first lockfile) | application | Anchore | `Apache-2.0` | `pkg:github/anchore/syft` | optional | P | Dev-only: SBOM for container images |
 | 24 | pip-licenses | unpinned (resolve at first lockfile) | application | raimon49 | `MIT` | `pkg:pypi/pip-licenses` | optional | P | Dev-only: licence gate in CI |
 | 25 | MongoDB Community | - | container | MongoDB Inc. | `SSPL-1.0` | `pkg:docker/library/mongo` | excluded | S | Default LibreChat store; excluded (non-OSI), replaced by FerretDB |
 | 26 | Meilisearch | - | container | Meili SAS | `MIT` | `pkg:docker/getmeili/meilisearch` | excluded | P | Optional LibreChat search; disabled |
 | 27 | Redis | - | container | Redis Ltd. | `LicenseRef-Redis-tri-licence` | `pkg:docker/library/redis` | excluded | P | Optional LibreChat cache; disabled (if needed, use Valkey, BSD-3-Clause) |
+| 28 | PyYAML | unpinned (resolve at first lockfile) | library | PyYAML project | `MIT` | `pkg:pypi/pyyaml` | required | P | Reads `config/reference-source.yaml` in the Issue #17 reference loader (`yaml.safe_load`); pyproject `>=6`, installed 6.0.3; licence MIT verified from installed metadata
 
 External services (not distributed, listed for completeness):
 
