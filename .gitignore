@@ -50,3 +50,5 @@ bin/
 .claude/
 CLAUDE.local.md
 backend/config/reference-source.local.yaml
+
+._*
