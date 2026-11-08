@@ -49,4 +49,42 @@ describe('App', () => {
     expect(checkBackendHealth).toHaveBeenCalled();
     act(() => root.unmount());
   });
+
+  it('preserves chat conversation history when switching tabs (Issue #83)', async () => {
+    const { container, root } = renderApp();
+    await flushEffects();
+
+    expect(container.textContent).toContain('SunsetTracker');
+
+    // Click a suggested query to initiate a conversation
+    const suggestionBtn = Array.from(container.querySelectorAll('button')).find((btn) =>
+      btn.textContent?.includes('Which parts of the legacy system')
+    );
+    expect(suggestionBtn).toBeDefined();
+    act(() => {
+      suggestionBtn?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    await flushEffects();
+
+    // Verify user inquiry is now part of the conversation
+    expect(container.textContent).toContain('Which parts of the legacy system');
+
+    // Navigate to Git Comparisons tab
+    const diffTab = Array.from(container.querySelectorAll('button')).find(
+      (button) => button.textContent?.includes('Git Comparisons')
+    );
+    act(() => diffTab?.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+    await flushEffects();
+
+    // Navigate back to Query Terminal tab
+    const chatTab = Array.from(container.querySelectorAll('button')).find(
+      (button) => button.textContent?.includes('Query Terminal')
+    );
+    act(() => chatTab?.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+    await flushEffects();
+
+    // The chat history must still be preserved, not wiped!
+    expect(container.textContent).toContain('Which parts of the legacy system');
+    act(() => root.unmount());
+  });
 });
