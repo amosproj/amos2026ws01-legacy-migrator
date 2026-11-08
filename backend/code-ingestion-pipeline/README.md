@@ -117,6 +117,40 @@ must be Git-ignored. Graphify does not modify reference checkouts.
 Old environments and cached outputs elsewhere in the repository have not been moved
 or deleted; new runs use the subproject's own `.cache/`.
 
+## Code Entity Extraction (Issue #19)
+
+Extracts structured structural code entities (classes, interfaces, methods, constructors,
+and database tables) conforming to Section 3.1 & 3.2 of the Architecture Contract.
+
+### Standalone CLI
+
+To extract entities from a bootstrap `sources.jsonl` file:
+
+```bash
+# Working directory: backend/code-ingestion-pipeline/
+python -m migration_assistant.bootstrap.extract_entities_cli \
+    --sources .cache/ingestion/<run>/sources.jsonl \
+    --out .cache/ingestion/<run>/entities.jsonl \
+    --snapshot-id <snapshotId>
+```
+
+To extract entities from predefined/mock parser output for decoupled development (AC4):
+
+```bash
+python -m migration_assistant.bootstrap.extract_entities_cli \
+    --mock path/to/mock_records.json \
+    --out .cache/ingestion/mock-entities.jsonl \
+    --snapshot-id <snapshotId>
+```
+
+Each record in `entities.jsonl` is formatted as a canonical `FactRecord` (JSONL) with:
+- `schemaVersion`: `"1.0.0"`
+- `recordType`: `"SymbolObservation"`
+- `recordId`: deterministic SHA-256 observation hash
+- `snapshotId`: snapshot identity scoping the observation
+- `payload`: typed attributes (`kind`, `name`, `qualifiedName`, `sourceSpan`, `modifiers`, `signature`, `docstring`, `metadata`)
+- `evidenceReferences`: exact git source span URI (`git:<repoId>@<commitSha>:<path>#L<start>-L<end>`)
+
 ## Tests
 
 Install the loader's test dependencies, activate this project's environment, and run:
