@@ -1,212 +1,154 @@
-"""Tiny MOCK graph for schema v1: step-05 -> step-06 Strangler Fig (issue #21).
+"""Tiny MOCK graph for schema v2: snapshots step-05 and step-06 (issue #21).
 
-Names and the Kafka topic follow the story in Documentation/migration-verification.md
-(as used by the #85 seed data). File paths, line numbers and commit ids are
-illustrative mock values, not read from the real reference repositories.
-Snapshot ids are readable mock ids ("snap-step-06"), not real SHA-256 hashes.
+Shape follows the example in Rafael's schema (issue #77, section 2.5).
+Names, paths and commit ids are illustrative mock values, not read from the
+real reference repositories.
 """
 
 from __future__ import annotations
 
 from .models import (
-    BoundedContextNode,
+    ClassNode,
+    CodeGraphNode,
     ComponentNode,
+    ComponentStateNode,
+    ExternalSymbolNode,
     FileNode,
     GraphEdge,
     GraphNodeModel,
-    SourceSpan,
-    SymbolObservationNode,
-    compute_observation_id,
+    InterfaceNode,
+    MethodNode,
+    ProjectNode,
+    SnapshotNode,
+    compute_entity_id,
+    compute_file_id,
 )
 
 STEP_05 = "step-05"
 STEP_06 = "step-06"
-SNAP_06 = "snap-step-06"
+COMPONENT_KEY = "monolith"
 
-MONOLITH_REPO = "monolith"
-CATALOG_REPO = "catalog-service"
+PROJECT_ID = "project:ibm-legacy-example"
+COMPONENT_ID = "comp:monolith"
+CS_05 = "cs:monolith:step-05"
+CS_06 = "cs:monolith:step-06"
+CG_05 = "cg:monolith:step-05"
+CG_06 = "cg:monolith:step-06"
+EXTERNAL_ID = "ext:javax.persistence.EntityManager.persist"
 
-MONOLITH_FILE_PATH = "CustomerOrderServices/src/main/java/org/acme/CategoryResource.java"
-CATALOG_FILE_PATH = "src/main/java/org/acme/catalog/CategoryResource.java"
+INTERFACE_PATH = "CustomerOrderServices/src/main/java/org/acme/CustomerOrderServices.java"
+IMPL_PATH = "CustomerOrderServices/src/main/java/org/acme/CustomerOrderServicesImpl.java"
+
+INTERFACE_QNAME = "org.acme.CustomerOrderServices"
+CLASS_QNAME = "org.acme.CustomerOrderServicesImpl"
+PROCESS_QNAME = "org.acme.CustomerOrderServicesImpl.process"
+UPDATE_QNAME = "org.acme.CustomerOrderServicesImpl.updateLineItem"
 
 
-def _symbol(
-    *,
-    repo_id: str,
-    commit_sha: str,
-    path: str,
-    kind: str,
-    name: str,
-    qualified_name: str,
-    start_line: int,
-    end_line: int,
-    parent: str | None = None,
-    **extra,
-) -> SymbolObservationNode:
-    return SymbolObservationNode(
-        id=compute_observation_id(SNAP_06, repo_id, path, kind, qualified_name),
-        name=name,
-        step_id=STEP_06,
-        snapshot_id=SNAP_06,
-        repo_id=repo_id,
+def _file(path: str, snapshot_id: str = STEP_06) -> FileNode:
+    return FileNode(
+        id=compute_file_id(snapshot_id, COMPONENT_KEY, path),
+        snapshot_id=snapshot_id,
+        component_key=COMPONENT_KEY,
         path=path,
-        kind=kind,
+        content_hash="mock-" + path.rsplit("/", 1)[-1],
+    )
+
+
+def _entity(model, *, name: str, qualified_name: str, path: str, snapshot_id: str = STEP_06):
+    """Build a Class / Interface / Method node with the hash id of the schema."""
+    label = model.model_fields["label"].default
+    return model(
+        id=compute_entity_id(snapshot_id, COMPONENT_KEY, path, label, qualified_name),
+        name=name,
+        snapshot_id=snapshot_id,
+        owner_component_state_id=f"cs:{COMPONENT_KEY}:{snapshot_id}",
+        component_key=COMPONENT_KEY,
+        path=path,
         qualified_name=qualified_name,
-        parent_qualified_name=parent,
-        source_span=SourceSpan(
-            repo_id=repo_id,
-            commit_sha=commit_sha,
-            path=path,
-            start_line=start_line,
-            end_line=end_line,
-        ),
-        evidence=[f"git:{repo_id}@{commit_sha}:{path}#L{start_line}-L{end_line}"],
-        **extra,
     )
 
 
 def build_mock_graph() -> tuple[list[GraphNodeModel], list[GraphEdge]]:
     """Return (nodes, edges). Fresh objects on every call."""
-    # --- system level: one Component node per step (as in #85) ---------------
-    monolith_05 = ComponentNode(
-        id="comp:monolith:step-05",
-        name="monolith",
-        step_id=STEP_05,
-        origin="legacy",
-        status="active_legacy",
-        description="Java EE monolith hosting Customer/Order and Catalog",
+    project = ProjectNode(id=PROJECT_ID, name="IBM legacy example")
+    snap_05 = SnapshotNode(id=STEP_05, title="step-05", commit_sha="a1b2c3d")
+    snap_06 = SnapshotNode(id=STEP_06, title="step-06", commit_sha="73ab85c")
+    monolith = ComponentNode(id=COMPONENT_ID, key=COMPONENT_KEY, repo="legacy-example-monolith")
+    cs_05 = ComponentStateNode(
+        id=CS_05, snapshot_id=STEP_05, commit_sha="a1b2c3d", migration_role="legacy"
     )
-    monolith_06 = ComponentNode(
-        id="comp:monolith:step-06",
-        name="monolith",
-        step_id=STEP_06,
-        origin="legacy",
-        status="active_legacy",
-        description="Monolith without catalog endpoints",
+    cs_06 = ComponentStateNode(
+        id=CS_06, snapshot_id=STEP_06, commit_sha="73ab85c", migration_role="legacy"
     )
-    catalog_06 = ComponentNode(
-        id="comp:catalog-service:step-06",
-        name="catalog-service",
-        step_id=STEP_06,
-        origin="target",
-        status="live_target",
-        description="Microservice extracted via Strangler Fig",
-        port=8082,
+    cg_05 = CodeGraphNode(
+        id=CG_05, snapshot_id=STEP_05, run_id="run-mock-05", graphify_version="0.9.100"
     )
-    # The bounded context is also one node per step (same reason).
-    bc_05 = BoundedContextNode(id="bc:catalog:step-05", name="Catalog", step_id=STEP_05)
-    bc_06 = BoundedContextNode(id="bc:catalog:step-06", name="Catalog", step_id=STEP_06)
-
-    # --- code level: files and symbols carry BOTH snapshotId and stepId ------
-    file_monolith = FileNode(
-        id="file:monolith:CategoryResource.java:step-06",
-        name="CategoryResource.java",
-        step_id=STEP_06,
-        snapshot_id=SNAP_06,
-        repo_id=MONOLITH_REPO,
-        path=MONOLITH_FILE_PATH,
-    )
-    file_catalog = FileNode(
-        id="file:catalog-service:CategoryResource.java:step-06",
-        name="CategoryResource.java",
-        step_id=STEP_06,
-        snapshot_id=SNAP_06,
-        repo_id=CATALOG_REPO,
-        path=CATALOG_FILE_PATH,
+    cg_06 = CodeGraphNode(
+        id=CG_06, snapshot_id=STEP_06, run_id="run-mock-06", graphify_version="0.9.100"
     )
 
-    monolith_class = _symbol(
-        repo_id=MONOLITH_REPO,
-        commit_sha="73ab85c",
-        path=MONOLITH_FILE_PATH,
-        kind="class",
-        name="CategoryResource",
-        qualified_name="org.acme.CategoryResource",
-        start_line=10,
-        end_line=60,
-        status="decommissioned",
-        replacement="catalog-service:CategoryResource",
-        reason="Proxy sends all /Category requests to catalog-service; this code is unreachable.",
-        risk="low",
+    file_interface = _file(INTERFACE_PATH)
+    file_impl = _file(IMPL_PATH)
+
+    interface = _entity(
+        InterfaceNode,
+        name="CustomerOrderServices",
+        qualified_name=INTERFACE_QNAME,
+        path=INTERFACE_PATH,
     )
-    monolith_method = _symbol(
-        repo_id=MONOLITH_REPO,
-        commit_sha="73ab85c",
-        path=MONOLITH_FILE_PATH,
-        kind="method",
-        name="getCategories",
-        qualified_name="org.acme.CategoryResource.getCategories",
-        start_line=20,
-        end_line=30,
-        parent="org.acme.CategoryResource",
+    impl = _entity(
+        ClassNode, name="CustomerOrderServicesImpl", qualified_name=CLASS_QNAME, path=IMPL_PATH
     )
-    catalog_class = _symbol(
-        repo_id=CATALOG_REPO,
-        commit_sha="474422c",
-        path=CATALOG_FILE_PATH,
-        kind="class",
-        name="CategoryResource",
-        qualified_name="org.acme.catalog.CategoryResource",
-        start_line=8,
-        end_line=55,
-    )
-    catalog_method = _symbol(
-        repo_id=CATALOG_REPO,
-        commit_sha="474422c",
-        path=CATALOG_FILE_PATH,
-        kind="method",
-        name="getCategories",
-        qualified_name="org.acme.catalog.CategoryResource.getCategories",
-        start_line=18,
-        end_line=28,
-        parent="org.acme.catalog.CategoryResource",
-    )
+    process = _entity(MethodNode, name="process", qualified_name=PROCESS_QNAME, path=IMPL_PATH)
+    update = _entity(MethodNode, name="updateLineItem", qualified_name=UPDATE_QNAME, path=IMPL_PATH)
+    external = ExternalSymbolNode(id=EXTERNAL_ID, name="javax.persistence.EntityManager.persist")
 
     nodes: list[GraphNodeModel] = [
-        monolith_05,
-        monolith_06,
-        catalog_06,
-        bc_05,
-        bc_06,
-        file_monolith,
-        file_catalog,
-        monolith_class,
-        monolith_method,
-        catalog_class,
-        catalog_method,
+        project,
+        snap_05,
+        snap_06,
+        monolith,
+        cs_05,
+        cs_06,
+        cg_05,
+        cg_06,
+        file_interface,
+        file_impl,
+        interface,
+        impl,
+        process,
+        update,
+        external,
     ]
 
-    def edge(kind: str, src: GraphNodeModel, dst: GraphNodeModel, **kw) -> GraphEdge:
+    def edge(kind: str, src: GraphNodeModel, dst: GraphNodeModel) -> GraphEdge:
         return GraphEdge(
             id=f"edge:{kind}:{src.id}->{dst.id}",
             source_id=src.id,
             target_id=dst.id,
             relationship_type=kind,
-            **kw,
         )
 
     edges: list[GraphEdge] = [
-        edge("IMPLEMENTS", monolith_05, bc_05, step_id=STEP_05),
-        edge("IMPLEMENTS", catalog_06, bc_06, step_id=STEP_06),
-        edge("CONTAINS", monolith_06, file_monolith, step_id=STEP_06),
-        edge("CONTAINS", catalog_06, file_catalog, step_id=STEP_06),
-        edge("DECLARES", file_monolith, monolith_class, snapshot_id=SNAP_06),
-        edge("DECLARES", file_monolith, monolith_method, snapshot_id=SNAP_06),
-        edge("DECLARES", file_catalog, catalog_class, snapshot_id=SNAP_06),
-        edge("DECLARES", file_catalog, catalog_method, snapshot_id=SNAP_06),
-        # Kafka topic: catalog-service publishes, monolith consumes (as in #85).
-        edge(
-            "COUPLED_VIA",
-            catalog_06,
-            monolith_06,
-            step_id=STEP_06,
-            properties={
-                "couplingType": "messaging_topic",
-                "resourceName": "product-price-updated",
-                "description": "catalog-service publishes price changes; "
-                "monolith consumes them to update LINE_ITEM.PRICE_CURRENT",
-            },
-            evidence=["git:catalog-service@474422c:ProductPriceChanged.java"],
-        ),
+        edge("HAS_SNAPSHOT", project, snap_05),
+        edge("HAS_SNAPSHOT", project, snap_06),
+        edge("HAS_BASELINE", project, snap_05),
+        edge("DERIVED_FROM", snap_06, snap_05),  # the only edge across snapshots
+        edge("HAS_COMPONENT", snap_05, cs_05),
+        edge("HAS_COMPONENT", snap_06, cs_06),
+        edge("OF_COMPONENT", cs_05, monolith),
+        edge("OF_COMPONENT", cs_06, monolith),
+        edge("HAS_CODE_GRAPH", cs_05, cg_05),
+        edge("HAS_CODE_GRAPH", cs_06, cg_06),
+        edge("HAS_FILE", cg_06, file_interface),
+        edge("HAS_FILE", cg_06, file_impl),
+        edge("DECLARES", file_interface, interface),
+        edge("DECLARES", file_impl, impl),
+        edge("DECLARES_MEMBER", impl, process),
+        edge("DECLARES_MEMBER", impl, update),
+        edge("IMPLEMENTS", impl, interface),
+        edge("CALLS", process, update),
+        edge("CALLS", process, external),
     ]
     return nodes, edges

@@ -1,12 +1,11 @@
-"""Initial graph schema v1 (issue #21): node and edge models.
+"""Initial graph schema v2 (issue #21): node and edge models.
 
-Base: Documentation/architecture/architecture-contract.md section 3.
-Written to stay compatible with PR #84 (code facts) and PR #85 (graph queries)
-WITHOUT importing from either of them (neither is merged yet).
+Base: Rafael's schema from issue #77 (sections 2.1 - 2.4). Target store: Neo4j
+(SBOM Vision B). Nothing is imported from PR #84 or PR #85 (not merged).
 
 The models only check the *shape* of one node or one edge. The rules that need
-the whole graph (unique ids, edges point to existing nodes, allowed pairs,
-same scope) live in validator.py.
+the whole graph (unique ids, endpoints exist, allowed pairs, same snapshot)
+live in validator.py.
 """
 
 from __future__ import annotations
@@ -14,48 +13,115 @@ from __future__ import annotations
 import hashlib
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
 
 # ---------------------------------------------------------------- vocabulary
 
+PROJECT = "Project"
+SNAPSHOT = "Snapshot"
 COMPONENT = "Component"
-BOUNDED_CONTEXT = "BoundedContext"
+COMPONENT_STATE = "ComponentState"
+CODE_GRAPH = "CodeGraph"
 FILE = "File"
-SYMBOL_OBSERVATION = "SymbolObservation"
+CLASS = "Class"
+INTERFACE = "Interface"
+METHOD = "Method"
+FUNCTION = "Function"
+CODE_ENTITY = "CodeEntity"
+EXTERNAL_SYMBOL = "ExternalSymbol"
 
-NODE_LABELS = (COMPONENT, BOUNDED_CONTEXT, FILE, SYMBOL_OBSERVATION)
-# Nodes that come from parsing source code. They must carry a snapshotId.
-CODE_LABELS = (FILE, SYMBOL_OBSERVATION)
+NODE_LABELS = (
+    PROJECT,
+    SNAPSHOT,
+    COMPONENT,
+    COMPONENT_STATE,
+    CODE_GRAPH,
+    FILE,
+    CLASS,
+    INTERFACE,
+    METHOD,
+    FUNCTION,
+    CODE_ENTITY,
+    EXTERNAL_SYMBOL,
+)
+# Entities extracted from source code ("any code-entity kind" in Rafael's 2.2).
+CODE_ENTITY_LABELS = (CLASS, INTERFACE, METHOD, FUNCTION, CODE_ENTITY)
 
-IMPLEMENTS = "IMPLEMENTS"
-COUPLED_VIA = "COUPLED_VIA"
-CONTAINS = "CONTAINS"
+HAS_SNAPSHOT = "HAS_SNAPSHOT"
+HAS_BASELINE = "HAS_BASELINE"
+HAS_COMPONENT = "HAS_COMPONENT"
+OF_COMPONENT = "OF_COMPONENT"
+HAS_CODE_GRAPH = "HAS_CODE_GRAPH"
+HAS_FILE = "HAS_FILE"
 DECLARES = "DECLARES"
-CALLS = "CALLS"  # reserved for issue #20, no mock data uses it yet
+DECLARES_MEMBER = "DECLARES_MEMBER"
+CONTAINS_TYPE = "CONTAINS_TYPE"
+CALLS = "CALLS"
+EXTENDS = "EXTENDS"
+IMPLEMENTS = "IMPLEMENTS"
+REFERENCES = "REFERENCES"
+IMPORTS = "IMPORTS"
+DERIVED_FROM = "DERIVED_FROM"
+SOURCED_FROM = "SOURCED_FROM"
 
-EdgeType = Literal["IMPLEMENTS", "COUPLED_VIA", "CONTAINS", "DECLARES", "CALLS"]
+EdgeType = Literal[
+    "HAS_SNAPSHOT",
+    "HAS_BASELINE",
+    "HAS_COMPONENT",
+    "OF_COMPONENT",
+    "HAS_CODE_GRAPH",
+    "HAS_FILE",
+    "DECLARES",
+    "DECLARES_MEMBER",
+    "CONTAINS_TYPE",
+    "CALLS",
+    "EXTENDS",
+    "IMPLEMENTS",
+    "REFERENCES",
+    "IMPORTS",
+    "DERIVED_FROM",
+    "SOURCED_FROM",
+]
 
-# edge type -> (allowed source label, allowed target label)
-ALLOWED_EDGES: dict[str, tuple[str, str]] = {
-    IMPLEMENTS: (COMPONENT, BOUNDED_CONTEXT),
-    COUPLED_VIA: (COMPONENT, COMPONENT),
-    CONTAINS: (COMPONENT, FILE),
-    DECLARES: (FILE, SYMBOL_OBSERVATION),
-    CALLS: (SYMBOL_OBSERVATION, SYMBOL_OBSERVATION),
+MigrationRole = Literal["legacy", "target", "transition", "unknown"]
+
+
+def _pairs(sources: tuple[str, ...], targets: tuple[str, ...]) -> frozenset[tuple[str, str]]:
+    return frozenset((s, t) for s in sources for t in targets)
+
+
+_TYPES = (CLASS, INTERFACE)
+
+# edge type -> set of allowed (source label, target label) pairs (Rafael's 2.2).
+ALLOWED_EDGES: dict[str, frozenset[tuple[str, str]]] = {
+    HAS_SNAPSHOT: _pairs((PROJECT,), (SNAPSHOT,)),
+    HAS_BASELINE: _pairs((PROJECT,), (SNAPSHOT,)),
+    HAS_COMPONENT: _pairs((SNAPSHOT,), (COMPONENT_STATE,)),
+    OF_COMPONENT: _pairs((COMPONENT_STATE,), (COMPONENT,)),
+    HAS_CODE_GRAPH: _pairs((COMPONENT_STATE,), (CODE_GRAPH,)),
+    HAS_FILE: _pairs((CODE_GRAPH,), (FILE,)),
+    DECLARES: _pairs((FILE,), (CLASS, INTERFACE, FUNCTION, CODE_ENTITY)),
+    DECLARES_MEMBER: _pairs(_TYPES, (METHOD,)),
+    CONTAINS_TYPE: _pairs(_TYPES, _TYPES),
+    CALLS: _pairs(
+        (FILE, CLASS, METHOD, FUNCTION, CODE_ENTITY),
+        (METHOD, FUNCTION, CLASS, CODE_ENTITY, EXTERNAL_SYMBOL),
+    ),
+    # Only the pair rule is checked, not whether a "Class" is really a class
+    # (that is Rafael's open question 5.3).
+    EXTENDS: _pairs((CLASS,), (CLASS, EXTERNAL_SYMBOL))
+    | _pairs((INTERFACE,), (INTERFACE, EXTERNAL_SYMBOL)),
+    IMPLEMENTS: _pairs((CLASS,), (INTERFACE, EXTERNAL_SYMBOL)),
+    REFERENCES: _pairs(CODE_ENTITY_LABELS, (*CODE_ENTITY_LABELS, EXTERNAL_SYMBOL)),
+    IMPORTS: _pairs((FILE,), (FILE, CLASS, INTERFACE, FUNCTION, CODE_ENTITY, EXTERNAL_SYMBOL)),
+    DERIVED_FROM: _pairs((SNAPSHOT,), (SNAPSHOT,)),
+    SOURCED_FROM: _pairs(CODE_ENTITY_LABELS, (FILE,)),
 }
-
-# Same values as PR #84 (CodeEntityKind) minus "function", see open question 9.
-SymbolKind = Literal["class", "interface", "record", "enum", "method", "constructor", "table"]
-# Same values as PR #85.
-Origin = Literal["legacy", "target"]
-MigrationStatusValue = Literal["active_legacy", "in_development", "live_target", "decommissioned"]
-RiskLevel = Literal["low", "medium", "high"]
-CouplingType = Literal["shared_database", "messaging_topic", "direct_http", "shared_schema"]
 
 
 class _Model(BaseModel):
-    """Frozen, camelCase in JSON (like #84 and #85), unknown fields are errors."""
+    """Frozen, camelCase in JSON, unknown fields are errors."""
 
     model_config = ConfigDict(
         frozen=True,
@@ -65,30 +131,33 @@ class _Model(BaseModel):
     )
 
 
-# ------------------------------------------------------------------- helpers
+# ------------------------------------------------------------------- ids
+#
+# Project, Snapshot, Component, ComponentState and CodeGraph use readable ids
+# (they are few and stable), for example "cs:monolith:step-06".
+# File and code entities use a sha256 hash, scoped by snapshot + component +
+# normalized path (+ kind and qualified name for code entities). Rafael's 2.3 / 2.4.
 
 
-def compute_observation_id(
-    snapshot_id: str, repo_id: str, path: str, kind: str, qualified_name: str
-) -> str:
-    """sha256(snapshotId:repoId:path:kind:qualifiedName).
+def normalize_path(path: str) -> str:
+    """Forward slashes, no leading or trailing slash."""
+    return path.replace("\\", "/").strip("/")
 
-    Same formula as #84 and Architecture Contract section 3.2. The path is
-    normalised (forward slashes, no leading/trailing slash).
-    """
-    normalized_path = path.replace("\\", "/").strip("/")
-    token = f"{snapshot_id}:{repo_id}:{normalized_path}:{kind}:{qualified_name}"
+
+def _sha256(token: str) -> str:
     return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
 
-class SourceSpan(_Model):
-    """Where a symbol lives in the source (same fields as #84)."""
+def compute_file_id(snapshot_id: str, component_key: str, path: str) -> str:
+    """sha256(snapshotId:componentKey:normalizedPath)."""
+    return _sha256(f"{snapshot_id}:{component_key}:{normalize_path(path)}")
 
-    repo_id: str
-    commit_sha: str
-    path: str
-    start_line: int
-    end_line: int
+
+def compute_entity_id(
+    snapshot_id: str, component_key: str, path: str, kind: str, qualified_name: str
+) -> str:
+    """sha256(snapshotId:componentKey:normalizedPath:kind:qualifiedName)."""
+    return _sha256(f"{snapshot_id}:{component_key}:{normalize_path(path)}:{kind}:{qualified_name}")
 
 
 # --------------------------------------------------------------------- nodes
@@ -99,118 +168,139 @@ class NodeBase(_Model):
 
     id: str
     label: str
-    name: str
-    # Scope: system nodes use step_id, code nodes use snapshot_id.
-    # At least one is needed (validator rule). Code nodes linked to a
-    # Component carry both, so the link is explicit.
-    step_id: str | None = None
-    snapshot_id: str | None = None
-    evidence: list[str] = Field(default_factory=list)
 
     def to_record(self) -> dict[str, Any]:
-        """Flat shape `{id, label, name, properties}` (like #85 GraphNode).
+        """Flat shape `{id, label, properties}`: one Neo4j label plus a property map."""
+        properties = self.model_dump(by_alias=True, exclude={"id", "label"}, exclude_none=True)
+        return {"id": self.id, "label": self.label, "properties": properties}
 
-        This is also the shape a loader needs for Apache AGE: one vertex label
-        plus one property map.
-        """
-        properties = self.model_dump(
-            by_alias=True, exclude={"id", "label", "name"}, exclude_none=True
-        )
-        return {
-            "id": self.id,
-            "label": self.label,
-            "name": self.name,
-            "properties": properties,
-        }
+
+class ProjectNode(NodeBase):
+    label: Literal["Project"] = "Project"
+    name: str
+
+
+class SnapshotNode(NodeBase):
+    """A selected state of the whole system. Its `id` is its snapshotId (e.g. "step-06").
+
+    Rafael calls the display text `label`; here it is `title`, because `label`
+    already means the node type.
+    """
+
+    label: Literal["Snapshot"] = "Snapshot"
+    title: str
+    commit_sha: str | None = None
 
 
 class ComponentNode(NodeBase):
-    """A deployable part of the system at one step (one node per step, as in #85)."""
+    """Stable component identity across snapshots, e.g. "monolith"."""
 
     label: Literal["Component"] = "Component"
-    origin: Origin
-    status: MigrationStatusValue
-    description: str = ""
-    port: int | None = None
+    key: str
+    repo: str
 
 
-class BoundedContextNode(NodeBase):
-    label: Literal["BoundedContext"] = "BoundedContext"
-    description: str = ""
+class ComponentStateNode(NodeBase):
+    """The component inside one snapshot."""
+
+    label: Literal["ComponentState"] = "ComponentState"
+    snapshot_id: str
+    commit_sha: str | None = None
+    migration_role: MigrationRole
+
+
+class CodeGraphNode(NodeBase):
+    """Attachment point for the extraction result of one component state."""
+
+    label: Literal["CodeGraph"] = "CodeGraph"
+    snapshot_id: str
+    run_id: str
+    graphify_version: str
 
 
 class FileNode(NodeBase):
     label: Literal["File"] = "File"
-    repo_id: str
+    snapshot_id: str
+    component_key: str
     path: str
+    content_hash: str | None = None
 
 
-class SymbolObservationNode(NodeBase):
-    """Class, method, table ... in ONE label, told apart by `kind` (contract 3.1)."""
-
-    label: Literal["SymbolObservation"] = "SymbolObservation"
-    repo_id: str
-    path: str
-    kind: SymbolKind
+class CodeEntityBase(NodeBase):
+    name: str
+    snapshot_id: str
+    owner_component_state_id: str
+    component_key: str  # used for the id hash
+    path: str  # file the entity was found in, used for the id hash
     qualified_name: str
-    source_span: SourceSpan
-    parent_qualified_name: str | None = None
-    signature: str | None = None
-    docstring: str | None = None
-    modifiers: list[str] = Field(default_factory=list)
-    metadata: dict[str, Any] = Field(default_factory=dict)
-    # Decommission info stays on the node for v1 (decision; see doc, open question 3).
-    status: MigrationStatusValue | None = None
-    replacement: str | None = None
-    reason: str | None = None
-    risk: RiskLevel | None = None
 
 
-GraphNodeModel = ComponentNode | BoundedContextNode | FileNode | SymbolObservationNode
+class ClassNode(CodeEntityBase):
+    label: Literal["Class"] = "Class"
+
+
+class InterfaceNode(CodeEntityBase):
+    label: Literal["Interface"] = "Interface"
+
+
+class MethodNode(CodeEntityBase):
+    label: Literal["Method"] = "Method"
+
+
+class FunctionNode(CodeEntityBase):
+    label: Literal["Function"] = "Function"
+
+
+class CodeEntityNode(CodeEntityBase):
+    """Fallback when the precise kind is not known."""
+
+    label: Literal["CodeEntity"] = "CodeEntity"
+    kind: str
+
+
+class ExternalSymbolNode(NodeBase):
+    """A symbol outside our code. No snapshotId: it may be shared."""
+
+    label: Literal["ExternalSymbol"] = "ExternalSymbol"
+    name: str
+
+
+GraphNodeModel = (
+    ProjectNode
+    | SnapshotNode
+    | ComponentNode
+    | ComponentStateNode
+    | CodeGraphNode
+    | FileNode
+    | ClassNode
+    | InterfaceNode
+    | MethodNode
+    | FunctionNode
+    | CodeEntityNode
+    | ExternalSymbolNode
+)
 
 
 # --------------------------------------------------------------------- edges
 
 
 class GraphEdge(_Model):
-    """A directed relationship. Allowed source/target labels: see ALLOWED_EDGES."""
+    """A directed relationship. Allowed source/target labels: see ALLOWED_EDGES.
+
+    An edge has no snapshot of its own; the validator takes it from its end nodes.
+    """
 
     id: str
     source_id: str
     target_id: str
     relationship_type: EdgeType
-    step_id: str | None = None
-    snapshot_id: str | None = None
-    evidence: list[str] = Field(default_factory=list)
-    properties: dict[str, Any] = Field(default_factory=dict)
-
-    @model_validator(mode="after")
-    def _coupled_via_needs_details(self) -> GraphEdge:
-        """COUPLED_VIA must say what couples the two components (as in #85)."""
-        if self.relationship_type == COUPLED_VIA:
-            coupling = self.properties.get("couplingType")
-            if coupling not in CouplingType.__args__:
-                raise ValueError(
-                    "COUPLED_VIA needs properties.couplingType, one of "
-                    f"{CouplingType.__args__}; got {coupling!r}"
-                )
-            if not self.properties.get("resourceName"):
-                raise ValueError("COUPLED_VIA needs properties.resourceName")
-        return self
+    properties: dict[str, Any] = {}
 
     def to_record(self) -> dict[str, Any]:
-        """Flat shape like #85 GraphEdge, scope fields go into `properties`."""
-        properties = dict(self.properties)
-        if self.step_id:
-            properties["stepId"] = self.step_id
-        if self.snapshot_id:
-            properties["snapshotId"] = self.snapshot_id
-        if self.evidence:
-            properties["evidence"] = list(self.evidence)
         return {
             "id": self.id,
             "sourceId": self.source_id,
             "targetId": self.target_id,
             "relationshipType": self.relationship_type,
-            "properties": properties,
+            "properties": dict(self.properties),
         }

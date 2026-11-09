@@ -1,4 +1,4 @@
-"""Whole-graph rule checker for the initial graph schema v1 (issue #21).
+"""Whole-graph rule checker for the initial graph schema v2 (issue #21).
 
 `validate_graph` collects ALL problems (it does not stop at the first one) so
 a loader can report everything in one go.
@@ -12,11 +12,15 @@ from dataclasses import dataclass
 
 from .models import (
     ALLOWED_EDGES,
-    CODE_LABELS,
+    DERIVED_FROM,
+    CodeEntityBase,
+    CodeEntityNode,
+    FileNode,
     GraphEdge,
     GraphNodeModel,
-    SymbolObservationNode,
-    compute_observation_id,
+    SnapshotNode,
+    compute_entity_id,
+    compute_file_id,
 )
 
 # Rule names (stable strings, easy to assert in tests).
@@ -24,11 +28,8 @@ DUPLICATE_NODE_ID = "duplicate-node-id"
 DUPLICATE_EDGE_ID = "duplicate-edge-id"
 MISSING_ENDPOINT = "missing-endpoint"
 BAD_ENDPOINT_PAIR = "bad-endpoint-pair"
-MISSING_SCOPE = "missing-scope"
-MISSING_SNAPSHOT = "code-node-needs-snapshot-id"
-SCOPE_MISMATCH = "scope-mismatch"
-SCOPE_UNVERIFIABLE = "scope-unverifiable"
-BAD_OBSERVATION_ID = "bad-observation-id"
+CROSS_SNAPSHOT_EDGE = "cross-snapshot-edge"
+BAD_NODE_ID = "bad-node-id"
 
 
 @dataclass(frozen=True)
@@ -51,6 +52,28 @@ class SchemaValidationError(ValueError):
         )
 
 
+def snapshot_of(node: GraphNodeModel) -> str | None:
+    """The snapshot a node belongs to. A Snapshot is its own snapshot.
+
+    Project, Component and ExternalSymbol belong to no snapshot (None).
+    """
+    if isinstance(node, SnapshotNode):
+        return node.id
+    return getattr(node, "snapshot_id", None)
+
+
+def _expected_id(node: GraphNodeModel) -> str | None:
+    """Hash id that File and code entities must have. None = readable id, not checked."""
+    if isinstance(node, FileNode):
+        return compute_file_id(node.snapshot_id, node.component_key, node.path)
+    if isinstance(node, CodeEntityBase):
+        kind = node.kind if isinstance(node, CodeEntityNode) else node.label
+        return compute_entity_id(
+            node.snapshot_id, node.component_key, node.path, kind, node.qualified_name
+        )
+    return None
+
+
 def validate_graph(
     nodes: Iterable[GraphNodeModel], edges: Iterable[GraphEdge]
 ) -> list[SchemaViolation]:
@@ -71,37 +94,20 @@ def validate_graph(
     for node in nodes:
         by_id.setdefault(node.id, node)  # first one wins; duplicates already reported
 
-    # Node rules: scope and (for symbols) the id formula.
+    # Rule 5: File and code entity ids are the hash of snapshot + component + path (+ name).
     for node in nodes:
-        if not (node.step_id or node.snapshot_id):
-            problems.append(SchemaViolation(MISSING_SCOPE, node.id, "needs stepId or snapshotId"))
-        if node.label in CODE_LABELS and not node.snapshot_id:
+        expected = _expected_id(node)
+        if expected is not None and node.id != expected:
             problems.append(
-                SchemaViolation(MISSING_SNAPSHOT, node.id, f"{node.label} needs a snapshotId")
-            )
-        if isinstance(node, SymbolObservationNode) and node.snapshot_id:
-            expected = compute_observation_id(
-                node.snapshot_id,
-                node.repo_id,
-                node.path,
-                node.kind,
-                node.qualified_name,
-            )
-            if node.id != expected:
-                problems.append(
-                    SchemaViolation(
-                        BAD_OBSERVATION_ID,
-                        node.id,
-                        "id must be sha256(snapshotId:repoId:path:kind:qualifiedName); "
-                        f"expected {expected}",
-                    )
+                SchemaViolation(
+                    BAD_NODE_ID,
+                    node.id,
+                    f"{node.label} id must be the sha256 id formula; expected {expected}",
                 )
+            )
 
-    # Edge rules.
     for edge in edges:
-        if not (edge.step_id or edge.snapshot_id):
-            problems.append(SchemaViolation(MISSING_SCOPE, edge.id, "needs stepId or snapshotId"))
-
+        # Rule 2: both ends exist.
         source = by_id.get(edge.source_id)
         target = by_id.get(edge.target_id)
         if source is None:
@@ -119,72 +125,35 @@ def validate_graph(
         if source is None or target is None:
             continue  # the other checks need both ends
 
-        allowed_source, allowed_target = ALLOWED_EDGES[edge.relationship_type]
-        if (source.label, target.label) != (allowed_source, allowed_target):
+        # Rule 3: the (source label, target label) pair must be allowed for this edge type.
+        allowed = ALLOWED_EDGES[edge.relationship_type]
+        if (source.label, target.label) not in allowed:
+            wanted = ", ".join(f"{s} -> {t}" for s, t in sorted(allowed))
             problems.append(
                 SchemaViolation(
                     BAD_ENDPOINT_PAIR,
                     edge.id,
-                    f"{edge.relationship_type} must go {allowed_source} -> "
-                    f"{allowed_target}, got {source.label} -> {target.label}",
+                    f"{edge.relationship_type} allows {wanted}; "
+                    f"got {source.label} -> {target.label}",
                 )
             )
 
-        problems.extend(_check_scope(edge, source, target))
+        # Rule 4: same snapshot. DERIVED_FROM is the only edge that may cross snapshots.
+        # A node without a snapshot (Project, Component, ExternalSymbol) is skipped.
+        if edge.relationship_type == DERIVED_FROM:
+            continue
+        source_snapshot, target_snapshot = snapshot_of(source), snapshot_of(target)
+        if source_snapshot and target_snapshot and source_snapshot != target_snapshot:
+            problems.append(
+                SchemaViolation(
+                    CROSS_SNAPSHOT_EDGE,
+                    edge.id,
+                    f"{edge.relationship_type} connects snapshot {source_snapshot!r} "
+                    f"with snapshot {target_snapshot!r}",
+                )
+            )
 
     return problems
-
-
-def _check_scope(
-    edge: GraphEdge, source: GraphNodeModel, target: GraphNodeModel
-) -> list[SchemaViolation]:
-    """Both ends (and the edge) must live in the same step / snapshot.
-
-    Compare stepId only where both sides have one, snapshotId likewise. If the
-    two ends share NO comparable key (for example a Component with only a
-    stepId and a File with only a snapshotId) the link cannot be checked, and
-    that is reported instead of silently passing.
-    """
-    found: list[SchemaViolation] = []
-
-    pairs = [
-        ("source node", source),
-        ("target node", target),
-    ]
-    for key in ("step_id", "snapshot_id"):
-        edge_value = getattr(edge, key)
-        for who, node in pairs:
-            node_value = getattr(node, key)
-            if edge_value and node_value and edge_value != node_value:
-                found.append(
-                    SchemaViolation(
-                        SCOPE_MISMATCH,
-                        edge.id,
-                        f"edge {key}={edge_value!r} but {who} {node.id!r} has {node_value!r}",
-                    )
-                )
-        source_value, target_value = getattr(source, key), getattr(target, key)
-        if source_value and target_value and source_value != target_value:
-            found.append(
-                SchemaViolation(
-                    SCOPE_MISMATCH,
-                    edge.id,
-                    f"{key} differs: {source.id!r} has {source_value!r}, "
-                    f"{target.id!r} has {target_value!r}",
-                )
-            )
-
-    comparable = (source.step_id and target.step_id) or (source.snapshot_id and target.snapshot_id)
-    if not comparable:
-        found.append(
-            SchemaViolation(
-                SCOPE_UNVERIFIABLE,
-                edge.id,
-                f"{source.id!r} and {target.id!r} share no stepId or snapshotId, "
-                "so the same-scope rule cannot be checked (give code nodes both ids)",
-            )
-        )
-    return found
 
 
 def assert_valid_graph(nodes: Iterable[GraphNodeModel], edges: Iterable[GraphEdge]) -> None:
@@ -198,5 +167,6 @@ __all__ = [
     "SchemaValidationError",
     "SchemaViolation",
     "assert_valid_graph",
+    "snapshot_of",
     "validate_graph",
 ]
