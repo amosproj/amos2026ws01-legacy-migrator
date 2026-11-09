@@ -53,13 +53,15 @@ export const App: React.FC = () => {
       />
 
       <main className="flex-1 px-4 sm:px-6 py-5 flex flex-col justify-center">
-        {activeTab === 'chat' ? (
+        <div className={activeTab === 'chat' ? 'flex flex-col flex-1' : 'hidden'}>
           <ChatInterface selectedStep={selectedStep} />
-        ) : activeTab === 'diff' ? (
+        </div>
+        <div className={activeTab === 'diff' ? 'flex flex-col flex-1' : 'hidden'}>
           <DiffInterface />
-        ) : (
+        </div>
+        <div className={activeTab === 'views' ? 'flex flex-col flex-1' : 'hidden'}>
           <ViewsInterface />
-        )}
+        </div>
       </main>
 
       {/* Vercel minimalist footer */}
