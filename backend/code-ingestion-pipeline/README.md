@@ -99,6 +99,9 @@ run folder on each invocation:
   sources.jsonl
   bootstrap.log
   sources/<repoId>/<original-path>
+  entities.jsonl            # canonical SymbolObservation facts
+  relationships.jsonl       # canonical Relationship facts for the graph loader
+  relationship-issues.jsonl # unresolved/unsupported Graphify links, when present
   graphs/combined/                     # or graphs/<repoId>/
     extract.log
     cluster.log
@@ -113,6 +116,23 @@ printed log path; partial output remains for diagnosis. Use `--verbose` for trac
 `--output-dir PATH` overrides the parent folder for runs. Explicit config and output
 paths are relative to the terminal's current directory. Output inside this repository
 must be Git-ignored. Graphify does not modify reference checkouts.
+
+## Canonical relationship handoff
+
+`run_pipeline.py` now adapts each Graphify `graph.json` into a pair of canonical
+JSONL files in the run folder. `entities.jsonl` contains snapshot-scoped
+`SymbolObservation` facts; `relationships.jsonl` contains `Relationship` facts
+whose source and target IDs refer to those observations. Both include extractor
+provenance and revision-pinned source evidence. These files are the structured
+handoff for the graph loader.
+
+The adapter reads Graphify's native `nodes`/`links` schema (and the older
+`nodes`/`edges` shape for fixtures), mapping `calls`, `inherits`, `implements`,
+`references`, imports, and dependencies to `CALLS`, `INHERITS`, or `REFERENCES`.
+Unknown, ambiguous, external, and unresolved endpoints are written to
+`relationship-issues.jsonl` and never published as dangling edges. The adapter
+is independent of Graphify installation in tests; mock graph JSON uses the same
+normalization seam.
 
 Old environments and cached outputs elsewhere in the repository have not been moved
 or deleted; new runs use the subproject's own `.cache/`.
