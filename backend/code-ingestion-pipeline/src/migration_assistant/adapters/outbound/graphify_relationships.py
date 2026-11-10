@@ -71,9 +71,7 @@ class RelationshipFact(BaseModel):
             "recordId": self.record_id,
             "snapshotId": self.snapshot_id,
             "payload": payload,
-            "evidenceReferences": [
-                _evidence_locator(self.source_span)
-            ] if self.source_span else [],
+            "evidenceReferences": [_evidence_locator(self.source_span)] if self.source_span else [],
         }
 
     def to_jsonl(self) -> str:
@@ -251,27 +249,31 @@ def normalize_graphify_facts(
         qualified_name = f"{span.path}::{name}::{node_id}"
         observation_id = _stable_id([snapshot_id, repo_id, span.path, kind, qualified_name])
         node_to_observation[node_id] = observation_id
-        observations.append(_Observation(
-            observation_id=observation_id,
-            snapshot_id=snapshot_id,
-            repo_id=repo_id,
-            path=span.path,
-            kind=kind,
-            name=name,
-            qualified_name=qualified_name,
-            source_span=span,
-        ))
-        entity_facts.append(SymbolObservationFact(
-            record_id=_stable_id([snapshot_id, "SymbolObservation", observation_id]),
-            snapshot_id=snapshot_id,
-            observation_id=observation_id,
-            kind=kind,
-            name=name,
-            qualified_name=qualified_name,
-            repo_id=repo_id,
-            source_span=span,
-            extractor_version=extractor_version,
-        ))
+        observations.append(
+            _Observation(
+                observation_id=observation_id,
+                snapshot_id=snapshot_id,
+                repo_id=repo_id,
+                path=span.path,
+                kind=kind,
+                name=name,
+                qualified_name=qualified_name,
+                source_span=span,
+            )
+        )
+        entity_facts.append(
+            SymbolObservationFact(
+                record_id=_stable_id([snapshot_id, "SymbolObservation", observation_id]),
+                snapshot_id=snapshot_id,
+                observation_id=observation_id,
+                kind=kind,
+                name=name,
+                qualified_name=qualified_name,
+                repo_id=repo_id,
+                source_span=span,
+                extractor_version=extractor_version,
+            )
+        )
 
     index = CanonicalEntityIndex(observations)
     # Graphify names its endpoint list `links`; preserve the input and attach the
@@ -292,7 +294,11 @@ def normalize_graphify_facts(
             continue
         mapped = dict(edge)
         evidence_location = _graphify_span(edge, source_revisions)
-        if evidence_location is not None and "sourceSpan" not in mapped and "source_span" not in mapped:
+        if (
+            evidence_location is not None
+            and "sourceSpan" not in mapped
+            and "source_span" not in mapped
+        ):
             repo_id, span = evidence_location
             line_start, line_end = _line_range(edge.get("source_location"))
             mapped["sourceSpan"] = {
@@ -415,51 +421,60 @@ def normalize_graphify(
         raw_type = str(edge.get("type", edge.get("relation", edge.get("label", "")))).casefold()
         relationship_type = _TYPE_MAP.get(raw_type)
         if relationship_type is None:
-            issues.append(RelationshipIssue(
-                edge_id=edge_id,
-                code="unsupported_type",
-                detail=f"Unsupported Graphify relationship type: {raw_type}",
-            ))
+            issues.append(
+                RelationshipIssue(
+                    edge_id=edge_id,
+                    code="unsupported_type",
+                    detail=f"Unsupported Graphify relationship type: {raw_type}",
+                )
+            )
             continue
         source_key = str(edge.get("source", edge.get("from", "")))
         target_key = str(edge.get("target", edge.get("to", "")))
-        source_id, source_error = _resolve_endpoint(source_key, node_by_id, entities,
-                                                     endpoint_observation_ids)
-        target_id, target_error = _resolve_endpoint(target_key, node_by_id, entities,
-                                                     endpoint_observation_ids)
+        source_id, source_error = _resolve_endpoint(
+            source_key, node_by_id, entities, endpoint_observation_ids
+        )
+        target_id, target_error = _resolve_endpoint(
+            target_key, node_by_id, entities, endpoint_observation_ids
+        )
         if source_error:
-            issues.append(RelationshipIssue(edge_id=edge_id, code="unresolved_source",
-                                            detail=source_error))
+            issues.append(
+                RelationshipIssue(edge_id=edge_id, code="unresolved_source", detail=source_error)
+            )
         if target_error:
-            issues.append(RelationshipIssue(edge_id=edge_id, code="unresolved_target",
-                                            detail=target_error))
+            issues.append(
+                RelationshipIssue(edge_id=edge_id, code="unresolved_target", detail=target_error)
+            )
         if source_id is None or target_id is None:
             continue
 
         evidence = _evidence(edge)
         if evidence is None:
-            issues.append(RelationshipIssue(
-                edge_id=edge_id,
-                code="missing_evidence",
-                detail="Graphify edge has no usable source path and line evidence",
-            ))
+            issues.append(
+                RelationshipIssue(
+                    edge_id=edge_id,
+                    code="missing_evidence",
+                    detail="Graphify edge has no usable source path and line evidence",
+                )
+            )
             continue
         evidence_id = _evidence_id(evidence)
-        record_id = _record_id(snapshot_id, relationship_type, source_id, target_id,
-                               evidence_id)
+        record_id = _record_id(snapshot_id, relationship_type, source_id, target_id, evidence_id)
         if record_id in seen_ids:
             continue
         seen_ids.add(record_id)
-        facts.append(RelationshipFact(
-            record_id=record_id,
-            snapshot_id=snapshot_id,
-            relationship_type=relationship_type,
-            source_observation_id=source_id,
-            target_observation_id=target_id,
-            evidence_ids=[evidence_id] if evidence_id else [],
-            source_span=evidence,
-            extractor_version=extractor_version,
-        ))
+        facts.append(
+            RelationshipFact(
+                record_id=record_id,
+                snapshot_id=snapshot_id,
+                relationship_type=relationship_type,
+                source_observation_id=source_id,
+                target_observation_id=target_id,
+                evidence_ids=[evidence_id] if evidence_id else [],
+                source_span=evidence,
+                extractor_version=extractor_version,
+            )
+        )
 
     facts.sort(key=lambda fact: fact.record_id)
     return RelationshipNormalizationResult(facts=facts, issues=issues)
@@ -531,11 +546,13 @@ def _evidence(edge: dict[str, Any]) -> RelationshipEvidence | None:
     )
 
 
-def _record_id(snapshot_id: str, relationship_type: str, source: str, target: str,
-               evidence_id: str | None) -> str:
+def _record_id(
+    snapshot_id: str, relationship_type: str, source: str, target: str, evidence_id: str | None
+) -> str:
     value = json.dumps(
         [snapshot_id, relationship_type, source, target, evidence_id],
-        separators=(",", ":"), ensure_ascii=False,
+        separators=(",", ":"),
+        ensure_ascii=False,
     )
     return sha256(value.encode("utf-8")).hexdigest()
 

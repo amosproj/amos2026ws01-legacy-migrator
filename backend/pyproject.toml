@@ -50,9 +50,13 @@ dev = [
 [tool.ruff]
 target-version = "py312"
 line-length = 100
+src = [".", "code-ingestion-pipeline/src"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["migration_assistant", "app"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["S101"]

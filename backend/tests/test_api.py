@@ -50,6 +50,7 @@ def test_chat_streams_sources_then_content() -> None:
 
 def test_chat_streams_thinking_events_from_provider() -> None:
     """Reasoning deltas from the provider surface as thinking events."""
+
     class ThinkingMockProvider:
         name = "thinking-mock"
 
@@ -90,6 +91,7 @@ def test_chat_passes_query_to_query_service() -> None:
 
         def stream_answer(self, query: str):
             calls.append(query)
+
             async def stream():
                 yield ("content", "recorded")
 
@@ -97,9 +99,7 @@ def test_chat_passes_query_to_query_service() -> None:
 
     with TestClient(app) as client:
         app.state.query_service = RecordingQueryService()
-        response = client.post(
-            "/api/chat", json={"query": "test", "conversation_id": "step-06"}
-        )
+        response = client.post("/api/chat", json={"query": "test", "conversation_id": "step-06"})
 
     assert response.status_code == 200
     assert calls == ["test"]
