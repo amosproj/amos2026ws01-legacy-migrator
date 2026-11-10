@@ -3,6 +3,7 @@
 import subprocess
 
 import pytest
+
 from migration_assistant.adapters.outbound.git.local_git import LocalGitAdapter
 from migration_assistant.adapters.outbound.git.source_loader import load_sources
 from migration_assistant.bootstrap import cli
@@ -34,7 +35,13 @@ def test_source_not_found(reference, tmp_path):
 
 @pytest.mark.parametrize(
     "source",
-    ["http://github.com/x/y", "ssh://git@github.com/x/y", "file:///tmp/x", "ext::sh -c id", "https://user:secret@github.com/x/y"],
+    [
+        "http://github.com/x/y",
+        "ssh://git@github.com/x/y",
+        "file:///tmp/x",
+        "ext::sh -c id",
+        "https://user:secret@github.com/x/y",
+    ],
 )
 def test_unsupported_source_urls_are_refused(reference, source):
     with pytest.raises((SourceNotFoundError,)):
@@ -83,7 +90,9 @@ def test_workspace_from_another_source_is_not_reused(reference, monkeypatch):
 
     with pytest.raises(CheckoutError, match="created from a different source"):
         LocalGitAdapter().checkout(
-            reference.config(source="https://github.com/legacy-modernization-example/legacy-example-stages")
+            reference.config(
+                source="https://github.com/legacy-modernization-example/legacy-example-stages"
+            )
         )
     assert commands == []
 

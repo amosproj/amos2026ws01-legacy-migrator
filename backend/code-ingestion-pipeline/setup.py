@@ -14,16 +14,25 @@ def main(argv=None) -> int:
         print("Activate a Python 3.12 virtual environment before running setup.", file=sys.stderr)
         return 1
     if any(importlib.util.find_spec(name) is None for name in ("pydantic", "yaml")):
-        print("Complete Documentation/ingestion/reference-loader.md setup first, "
-              "then run this script in the same environment.", file=sys.stderr)
+        print(
+            "Complete Documentation/ingestion/reference-loader.md setup first, "
+            "then run this script in the same environment.",
+            file=sys.stderr,
+        )
         return 1
 
     directory = Path(__file__).resolve().parent
     print(f"Installing Graphify into the existing environment: {sys.prefix}", flush=True)
     try:
         subprocess.run(
-            [sys.executable, "-m", "pip", "install",
-             "-r", str(directory / "requirements-graphify.txt")],
+            [
+                sys.executable,
+                "-m",
+                "pip",
+                "install",
+                "-r",
+                str(directory / "requirements-graphify.txt"),
+            ],
             check=True,
         )
     except (OSError, subprocess.CalledProcessError) as error:

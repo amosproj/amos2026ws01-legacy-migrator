@@ -52,7 +52,12 @@ class LocalGitAdapter:
             else:
                 workspace.mkdir(parents=True, exist_ok=True)
                 git.run(
-                    *transport, "clone", "--no-checkout", "--", url or str(source), str(umbrella),
+                    *transport,
+                    "clone",
+                    "--no-checkout",
+                    "--",
+                    url or str(source),
+                    str(umbrella),
                     cwd=workspace,
                 )
 
@@ -110,9 +115,7 @@ class LocalGitAdapter:
 
         url_key = f"submodule.{path}.url"
         try:
-            declared = git.run(
-                "config", "-f", ".gitmodules", "--get", url_key, cwd=umbrella
-            )
+            declared = git.run("config", "-f", ".gitmodules", "--get", url_key, cwd=umbrella)
         except CheckoutError:
             raise SubmoduleError(f"Submodule '{path}' is not declared in .gitmodules") from None
 
@@ -160,9 +163,12 @@ class _Git:
             raise CheckoutError(f"Refusing to run git inside the source: {cwd}")
         command = [
             "git",
-            "-c", f"core.hooksPath={self._hooks_dir}",
-            "-c", "core.longpaths=true",
-            "-c", "core.fsmonitor=false",
+            "-c",
+            f"core.hooksPath={self._hooks_dir}",
+            "-c",
+            "core.longpaths=true",
+            "-c",
+            "core.fsmonitor=false",
             *args,
         ]
         try:

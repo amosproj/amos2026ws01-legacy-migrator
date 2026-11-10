@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 import yaml
+
 from migration_assistant.domain.reference_source import ReferenceSourceConfig, load_config
 
 PUBLIC_URL = "https://example.test/org"
@@ -53,9 +54,9 @@ def tree_hashes(root: Path) -> dict[str, str]:
             if name == ".git":
                 continue
             path = Path(directory) / name
-            hashes[path.relative_to(extended(root)).as_posix()] = (
-                hashlib.sha256(path.read_bytes()).hexdigest()
-            )
+            hashes[path.relative_to(extended(root)).as_posix()] = hashlib.sha256(
+                path.read_bytes()
+            ).hexdigest()
     return hashes
 
 
@@ -155,11 +156,23 @@ def origin(tmp_path_factory, git_environment) -> Origin:
     umbrella.mkdir()
     git(umbrella, "init", "-q", "-b", "main")
     git(
-        umbrella, "-c", "protocol.file.allow=always",
-        "submodule", "add", "-q", str(component), "components/monolith",
+        umbrella,
+        "-c",
+        "protocol.file.allow=always",
+        "submodule",
+        "add",
+        "-q",
+        str(component),
+        "components/monolith",
     )
-    git(umbrella, "config", "-f", ".gitmodules",
-        "submodule.components/monolith.url", "../legacy-example-monolith")
+    git(
+        umbrella,
+        "config",
+        "-f",
+        ".gitmodules",
+        "submodule.components/monolith.url",
+        "../legacy-example-monolith",
+    )
 
     git(umbrella / "components" / "monolith", "checkout", "-q", sha_00)
     _write(umbrella, "stage.json", _stage_json("step-00", sha_00))

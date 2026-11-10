@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 import yaml
+
 from migration_assistant.domain.reference_source import (
     ConfigError,
     default_config_path,

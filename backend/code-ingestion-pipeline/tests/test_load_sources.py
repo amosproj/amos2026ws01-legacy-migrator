@@ -3,6 +3,7 @@
 import hashlib
 
 import pytest
+
 from migration_assistant.adapters.outbound.git.local_git import LocalGitAdapter
 from migration_assistant.adapters.outbound.git.source_loader import load_sources
 

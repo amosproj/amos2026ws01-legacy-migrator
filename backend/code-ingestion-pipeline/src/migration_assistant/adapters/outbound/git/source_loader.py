@@ -75,10 +75,14 @@ def _require_clean(member: ComponentCheckout) -> None:
             completed = subprocess.run(
                 [
                     "git",
-                    "-c", f"core.hooksPath={hooks}",
-                    "-c", "core.longpaths=true",
-                    "-c", "core.fsmonitor=false",
-                    "status", "--porcelain",
+                    "-c",
+                    f"core.hooksPath={hooks}",
+                    "-c",
+                    "core.longpaths=true",
+                    "-c",
+                    "core.fsmonitor=false",
+                    "status",
+                    "--porcelain",
                 ],
                 cwd=member.local_path,
                 capture_output=True,
