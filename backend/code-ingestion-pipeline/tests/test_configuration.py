@@ -1,10 +1,9 @@
 """Acceptance criterion 1: the reference source can be configured as an input source."""
 
-import pytest
-import yaml
-
 from pathlib import Path
 
+import pytest
+import yaml
 from migration_assistant.domain.reference_source import (
     ConfigError,
     default_config_path,
@@ -44,7 +43,9 @@ def test_local_override_is_preferred_when_it_exists(tmp_path, monkeypatch):
     assert default_config_path() == Path("config/reference-source.yaml")
 
     (tmp_path / "config").mkdir()
-    (tmp_path / "config" / "reference-source.local.yaml").write_text("source: x\n", encoding="utf-8")
+    (tmp_path / "config" / "reference-source.local.yaml").write_text(
+        "source: x\n", encoding="utf-8"
+    )
 
     assert default_config_path() == Path("config/reference-source.local.yaml")
 
@@ -52,7 +53,7 @@ def test_local_override_is_preferred_when_it_exists(tmp_path, monkeypatch):
 def test_missing_field_is_reported_by_name(reference):
     _rewrite(reference, stage=None)
 
-    with pytest.raises(ConfigError, match="Missing field 'stage' in .*reference-source.yaml"):
+    with pytest.raises(ConfigError, match=r"Missing field 'stage' in .*reference-source\.yaml"):
         load_config(reference.config_path)
 
 
@@ -72,5 +73,5 @@ def test_stage_is_an_opaque_key(reference, stage):
 
 
 def test_missing_file_is_reported(tmp_path):
-    with pytest.raises(ConfigError, match="Config file not found: .*does-not-exist.yaml"):
+    with pytest.raises(ConfigError, match=r"Config file not found: .*does-not-exist\.yaml"):
         load_config(tmp_path / "does-not-exist.yaml")

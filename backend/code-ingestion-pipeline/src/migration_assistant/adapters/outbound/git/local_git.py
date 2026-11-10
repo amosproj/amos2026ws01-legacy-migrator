@@ -70,7 +70,9 @@ class LocalGitAdapter:
                     )
 
             members = [
-                self._checkout_component(git, config, source, transport, umbrella, name, pinned[name])
+                self._checkout_component(
+                    git, config, source, transport, umbrella, name, pinned[name]
+                )
                 for name in config.components
             ]
 
@@ -86,7 +88,9 @@ class LocalGitAdapter:
         try:
             return git.run("rev-parse", "--verify", f"{ref}^{{commit}}", cwd=umbrella)
         except CheckoutError:
-            raise UnknownStageError(f"Unknown stage '{stage}': no tag '{stage}' in the source") from None
+            raise UnknownStageError(
+                f"Unknown stage '{stage}': no tag '{stage}' in the source"
+            ) from None
 
     def _checkout_component(
         self,
@@ -225,7 +229,9 @@ def _read_stage_components(umbrella: Path, stage: str) -> dict:
     except FileNotFoundError:
         raise UnknownStageError(f"stage.json not found at stage '{stage}'") from None
     except json.JSONDecodeError as error:
-        raise UnknownStageError(f"stage.json at stage '{stage}' is not valid JSON: {error}") from error
+        raise UnknownStageError(
+            f"stage.json at stage '{stage}' is not valid JSON: {error}"
+        ) from error
     components = data.get("komponenten")
     if not isinstance(components, dict):
         raise UnknownStageError(f"stage.json at stage '{stage}' has no 'komponenten'")

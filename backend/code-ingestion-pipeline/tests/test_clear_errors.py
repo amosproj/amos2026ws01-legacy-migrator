@@ -3,7 +3,6 @@
 import subprocess
 
 import pytest
-
 from migration_assistant.adapters.outbound.git.local_git import LocalGitAdapter
 from migration_assistant.adapters.outbound.git.source_loader import load_sources
 from migration_assistant.bootstrap import cli
@@ -22,7 +21,9 @@ def test_unknown_stage(reference):
 
 
 def test_component_not_in_stage(reference):
-    with pytest.raises(ComponentNotInStageError, match="'catalog-service' is not in stage 'step-00'"):
+    with pytest.raises(
+        ComponentNotInStageError, match="'catalog-service' is not in stage 'step-00'"
+    ):
         LocalGitAdapter().checkout(reference.config(components=["catalog-service"]))
 
 

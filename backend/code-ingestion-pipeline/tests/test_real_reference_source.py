@@ -1,13 +1,13 @@
 """Optional integration test against the real local copy of the reference source.
 
-Run with: REFERENCE_SOURCE=<path to legacy-example-stages> pytest tests/test_real_reference_source.py
+Run with:
+    REFERENCE_SOURCE=<path to legacy-example-stages> pytest tests/test_real_reference_source.py
 """
 
 import os
 from pathlib import Path
 
 import pytest
-
 from migration_assistant.adapters.outbound.git.local_git import LocalGitAdapter
 from migration_assistant.adapters.outbound.git.source_loader import load_sources
 from migration_assistant.domain.reference_source import ReferenceSourceConfig, load_config
