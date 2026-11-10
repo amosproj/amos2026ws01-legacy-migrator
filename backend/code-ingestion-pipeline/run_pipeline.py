@@ -2,7 +2,6 @@
 
 import argparse
 from datetime import datetime, timezone
-from hashlib import sha256
 import importlib.util
 import json
 import os
@@ -15,7 +14,6 @@ import traceback
 
 PROJECT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = PROJECT_DIR.parent.parent
-sys.path.insert(0, str(PROJECT_DIR / "src"))
 
 
 def safe_relative(value: str) -> PurePosixPath:
@@ -88,58 +86,6 @@ def build_graph(source: Path, output: Path) -> None:
             raise RuntimeError(f"Graphify did not produce {name}; see logs in {output}")
 
 
-def write_relationship_handoff(
-    graph_paths: list[Path], sources_jsonl: Path, run: Path
-) -> tuple[int, int]:
-    """Normalize Graphify outputs into entity and relationship JSONL for the graph loader."""
-    from migration_assistant.adapters.outbound.graphify_relationships import (
-        normalize_graphify_facts,
-        read_graphify,
-        write_jsonl_records,
-    )
-
-    source_revisions: dict[str, str] = {}
-    with sources_jsonl.open(encoding="utf-8") as handle:
-        for line in handle:
-            source = json.loads(line)
-            repo_id, commit_sha = source["repoId"], source["commitSha"]
-            previous = source_revisions.setdefault(repo_id, commit_sha)
-            if previous != commit_sha:
-                raise ValueError(f"Component {repo_id!r} has multiple source revisions")
-    if not source_revisions:
-        raise ValueError("Cannot create relationship handoff from an empty source manifest")
-
-    snapshot_payload = json.dumps(source_revisions, sort_keys=True, separators=(",", ":"))
-    snapshot_id = "snapshot:" + sha256(snapshot_payload.encode()).hexdigest()
-    all_entities = {}
-    all_relationships = {}
-    issues = []
-    for graph_path in graph_paths:
-        entities, result = normalize_graphify_facts(
-            read_graphify(graph_path),
-            snapshot_id=snapshot_id,
-            source_revisions=source_revisions,
-        )
-        all_entities.update({fact.record_id: fact for fact in entities})
-        all_relationships.update({fact.record_id: fact for fact in result.facts})
-        issues.extend(result.issues)
-
-    write_jsonl_records(
-        sorted(all_entities.values(), key=lambda fact: fact.record_id),
-        run / "entities.jsonl",
-    )
-    write_jsonl_records(
-        sorted(all_relationships.values(), key=lambda fact: fact.record_id),
-        run / "relationships.jsonl",
-    )
-    if issues:
-        issue_file = run / "relationship-issues.jsonl"
-        issue_file.write_text(
-            "".join(issue.model_dump_json() + "\n" for issue in issues), encoding="utf-8"
-        )
-    return len(all_entities), len(all_relationships)
-
-
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", type=Path)
@@ -184,14 +130,9 @@ def main(argv=None) -> int:
         groups = {"combined": sources} if args.graph_mode == "combined" else {
             repo: sources / repo for repo in components
         }
-        graph_paths = []
         for name, source in groups.items():
             print(f"Generating graph: {name}", flush=True)
-            graph_output = run / "graphs" / name
-            build_graph(source, graph_output)
-            graph_paths.append(graph_output / "graphify-out" / "graph.json")
-        entity_count, relationship_count = write_relationship_handoff(graph_paths, jsonl, run)
-        print(f"Graph handoff: {entity_count} entities, {relationship_count} relationships")
+            build_graph(source, run / "graphs" / name)
         print(f"Success. Graphs: {run / 'graphs'}")
         return 0
     except (RuntimeError, OSError, ValueError, KeyboardInterrupt) as error:
