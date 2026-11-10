@@ -43,6 +43,8 @@ INTERFACE_QNAME = "org.acme.CustomerOrderServices"
 CLASS_QNAME = "org.acme.CustomerOrderServicesImpl"
 PROCESS_QNAME = "org.acme.CustomerOrderServicesImpl.process"
 UPDATE_QNAME = "org.acme.CustomerOrderServicesImpl.updateLineItem"
+PROCESS_SIGNATURE = "process(PriceChange)"
+UPDATE_SIGNATURE = "updateLineItem(LineItem,int)"
 
 
 def _file(path: str, snapshot_id: str = STEP_06) -> FileNode:
@@ -55,11 +57,24 @@ def _file(path: str, snapshot_id: str = STEP_06) -> FileNode:
     )
 
 
-def _entity(model, *, name: str, qualified_name: str, path: str, snapshot_id: str = STEP_06):
-    """Build a Class / Interface / Method node with the hash id of the schema."""
+def _entity(
+    model,
+    *,
+    name: str,
+    qualified_name: str,
+    path: str,
+    snapshot_id: str = STEP_06,
+    signature: str | None = None,
+):
+    """Build a Class / Interface / Method node with the hash id of the schema.
+
+    Pass `signature` for a Method only.
+    """
     label = model.model_fields["label"].default
+    extra = {"signature": signature} if signature is not None else {}
     return model(
-        id=compute_entity_id(snapshot_id, COMPONENT_KEY, path, label, qualified_name),
+        id=compute_entity_id(snapshot_id, COMPONENT_KEY, path, label, qualified_name, signature),
+        **extra,
         name=name,
         snapshot_id=snapshot_id,
         owner_component_state_id=f"cs:{COMPONENT_KEY}:{snapshot_id}",
@@ -100,8 +115,20 @@ def build_mock_graph() -> tuple[list[GraphNodeModel], list[GraphEdge]]:
     impl = _entity(
         ClassNode, name="CustomerOrderServicesImpl", qualified_name=CLASS_QNAME, path=IMPL_PATH
     )
-    process = _entity(MethodNode, name="process", qualified_name=PROCESS_QNAME, path=IMPL_PATH)
-    update = _entity(MethodNode, name="updateLineItem", qualified_name=UPDATE_QNAME, path=IMPL_PATH)
+    process = _entity(
+        MethodNode,
+        name="process",
+        qualified_name=PROCESS_QNAME,
+        path=IMPL_PATH,
+        signature=PROCESS_SIGNATURE,
+    )
+    update = _entity(
+        MethodNode,
+        name="updateLineItem",
+        qualified_name=UPDATE_QNAME,
+        path=IMPL_PATH,
+        signature=UPDATE_SIGNATURE,
+    )
     external = ExternalSymbolNode(id=EXTERNAL_ID, name="javax.persistence.EntityManager.persist")
 
     nodes: list[GraphNodeModel] = [

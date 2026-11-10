@@ -18,6 +18,7 @@ from .models import (
     FileNode,
     GraphEdge,
     GraphNodeModel,
+    MethodNode,
     SnapshotNode,
     compute_entity_id,
     compute_file_id,
@@ -69,7 +70,12 @@ def _expected_id(node: GraphNodeModel) -> str | None:
     if isinstance(node, CodeEntityBase):
         kind = node.kind if isinstance(node, CodeEntityNode) else node.label
         return compute_entity_id(
-            node.snapshot_id, node.component_key, node.path, kind, node.qualified_name
+            node.snapshot_id,
+            node.component_key,
+            node.path,
+            kind,
+            node.qualified_name,
+            signature=node.signature if isinstance(node, MethodNode) else None,
         )
     return None
 

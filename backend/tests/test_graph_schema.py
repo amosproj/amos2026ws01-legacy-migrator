@@ -32,9 +32,11 @@ from app.graph_schema.mock_data import (
     EXTERNAL_ID,
     IMPL_PATH,
     PROCESS_QNAME,
+    PROCESS_SIGNATURE,
     STEP_05,
     STEP_06,
     UPDATE_QNAME,
+    UPDATE_SIGNATURE,
     build_mock_graph,
 )
 
@@ -60,17 +62,24 @@ def _edge(kind: str, source_id: str, target_id: str) -> GraphEdge:
     )
 
 
+def _method(
+    snapshot_id: str, name: str, qualified_name: str, signature: str, path: str = IMPL_PATH
+) -> MethodNode:
+    return MethodNode(
+        id=compute_entity_id(snapshot_id, COMPONENT_KEY, path, "Method", qualified_name, signature),
+        name=name,
+        snapshot_id=snapshot_id,
+        owner_component_state_id=f"cs:{COMPONENT_KEY}:{snapshot_id}",
+        component_key=COMPONENT_KEY,
+        path=path,
+        qualified_name=qualified_name,
+        signature=signature,
+    )
+
+
 def _method_in_step_05() -> MethodNode:
     """A method in the OTHER snapshot (same name and path as the step-06 one)."""
-    return MethodNode(
-        id=compute_entity_id(STEP_05, COMPONENT_KEY, IMPL_PATH, "Method", PROCESS_QNAME),
-        name="process",
-        snapshot_id=STEP_05,
-        owner_component_state_id=CS_05,
-        component_key=COMPONENT_KEY,
-        path=IMPL_PATH,
-        qualified_name=PROCESS_QNAME,
-    )
+    return _method(STEP_05, "process", PROCESS_QNAME, PROCESS_SIGNATURE)
 
 
 # ------------------------------------------------------------- valid mock
@@ -148,6 +157,53 @@ def test_entity_id_adds_kind_and_qualified_name() -> None:
     assert compute_entity_id("step-06", "monolith", "\\src\\A.java", "Class", "com.A") == expected
     assert compute_entity_id("step-06", "monolith", "src/A.java", "Method", "com.A") != expected
     assert normalize_path("\\a\\b/") == "a/b"
+
+
+def test_method_id_includes_the_signature() -> None:
+    expected = hashlib.sha256(
+        b"step-06:monolith:src/A.java:Method:com.A.save:save(Order)"
+    ).hexdigest()
+
+    assert (
+        compute_entity_id(
+            "step-06", "monolith", "src/A.java", "Method", "com.A.save", "save(Order)"
+        )
+        == expected
+    )
+
+
+def test_overloaded_methods_get_different_ids_and_both_are_valid() -> None:
+    nodes, edges = build_mock_graph()
+    qname = "org.acme.CustomerOrderServicesImpl.save"
+    one = _method(STEP_06, "save", qname, "save(Order)")
+    two = _method(STEP_06, "save", qname, "save(Order,User)")  # same qualified name
+    impl = next(n for n in nodes if n.label == "Class")
+
+    assert one.id != two.id
+    nodes += [one, two]
+    edges += [_edge("DECLARES_MEMBER", impl.id, one.id), _edge("DECLARES_MEMBER", impl.id, two.id)]
+    assert validate_graph(nodes, edges) == []  # no duplicate-node-id
+
+
+def test_rule_method_id_must_include_its_signature() -> None:
+    nodes, edges = build_mock_graph()
+    # id built WITHOUT the signature (old v2 formula) is rejected
+    old_style = _method(STEP_06, "save", "org.acme.X.save", "save(Order)").model_copy(
+        update={
+            "id": compute_entity_id(STEP_06, COMPONENT_KEY, IMPL_PATH, "Method", "org.acme.X.save")
+        }
+    )
+    nodes.append(old_style)
+
+    assert _rules_found(nodes, edges) == [rules.BAD_NODE_ID]
+
+
+def test_method_needs_a_signature() -> None:
+    data = _method_in_step_05().model_dump()
+    del data["signature"]
+
+    with pytest.raises(ValidationError):
+        MethodNode.model_validate(data)
 
 
 def test_readable_ids_for_the_context_nodes() -> None:
@@ -437,13 +493,7 @@ def test_query_callers_do_not_leak_from_another_snapshot() -> None:
     new_update_id = _by_qname(nodes, UPDATE_QNAME).id
     # step-05 also has process() calling its own updateLineItem()
     old_process = _method_in_step_05()
-    old_update = old_process.model_copy(
-        update={
-            "id": compute_entity_id(STEP_05, COMPONENT_KEY, IMPL_PATH, "Method", UPDATE_QNAME),
-            "name": "updateLineItem",
-            "qualified_name": UPDATE_QNAME,
-        }
-    )
+    old_update = _method(STEP_05, "updateLineItem", UPDATE_QNAME, UPDATE_SIGNATURE)
     nodes += [old_process, old_update]
     edges.append(_edge("CALLS", old_process.id, old_update.id))
     assert validate_graph(nodes, edges) == []

@@ -32,7 +32,7 @@ The package is called `graph_schema`, not `graph`, because #85 will add `backend
 | `ComponentState` | `id`, `snapshotId`, `commitSha`, `migrationRole` | yes |
 | `CodeGraph` | `id`, `snapshotId`, `runId`, `graphifyVersion` | yes |
 | `File` | `id`, `snapshotId`, `componentKey`, `path`, `contentHash` | yes |
-| `Class`, `Interface`, `Method`, `Function` | `id`, `name`, `snapshotId`, `ownerComponentStateId`, `componentKey`, `path`, `qualifiedName` | yes |
+| `Class`, `Interface`, `Method`, `Function` | `id`, `name`, `snapshotId`, `ownerComponentStateId`, `componentKey`, `path`, `qualifiedName`; `Method` also has `signature` (e.g. `save(Order,User)`) | yes |
 | `CodeEntity` | same as above plus `kind` (fallback when the kind is not known) | yes |
 | `ExternalSymbol` | `id`, `name` | **no** (outside our code, may be shared) |
 
@@ -43,7 +43,7 @@ Differences from Rafael's table (small, needed to make the code work):
 - `Snapshot.label` is called `title` in the code, because `label` already means the node type.
 - `snapshotId` is added to `ComponentState`, `CodeGraph` and `File`, so the same-snapshot rule can check them.
 - `componentKey` and `path` are added to `File` and the code entities. They are needed for the hash id (section 4). `File` has `componentKey` as a plain property.
-- `qualifiedName` is added to the code entities (it is part of the id).
+- `qualifiedName` is added to the code entities (it is part of the id), and `signature` to `Method` (also part of the id, so overloads differ).
 
 Removed from v1: `BoundedContext`, `SymbolObservation`, `COUPLED_VIA`, `CONTAINS`, `stepId` and the decommission fields (`status`, `replacement`, `reason`, `risk`).
 
@@ -80,7 +80,7 @@ Only the **pair** is checked. For example, the checker does not test that a `Cla
 |---|---|---|
 | Project, Snapshot, Component, ComponentState, CodeGraph | readable and deterministic | `comp:monolith`, `cs:monolith:step-06`, `cg:monolith:step-06`, Snapshot `step-06` |
 | `File` | `sha256(snapshotId:componentKey:normalizedPath)` | |
-| `Class`, `Interface`, `Method`, `Function`, `CodeEntity` | `sha256(snapshotId:componentKey:normalizedPath:kind:qualifiedName)` | `kind` is the label (for `CodeEntity` its `kind` property) |
+| `Class`, `Interface`, `Method`, `Function`, `CodeEntity` | `sha256(snapshotId:componentKey:normalizedPath:kind:qualifiedName)`; for `Method` the signature is added at the end: `…:qualifiedName:signature` | `kind` is the label (for `CodeEntity` its `kind` property) |
 | `ExternalSymbol` | readable, `ext:<qualified name>`, not checked | `ext:javax.persistence.EntityManager.persist` |
 
 `normalizedPath` = forward slashes, no leading or trailing slash. The same path in another snapshot or another component gives another id. A Graphify id alone is **not** used as identity.
@@ -155,7 +155,7 @@ flowchart TD
 4. **Source of `migrationRole`.** User input or inferred by rules? Not decided (Rafael's 2.1).
 5. **#85's queries are not covered.** Coupling (`COUPLED_VIA`) and decommission candidates (`status`, `replacement`, `reason`, `risk`) have no place in this schema yet. This is the domain/migration part (Rafael's "D" and "P" sources).
 6. **Renamed field.** `Snapshot.label` became `title`. Confirm with Rafael or choose another name.
-7. **Extra properties.** `componentKey`, `path` and `qualifiedName` on code entities, and `snapshotId` on `ComponentState`, `CodeGraph`, `File`, are our additions. Confirm with Rafael.
-8. **Overloads.** The entity id uses `qualifiedName`, so two overloaded methods can get the same id. Does the qualified name need the signature?
+7. **Extra properties.** `componentKey`, `path` and `qualifiedName` on code entities, `signature` on `Method`, and `snapshotId` on `ComponentState`, `CodeGraph`, `File`, are our additions. Confirm with Rafael.
+8. **Overloads — resolved.** `Method` has a required `signature` (e.g. `save(Order,User)`), and it is part of the Method id, so overloads get different ids. Still open: Graphify does not give parameter types today, so the adapter must provide the signature (see Q1).
 9. **`ExternalSymbol` id.** Readable `ext:<name>` is our choice (Rafael does not say). Is it shared across snapshots and components?
 10. **#84/#85 still unmerged, and AGE.** PR #84 and PR #85 are not merged, and both were written for PostgreSQL + Apache AGE (Vision A). When they merge, their models and queries need to be checked against this Neo4j schema (Vision B). Settled: #77 is owned by Rafael (RafaelMcMarques), and the team confirmed SBOM Vision B (Neo4j).

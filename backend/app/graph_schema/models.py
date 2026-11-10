@@ -154,10 +154,22 @@ def compute_file_id(snapshot_id: str, component_key: str, path: str) -> str:
 
 
 def compute_entity_id(
-    snapshot_id: str, component_key: str, path: str, kind: str, qualified_name: str
+    snapshot_id: str,
+    component_key: str,
+    path: str,
+    kind: str,
+    qualified_name: str,
+    signature: str | None = None,
 ) -> str:
-    """sha256(snapshotId:componentKey:normalizedPath:kind:qualifiedName)."""
-    return _sha256(f"{snapshot_id}:{component_key}:{normalize_path(path)}:{kind}:{qualified_name}")
+    """sha256(snapshotId:componentKey:normalizedPath:kind:qualifiedName[:signature]).
+
+    The signature (e.g. "save(Order,User)") is only used for methods, so that
+    overloads get different ids.
+    """
+    token = f"{snapshot_id}:{component_key}:{normalize_path(path)}:{kind}:{qualified_name}"
+    if signature is not None:
+        token += f":{signature}"
+    return _sha256(token)
 
 
 # --------------------------------------------------------------------- nodes
@@ -245,6 +257,8 @@ class InterfaceNode(CodeEntityBase):
 
 class MethodNode(CodeEntityBase):
     label: Literal["Method"] = "Method"
+    # Parameter signature, e.g. "save(Order,User)". Part of the id (overloads).
+    signature: str
 
 
 class FunctionNode(CodeEntityBase):
