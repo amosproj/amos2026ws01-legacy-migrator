@@ -20,6 +20,7 @@ from .models import (
     MethodNode,
     ProjectNode,
     SnapshotNode,
+    SourceSpan,
     compute_entity_id,
     compute_file_id,
 )
@@ -27,6 +28,10 @@ from .models import (
 STEP_05 = "step-05"
 STEP_06 = "step-06"
 COMPONENT_KEY = "monolith"
+REPO_ID = "legacy-example-monolith"
+COMMIT_05 = "a1b2c3d"
+COMMIT_06 = "73ab85c"
+COMMITS = {"step-05": COMMIT_05, "step-06": COMMIT_06}
 
 PROJECT_ID = "project:ibm-legacy-example"
 COMPONENT_ID = "comp:monolith"
@@ -63,12 +68,14 @@ def _entity(
     name: str,
     qualified_name: str,
     path: str,
+    start_line: int,
+    end_line: int,
     snapshot_id: str = STEP_06,
     signature: str | None = None,
 ):
     """Build a Class / Interface / Method node with the hash id of the schema.
 
-    Pass `signature` for a Method only.
+    Pass `signature` for a Method only. The span uses the commit of the snapshot.
     """
     label = model.model_fields["label"].default
     extra = {"signature": signature} if signature is not None else {}
@@ -81,20 +88,28 @@ def _entity(
         component_key=COMPONENT_KEY,
         path=path,
         qualified_name=qualified_name,
+        source_span=SourceSpan(
+            repo_id=REPO_ID,
+            path=path,
+            commit_sha=COMMITS[snapshot_id],
+            start_line=start_line,
+            end_line=end_line,
+        ),
+        evidence=[f"git:{REPO_ID}@{COMMITS[snapshot_id]}:{path}#L{start_line}-L{end_line}"],
     )
 
 
 def build_mock_graph() -> tuple[list[GraphNodeModel], list[GraphEdge]]:
     """Return (nodes, edges). Fresh objects on every call."""
     project = ProjectNode(id=PROJECT_ID, name="IBM legacy example")
-    snap_05 = SnapshotNode(id=STEP_05, title="step-05", commit_sha="a1b2c3d")
-    snap_06 = SnapshotNode(id=STEP_06, title="step-06", commit_sha="73ab85c")
-    monolith = ComponentNode(id=COMPONENT_ID, key=COMPONENT_KEY, repo="legacy-example-monolith")
+    snap_05 = SnapshotNode(id=STEP_05, title="step-05", commit_sha=COMMIT_05)
+    snap_06 = SnapshotNode(id=STEP_06, title="step-06", commit_sha=COMMIT_06)
+    monolith = ComponentNode(id=COMPONENT_ID, key=COMPONENT_KEY, repo=REPO_ID)
     cs_05 = ComponentStateNode(
-        id=CS_05, snapshot_id=STEP_05, commit_sha="a1b2c3d", migration_role="legacy"
+        id=CS_05, snapshot_id=STEP_05, commit_sha=COMMIT_05, migration_role="legacy"
     )
     cs_06 = ComponentStateNode(
-        id=CS_06, snapshot_id=STEP_06, commit_sha="73ab85c", migration_role="legacy"
+        id=CS_06, snapshot_id=STEP_06, commit_sha=COMMIT_06, migration_role="legacy"
     )
     cg_05 = CodeGraphNode(
         id=CG_05, snapshot_id=STEP_05, run_id="run-mock-05", graphify_version="0.9.100"
@@ -111,15 +126,24 @@ def build_mock_graph() -> tuple[list[GraphNodeModel], list[GraphEdge]]:
         name="CustomerOrderServices",
         qualified_name=INTERFACE_QNAME,
         path=INTERFACE_PATH,
+        start_line=12,
+        end_line=34,
     )
     impl = _entity(
-        ClassNode, name="CustomerOrderServicesImpl", qualified_name=CLASS_QNAME, path=IMPL_PATH
+        ClassNode,
+        name="CustomerOrderServicesImpl",
+        qualified_name=CLASS_QNAME,
+        path=IMPL_PATH,
+        start_line=18,
+        end_line=142,
     )
     process = _entity(
         MethodNode,
         name="process",
         qualified_name=PROCESS_QNAME,
         path=IMPL_PATH,
+        start_line=47,
+        end_line=63,
         signature=PROCESS_SIGNATURE,
     )
     update = _entity(
@@ -127,6 +151,8 @@ def build_mock_graph() -> tuple[list[GraphNodeModel], list[GraphEdge]]:
         name="updateLineItem",
         qualified_name=UPDATE_QNAME,
         path=IMPL_PATH,
+        start_line=71,
+        end_line=98,
         signature=UPDATE_SIGNATURE,
     )
     external = ExternalSymbolNode(id=EXTERNAL_ID, name="javax.persistence.EntityManager.persist")

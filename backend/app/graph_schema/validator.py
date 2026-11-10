@@ -15,6 +15,7 @@ from .models import (
     DERIVED_FROM,
     CodeEntityBase,
     CodeEntityNode,
+    ComponentStateNode,
     FileNode,
     GraphEdge,
     GraphNodeModel,
@@ -22,6 +23,7 @@ from .models import (
     SnapshotNode,
     compute_entity_id,
     compute_file_id,
+    normalize_path,
 )
 
 # Rule names (stable strings, easy to assert in tests).
@@ -31,6 +33,8 @@ MISSING_ENDPOINT = "missing-endpoint"
 BAD_ENDPOINT_PAIR = "bad-endpoint-pair"
 CROSS_SNAPSHOT_EDGE = "cross-snapshot-edge"
 BAD_NODE_ID = "bad-node-id"
+SPAN_PATH_MISMATCH = "span-path-mismatch"
+SPAN_COMMIT_MISMATCH = "span-commit-mismatch"
 
 
 @dataclass(frozen=True)
@@ -80,6 +84,36 @@ def _expected_id(node: GraphNodeModel) -> str | None:
     return None
 
 
+def _check_span(node: CodeEntityBase, by_id: dict[str, GraphNodeModel]) -> list[SchemaViolation]:
+    """Span path = entity path (normalised); span commit = owning ComponentState commit."""
+    found: list[SchemaViolation] = []
+    span = node.source_span
+    if normalize_path(span.path) != normalize_path(node.path):
+        found.append(
+            SchemaViolation(
+                SPAN_PATH_MISMATCH,
+                node.id,
+                f"sourceSpan.path {span.path!r} differs from path {node.path!r}",
+            )
+        )
+    owner = by_id.get(node.owner_component_state_id)
+    # Skipped when the owner is missing or has no commitSha.
+    if (
+        isinstance(owner, ComponentStateNode)
+        and owner.commit_sha
+        and span.commit_sha != owner.commit_sha
+    ):
+        found.append(
+            SchemaViolation(
+                SPAN_COMMIT_MISMATCH,
+                node.id,
+                f"sourceSpan.commitSha {span.commit_sha!r} differs from "
+                f"ComponentState {owner.id!r} commitSha {owner.commit_sha!r}",
+            )
+        )
+    return found
+
+
 def validate_graph(
     nodes: Iterable[GraphNodeModel], edges: Iterable[GraphEdge]
 ) -> list[SchemaViolation]:
@@ -111,6 +145,11 @@ def validate_graph(
                     f"{node.label} id must be the sha256 id formula; expected {expected}",
                 )
             )
+
+    # Rule 6: the source span of a code entity must agree with the entity itself.
+    for node in nodes:
+        if isinstance(node, CodeEntityBase):
+            problems.extend(_check_span(node, by_id))
 
     for edge in edges:
         # Rule 2: both ends exist.

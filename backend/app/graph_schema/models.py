@@ -13,7 +13,7 @@ from __future__ import annotations
 import hashlib
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from pydantic.alias_generators import to_camel
 
 # ---------------------------------------------------------------- vocabulary
@@ -175,6 +175,30 @@ def compute_entity_id(
 # --------------------------------------------------------------------- nodes
 
 
+class SourceSpan(_Model):
+    """Where a code entity lives in the source.
+
+    Same five fields and camelCase names as the span model of PR #88
+    (`RelationshipEvidence`): repoId, commitSha, path, startLine, endLine.
+    Stricter than #88: `startLine` must not be greater than `endLine`.
+    """
+
+    repo_id: str
+    path: str
+    commit_sha: str
+    start_line: int = Field(ge=1)
+    end_line: int = Field(ge=1)
+
+    @model_validator(mode="after")
+    def _start_before_end(self) -> SourceSpan:
+        if self.start_line > self.end_line:
+            raise ValueError(
+                f"start_line ({self.start_line}) must not be greater than "
+                f"end_line ({self.end_line})"
+            )
+        return self
+
+
 class NodeBase(_Model):
     """Fields every node has. `label` is fixed by each subclass."""
 
@@ -245,6 +269,8 @@ class CodeEntityBase(NodeBase):
     component_key: str  # used for the id hash
     path: str  # file the entity was found in, used for the id hash
     qualified_name: str
+    source_span: SourceSpan
+    evidence: list[str] = Field(default_factory=list)
 
 
 class ClassNode(CodeEntityBase):

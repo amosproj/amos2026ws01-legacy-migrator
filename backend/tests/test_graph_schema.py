@@ -13,6 +13,7 @@ from app.graph_schema import (
     GraphEdge,
     MethodNode,
     SchemaValidationError,
+    SourceSpan,
     assert_valid_graph,
     compute_entity_id,
     compute_file_id,
@@ -25,6 +26,8 @@ from app.graph_schema import validator as rules
 from app.graph_schema.mock_data import (
     CG_05,
     CG_06,
+    COMMIT_05,
+    COMMIT_06,
     COMPONENT_ID,
     COMPONENT_KEY,
     CS_05,
@@ -33,12 +36,21 @@ from app.graph_schema.mock_data import (
     IMPL_PATH,
     PROCESS_QNAME,
     PROCESS_SIGNATURE,
+    REPO_ID,
     STEP_05,
     STEP_06,
     UPDATE_QNAME,
     UPDATE_SIGNATURE,
     build_mock_graph,
 )
+
+
+def _span(
+    path: str = IMPL_PATH, commit_sha: str = COMMIT_06, start: int = 10, end: int = 20
+) -> SourceSpan:
+    return SourceSpan(
+        repo_id=REPO_ID, path=path, commit_sha=commit_sha, start_line=start, end_line=end
+    )
 
 
 def _rules_found(nodes, edges) -> list[str]:
@@ -74,6 +86,7 @@ def _method(
         path=path,
         qualified_name=qualified_name,
         signature=signature,
+        source_span=_span(path, COMMIT_05 if snapshot_id == STEP_05 else COMMIT_06),
     )
 
 
@@ -406,7 +419,14 @@ def test_migration_role_must_be_one_of_the_four_values() -> None:
 
 def test_code_entity_needs_snapshot_and_owner() -> None:
     with pytest.raises(ValidationError):
-        ClassNode(id="x", name="A", component_key="m", path="A.java", qualified_name="A")
+        ClassNode(
+            id="x",
+            name="A",
+            component_key="m",
+            path="A.java",
+            qualified_name="A",
+            source_span=_span("A.java"),
+        )
 
 
 def test_unknown_fields_are_rejected() -> None:
@@ -416,6 +436,101 @@ def test_unknown_fields_are_rejected() -> None:
 
     with pytest.raises(ValidationError):
         MethodNode.model_validate(data)
+
+
+# ------------------------------------------------------------ source span
+
+
+def test_source_span_survives_to_record_as_typed_nested_fields() -> None:
+    nodes, _ = build_mock_graph()
+    record = _by_qname(nodes, PROCESS_QNAME).to_record()
+
+    assert record["properties"]["sourceSpan"] == {
+        "repoId": REPO_ID,
+        "path": IMPL_PATH,
+        "commitSha": COMMIT_06,
+        "startLine": 47,
+        "endLine": 63,
+    }
+    assert record["properties"]["evidence"] == [f"git:{REPO_ID}@{COMMIT_06}:{IMPL_PATH}#L47-L63"]
+    # snake_case names also work when building the model
+    assert SourceSpan(repo_id="r", path="p", commit_sha="c", start_line=1, end_line=1)
+    assert SourceSpan.model_validate(
+        {"repoId": "r", "path": "p", "commitSha": "c", "startLine": 1, "endLine": 2}
+    )
+
+
+def test_every_code_entity_in_the_mock_has_a_span() -> None:
+    nodes, _ = build_mock_graph()
+    entities = [n for n in nodes if n.label in ("Class", "Interface", "Method")]
+
+    assert len(entities) == 4
+    assert all(e.source_span.start_line <= e.source_span.end_line for e in entities)
+
+
+def test_span_start_line_after_end_line_fails() -> None:
+    with pytest.raises(ValidationError):
+        _span(start=30, end=20)
+    assert _span(start=20, end=20)  # one-line span is fine
+
+
+@pytest.mark.parametrize(("start", "end"), [(0, 5), (1, 0), (-3, 4)])
+def test_span_lines_must_be_at_least_one(start: int, end: int) -> None:
+    with pytest.raises(ValidationError):
+        _span(start=start, end=end)
+
+
+def test_span_is_required_on_a_code_entity() -> None:
+    nodes, _ = build_mock_graph()
+    data = _by_qname(nodes, PROCESS_QNAME).model_dump()
+    del data["source_span"]
+
+    with pytest.raises(ValidationError):
+        MethodNode.model_validate(data)
+
+
+def test_rule_span_path_must_equal_the_entity_path() -> None:
+    nodes, edges = build_mock_graph()
+    process = _by_qname(nodes, PROCESS_QNAME)
+    nodes[nodes.index(process)] = process.model_copy(
+        update={"source_span": _span(path="other/Other.java")}
+    )
+
+    assert _rules_found(nodes, edges) == [rules.SPAN_PATH_MISMATCH]
+
+
+def test_span_path_is_compared_after_normalisation() -> None:
+    nodes, edges = build_mock_graph()
+    process = _by_qname(nodes, PROCESS_QNAME)
+    nodes[nodes.index(process)] = process.model_copy(
+        update={"source_span": _span(path="\\" + IMPL_PATH.replace("/", "\\"))}
+    )
+
+    assert validate_graph(nodes, edges) == []
+
+
+def test_rule_span_commit_must_match_the_component_state_commit() -> None:
+    nodes, edges = build_mock_graph()
+    process = _by_qname(nodes, PROCESS_QNAME)
+    nodes[nodes.index(process)] = process.model_copy(
+        update={"source_span": _span(commit_sha="deadbee")}
+    )
+
+    problems = validate_graph(nodes, edges)
+    assert [p.rule for p in problems] == [rules.SPAN_COMMIT_MISMATCH]
+    assert COMMIT_06 in problems[0].message
+
+
+def test_span_commit_is_not_checked_when_the_component_state_has_no_commit() -> None:
+    nodes, edges = build_mock_graph()
+    state = _find(nodes, CS_06)
+    nodes[nodes.index(state)] = state.model_copy(update={"commit_sha": None})
+    process = _by_qname(nodes, PROCESS_QNAME)
+    nodes[nodes.index(process)] = process.model_copy(
+        update={"source_span": _span(commit_sha="deadbee")}
+    )
+
+    assert validate_graph(nodes, edges) == []
 
 
 # ---------------------------------------------------------------- queries

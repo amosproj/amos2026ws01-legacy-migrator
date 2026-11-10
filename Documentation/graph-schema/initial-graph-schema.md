@@ -32,8 +32,20 @@ The package is called `graph_schema`, not `graph`, because #85 will add `backend
 | `ComponentState` | `id`, `snapshotId`, `commitSha`, `migrationRole` | yes |
 | `CodeGraph` | `id`, `snapshotId`, `runId`, `graphifyVersion` | yes |
 | `File` | `id`, `snapshotId`, `componentKey`, `path`, `contentHash` | yes |
-| `Class`, `Interface`, `Method`, `Function` | `id`, `name`, `snapshotId`, `ownerComponentStateId`, `componentKey`, `path`, `qualifiedName`; `Method` also has `signature` (e.g. `save(Order,User)`) | yes |
+| `Class`, `Interface`, `Method`, `Function` | `id`, `name`, `snapshotId`, `ownerComponentStateId`, `componentKey`, `path`, `qualifiedName`, `sourceSpan`, optional `evidence`; `Method` also has `signature` (e.g. `save(Order,User)`) | yes |
 | `CodeEntity` | same as above plus `kind` (fallback when the kind is not known) | yes |
+
+`sourceSpan` is a typed nested object with five fields, named like the span model of PR #88 (`RelationshipEvidence`):
+
+| Field | Type | Rule |
+|---|---|---|
+| `repoId` | string | |
+| `path` | string | must equal the entity's `path` (after normalisation) |
+| `commitSha` | string | must equal the `commitSha` of the owning ComponentState, when that is set |
+| `startLine` | integer | at least 1 |
+| `endLine` | integer | at least 1, and `startLine` must not be greater than `endLine` |
+
+Note: the start/end check is **stricter than #88**, which only requires lines greater than 0. #19's own span has two more optional fields (`startColumn`, `endColumn`); we leave them out. `evidence` is a list of free strings (no format check), for example `git:<repo>@<sha>:<path>#L10-L20`.
 | `ExternalSymbol` | `id`, `name` | **no** (outside our code, may be shared) |
 
 `migrationRole` is `legacy | target | transition | unknown`. It is separate from technical categories such as frontend or database.
@@ -44,6 +56,7 @@ Differences from Rafael's table (small, needed to make the code work):
 - `snapshotId` is added to `ComponentState`, `CodeGraph` and `File`, so the same-snapshot rule can check them.
 - `componentKey` and `path` are added to `File` and the code entities. They are needed for the hash id (section 4). `File` has `componentKey` as a plain property.
 - `qualifiedName` is added to the code entities (it is part of the id), and `signature` to `Method` (also part of the id, so overloads differ).
+- `sourceSpan` and `evidence` are added to the code entities, so position data is not lost (needed for #67, #22, #85).
 
 Removed from v1: `BoundedContext`, `SymbolObservation`, `COUPLED_VIA`, `CONTAINS`, `stepId` and the decommission fields (`status`, `replacement`, `reason`, `risk`).
 
@@ -97,8 +110,12 @@ The checker verifies the hash for File and code entities, not the readable ids.
    - `DERIVED_FROM` is the only edge allowed to cross snapshots.
    - Edges to a node without snapshotId (`ExternalSymbol`, and `Project`/`Component` in `HAS_SNAPSHOT`, `HAS_BASELINE`, `OF_COMPONENT`) are skipped.
 5. **Hash id** (`bad-node-id`): File and code entities must have the id of section 4.
+6. **Source span agrees with the entity.**
+   - `span-path-mismatch`: `sourceSpan.path` must equal the entity's `path` (after normalisation).
+   - `span-commit-mismatch`: `sourceSpan.commitSha` must equal the `commitSha` of the owning ComponentState (`ownerComponentStateId`). Skipped when that state has no `commitSha` or does not exist.
+   - Not checked: `sourceSpan.repoId` against `Component.repo` (the repo naming is not settled).
 
-Shape checks done by the models themselves: unknown edge type, unknown `migrationRole`, missing `snapshotId` / `ownerComponentStateId` on code entities, and unknown extra fields are errors.
+Shape checks done by the models themselves: unknown edge type, unknown `migrationRole`, missing `snapshotId` / `ownerComponentStateId` / `sourceSpan` on code entities, a span with a line below 1 or `startLine` greater than `endLine`, and unknown extra fields are errors.
 
 ## 6. Mock data
 
