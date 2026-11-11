@@ -1,18 +1,18 @@
-"""SunsetTracker backend query API (tickets #24 and #25).
+"""SunsetTracker backend query API (tickets #24, #25, and #23).
 
-Minimal FastAPI application exposing the query endpoint the frontend needs:
+FastAPI application exposing endpoints the frontend and query system need:
 
-- ``POST /api/chat``        submit a query, receive an NDJSON answer stream
-- ``GET  /api/health``      liveness check (includes the active model name)
-- ``GET  /api/repositories`` repository list for the frontend picker (mock stub)
+- ``POST /api/chat``                         submit a query, receive an NDJSON answer stream
+- ``GET  /api/health``                       liveness check (includes active model name)
+- ``GET  /api/repositories``                 repository list for the frontend picker
+- ``POST /api/diff/explain``                 diff explanation endpoint
+- ``GET  /api/graph/status``                 migration status query (Issue #23)
+- ``GET  /api/graph/couplings``              cross-boundary coupling query (Issue #23)
+- ``GET  /api/graph/decommission-candidates`` decommission candidates query (Issue #23)
+- ``POST /api/graph/query``                  parameterized knowledge graph query (Issue #23)
 
-The frontend (ticket #27, branch ``create-basic-query-interface``) is hosted
-separately (no single origin), so CORS is enabled for the configured origins
-instead of serving the frontend from this process.
-
-LLM access (ticket #25) goes through the provider-agnostic ``LlmProvider``
-seam: without ``LLM_BASE_URL``/``LLM_NAME`` a mock provider answers, with them
-any OpenAI-compatible endpoint (local Ollama or a future external API).
+The frontend is hosted separately (no single origin), so CORS is enabled for the
+configured origins instead of serving the frontend from this process.
 """
 
 import json
@@ -25,6 +25,14 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 
+from .graph import (
+    CouplingResult,
+    DecommissionResult,
+    GraphQueryRequest,
+    GraphQueryService,
+    MigrationStatusResult,
+    create_graph_service,
+)
 from .llm import LlmError, create_llm_provider
 from .query_service import QueryService, create_query_service
 from .repositories import list_repositories
@@ -49,8 +57,10 @@ CORS_ORIGINS = [
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     provider = create_llm_provider()
+    graph_service = create_graph_service()
     app.state.llm_provider = provider
-    app.state.query_service = create_query_service(provider)
+    app.state.graph_service = graph_service
+    app.state.query_service = create_query_service(provider, graph_service=graph_service)
     yield
     await provider.aclose()
 
@@ -112,6 +122,38 @@ def repositories() -> list[dict]:
     vertical slice testable.
     """
     return [repo.model_dump(by_alias=True) for repo in list_repositories()]
+
+
+@app.get("/api/graph/status", response_model=MigrationStatusResult)
+def graph_migration_status(
+    step_id: str = "step-06",
+    component: str | None = None,
+) -> MigrationStatusResult:
+    """Query migration status of components for a given step (Issue #23)."""
+    service: GraphQueryService = app.state.graph_service
+    return service.query_status(step_id=step_id, component=component)
+
+
+@app.get("/api/graph/couplings", response_model=CouplingResult)
+def graph_couplings(step_id: str = "step-06") -> CouplingResult:
+    """Query component coupling across migration boundaries (Issue #23)."""
+    service: GraphQueryService = app.state.graph_service
+    return service.query_couplings(step_id=step_id)
+
+
+@app.get("/api/graph/decommission-candidates", response_model=DecommissionResult)
+def graph_decommission_candidates(step_id: str = "step-06") -> DecommissionResult:
+    """Query candidates safe for decommissioning (Issue #23)."""
+    service: GraphQueryService = app.state.graph_service
+    return service.query_decommission_candidates(step_id=step_id)
+
+
+@app.post("/api/graph/query")
+def graph_query(request: GraphQueryRequest) -> dict:
+    """Execute a parameterized query against the knowledge graph (Issue #23)."""
+    service: GraphQueryService = app.state.graph_service
+    result = service.execute_query(request)
+    return result.model_dump(by_alias=True)
 
 
 @app.post("/api/diff/explain", response_model=DiffResponse)
