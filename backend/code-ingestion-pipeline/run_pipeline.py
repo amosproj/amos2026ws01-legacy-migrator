@@ -206,6 +206,20 @@ def main(argv=None) -> int:
         env = {**os.environ, "PYTHONPATH": str(PROJECT_DIR / "src"), "PYTHONIOENCODING": "utf-8"}
         print("Loading reference files with bootstrap...", flush=True)
         run_logged(command, PROJECT_DIR, run / "bootstrap.log", env)
+        entities_jsonl = run / "entities.jsonl"
+        print("Extracting code entities (Issue #19)...", flush=True)
+        extract_cmd = [
+            sys.executable,
+            "-m",
+            "migration_assistant.bootstrap.extract_entities_cli",
+            "--sources",
+            str(jsonl),
+            "--out",
+            str(entities_jsonl),
+            "--snapshot-id",
+            run.name,
+        ]
+        run_logged(extract_cmd, PROJECT_DIR, run / "entities.log", env)
         sources = run / "sources"
         components = prepare_sources(jsonl, sources)
         groups = (
