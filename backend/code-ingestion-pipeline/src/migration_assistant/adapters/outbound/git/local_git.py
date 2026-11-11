@@ -52,7 +52,12 @@ class LocalGitAdapter:
             else:
                 workspace.mkdir(parents=True, exist_ok=True)
                 git.run(
-                    *transport, "clone", "--no-checkout", "--", url or str(source), str(umbrella),
+                    *transport,
+                    "clone",
+                    "--no-checkout",
+                    "--",
+                    url or str(source),
+                    str(umbrella),
                     cwd=workspace,
                 )
 
@@ -70,7 +75,9 @@ class LocalGitAdapter:
                     )
 
             members = [
-                self._checkout_component(git, config, source, transport, umbrella, name, pinned[name])
+                self._checkout_component(
+                    git, config, source, transport, umbrella, name, pinned[name]
+                )
                 for name in config.components
             ]
 
@@ -86,7 +93,9 @@ class LocalGitAdapter:
         try:
             return git.run("rev-parse", "--verify", f"{ref}^{{commit}}", cwd=umbrella)
         except CheckoutError:
-            raise UnknownStageError(f"Unknown stage '{stage}': no tag '{stage}' in the source") from None
+            raise UnknownStageError(
+                f"Unknown stage '{stage}': no tag '{stage}' in the source"
+            ) from None
 
     def _checkout_component(
         self,
@@ -106,9 +115,7 @@ class LocalGitAdapter:
 
         url_key = f"submodule.{path}.url"
         try:
-            declared = git.run(
-                "config", "-f", ".gitmodules", "--get", url_key, cwd=umbrella
-            )
+            declared = git.run("config", "-f", ".gitmodules", "--get", url_key, cwd=umbrella)
         except CheckoutError:
             raise SubmoduleError(f"Submodule '{path}' is not declared in .gitmodules") from None
 
@@ -156,9 +163,12 @@ class _Git:
             raise CheckoutError(f"Refusing to run git inside the source: {cwd}")
         command = [
             "git",
-            "-c", f"core.hooksPath={self._hooks_dir}",
-            "-c", "core.longpaths=true",
-            "-c", "core.fsmonitor=false",
+            "-c",
+            f"core.hooksPath={self._hooks_dir}",
+            "-c",
+            "core.longpaths=true",
+            "-c",
+            "core.fsmonitor=false",
             *args,
         ]
         try:
@@ -225,7 +235,9 @@ def _read_stage_components(umbrella: Path, stage: str) -> dict:
     except FileNotFoundError:
         raise UnknownStageError(f"stage.json not found at stage '{stage}'") from None
     except json.JSONDecodeError as error:
-        raise UnknownStageError(f"stage.json at stage '{stage}' is not valid JSON: {error}") from error
+        raise UnknownStageError(
+            f"stage.json at stage '{stage}' is not valid JSON: {error}"
+        ) from error
     components = data.get("komponenten")
     if not isinstance(components, dict):
         raise UnknownStageError(f"stage.json at stage '{stage}' has no 'komponenten'")
