@@ -66,7 +66,8 @@ class LocalGitAdapter:
             git.run("checkout", "--force", "--detach", umbrella_sha, cwd=umbrella)
 
             pinned = _read_stage_components(umbrella, config.stage)
-            for name in config.components:
+            components = config.components or sorted(pinned)
+            for name in components:
                 if name not in pinned:
                     available = ", ".join(sorted(pinned)) or "none"
                     raise ComponentNotInStageError(
@@ -78,7 +79,7 @@ class LocalGitAdapter:
                 self._checkout_component(
                     git, config, source, transport, umbrella, name, pinned[name]
                 )
-                for name in config.components
+                for name in components
             ]
 
         return CheckoutResult(

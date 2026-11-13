@@ -1,6 +1,7 @@
 """Shared fixtures: a tiny fake reference setup built with real git."""
 
 import hashlib
+import json
 import os
 import subprocess
 from dataclasses import dataclass
@@ -68,6 +69,7 @@ class Origin:
     component: Path
     sha_step_00: str
     sha_step_04a: str
+    sha_catalog_step_04a: str
 
 
 @dataclass(frozen=True)
@@ -179,10 +181,41 @@ def origin(tmp_path_factory, git_environment) -> Origin:
     _commit(umbrella, "step-00", "step-00")
 
     git(umbrella / "components" / "monolith", "checkout", "-q", sha_04a)
-    _write(umbrella, "stage.json", _stage_json("step-04a", sha_04a))
+    catalog = org / "legacy-example-catalog-service"
+    catalog.mkdir()
+    git(catalog, "init", "-q", "-b", "main")
+    _write(catalog, "src/Catalog.java", "class Catalog {}\n")
+    catalog_sha = _commit(catalog, "step-04a", "step-04a")
+    git(
+        umbrella,
+        "-c",
+        "protocol.file.allow=always",
+        "submodule",
+        "add",
+        "-q",
+        str(catalog),
+        "components/catalog-service",
+    )
+    git(
+        umbrella,
+        "config",
+        "-f",
+        ".gitmodules",
+        "submodule.components/catalog-service.url",
+        "../legacy-example-catalog-service",
+    )
+    stage = json.loads(_stage_json("step-04a", sha_04a))
+    stage["komponenten"]["catalog-service"] = {"tag": "step-04a", "sha": catalog_sha}
+    _write(umbrella, "stage.json", json.dumps(stage))
     _commit(umbrella, "step-04a", "step-04a")
 
-    return Origin(umbrella=umbrella, component=component, sha_step_00=sha_00, sha_step_04a=sha_04a)
+    return Origin(
+        umbrella=umbrella,
+        component=component,
+        sha_step_00=sha_00,
+        sha_step_04a=sha_04a,
+        sha_catalog_step_04a=catalog_sha,
+    )
 
 
 @pytest.fixture

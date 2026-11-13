@@ -61,7 +61,7 @@ Recreate environments in the new location; do not move an old environment direct
 With the ingestion environment activated, from this subproject:
 
 ```bash
-# One graph containing all configured components
+# One graph containing all components in the configured stage unless filtered in YAML
 python run_pipeline.py
 
 # A separate graph for each component
@@ -79,6 +79,10 @@ existing Git credentials. Its configuration controls the source, stage, componen
 filters and checkout workspace. It prefers `config/reference-source.local.yaml`
 if present, otherwise `config/reference-source.yaml`. Source and workspace paths
 inside configuration files are relative to this subproject's working directory.
+The default `components: []` loads every component in the selected stage's
+`stage.json`, at its pinned commit. Omitting the YAML field has the same effect.
+An explicit YAML list restricts the selection; `--components A B ...` overrides
+that list for one run. 
 If reusing a local configuration from before the move, adjust relative source paths.
 The standalone bootstrap CLI remains `python -m migration_assistant.bootstrap.cli`
 with `PYTHONPATH=src`, as described in the reference-loader guide.

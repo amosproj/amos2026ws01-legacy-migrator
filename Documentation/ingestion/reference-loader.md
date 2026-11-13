@@ -82,7 +82,7 @@ Default file: `backend/code-ingestion-pipeline/config/reference-source.yaml` (co
 | `source` | `https://` URL or local path of the umbrella repository (`legacy-example-stages`) |
 | `public_url` | Base URL of the GitHub organisation, used to build links |
 | `stage` | Stage tag to load, for example `step-00` or `step-04a`. Any tag name is allowed; letters, digits, `.`, `_`, `/`, `-`, and it must not start with `-` |
-| `components` | Component repositories to load, for example `[monolith]` |
+| `components` | Optional component filter, for example `[monolith]`. Omit it or use `[]` (the committed default) to load every component in the selected stage |
 | `workspace` | Cache folder for the checkout, relative to where the command runs (git-ignored, default `.cache/reference`) |
 | `include` | File extensions (`.java`) and exact file names (`Dockerfile`) to load |
 | `exclude` | Glob patterns on repository-relative paths, `/` separated. `**` crosses folders. Checked before `include` |
@@ -102,10 +102,14 @@ Command-line options:
 
 The config file itself is never changed by these options.
 
+Without `--components`, the YAML filter applies. If that filter is omitted or `[]`,
+the loader reads all entries in the selected stage's `stage.json` under `komponenten`
+and checks out each component at its pinned commit before continuing the pipeline.
+
 ## Usage
 
 ```powershell
-# Default run: stage and components from the config file
+# Default run: configured stage, all its components unless filtered in YAML
 .\.venv\Scripts\python.exe -m migration_assistant.bootstrap.cli
 
 # Another stage, two components
