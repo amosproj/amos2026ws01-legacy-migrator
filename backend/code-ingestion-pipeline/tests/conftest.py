@@ -148,7 +148,10 @@ def origin(tmp_path_factory, git_environment) -> Origin:
     _write(component, "notes.txt", "just notes\n")
     sha_00 = _commit(component, "step-00", "step-00")
 
-    _write(component, "src/Main.java", "class Main { int version = 4; }\n")
+    _write(
+        component, "src/Main.java",
+        "class Main { int version = 4; void run() { helper(); } void helper() {} }\n",
+    )
     _write(component, "src/Extra.java", "class Extra {}\n")
     _write(component, "Dockerfile", "FROM scratch\n")
     _write(component, DEEP_FILE, "class Deep {}\n")
@@ -184,7 +187,7 @@ def origin(tmp_path_factory, git_environment) -> Origin:
     catalog = org / "legacy-example-catalog-service"
     catalog.mkdir()
     git(catalog, "init", "-q", "-b", "main")
-    _write(catalog, "src/Catalog.java", "class Catalog {}\n")
+    _write(catalog, "src/Main.java", "class Catalog { void run() { helper(); } void helper() {} }\n")
     catalog_sha = _commit(catalog, "step-04a", "step-04a")
     git(
         umbrella,
@@ -238,3 +241,25 @@ def reference(origin, tmp_path) -> Reference:
         encoding="utf-8",
     )
     return Reference(origin=origin, config_path=config_path, workspace=workspace)
+
+
+@pytest.fixture
+def pipeline_cli(monkeypatch, tmp_path):
+    """Exercise bootstrap and the real loader without requiring Graphify."""
+    from migration_assistant.adapters.outbound.graphify import GraphifyAdapter
+    from migration_assistant.bootstrap import cli
+
+    calls = []
+
+    def build(self, member, files, root, output):
+        calls.append((member, files, root, output))
+        artifacts = output / "graphify-out"
+        artifacts.mkdir(parents=True)
+        graph = artifacts / "graph.json"
+        graph.write_text(json.dumps({"nodes": [], "links": []}), encoding="utf-8")
+        (artifacts / "graph.html").write_text("<html>test graph</html>", encoding="utf-8")
+        return graph
+
+    monkeypatch.setattr(cli, "DEFAULT_OUTPUT_DIR", tmp_path / "runs")
+    monkeypatch.setattr(GraphifyAdapter, "build", build)
+    return calls

@@ -6,21 +6,24 @@ It does not use the web application's `app/`, `tests/` or Python environment.
 
 ```text
 backend/code-ingestion-pipeline/
-  pyproject.toml             reference-loader dependencies and test configuration
   requirements-graphify.txt  Graphify requirements
   setup.py                  add Graphify after reference-loader setup
-  run_pipeline.py           full pipeline command
-  src/migration_assistant/  reference-loader implementation
+  src/migration_assistant/
+    bootstrap/              full pipeline CLI and adapter wiring
+    application/            pipeline service and ports
+    domain/                 source, checkout and pipeline models
+    adapters/outbound/      Git, source loading, Graphify and local output adapters
   config/                   reference-source configuration
   tests/                    loader and pipeline tests
   .venv/                    one local environment for this subproject (ignored)
   .cache/                   checkouts and graph outputs (ignored)
 ```
 
-The flow remains:
+The bootstrap CLI runs the complete pipeline through Python functions:
 
 ```text
-reference repository → bootstrap → sources.jsonl → analysis copies → Graphify
+reference repository → pinned checkout → load selected files
+  → Graphify per component → graph.json + graph.html → canonical JSONL
 ```
 
 ## Setup on each developer's machine
@@ -40,6 +43,7 @@ When opening a new terminal, start from the repository root:
 ```bash
 cd backend/code-ingestion-pipeline
 source .venv/bin/activate
+export PYTHONPATH=src
 ```
 
 PowerShell equivalent:
@@ -47,6 +51,7 @@ PowerShell equivalent:
 ```powershell
 cd backend/code-ingestion-pipeline
 .\.venv\Scripts\Activate.ps1
+$env:PYTHONPATH = "src"
 ```
 
 `setup.py` installs only Graphify's requirements, into the already active environment.
@@ -61,17 +66,17 @@ Recreate environments in the new location; do not move an old environment direct
 With the ingestion environment activated, from this subproject:
 
 ```bash
-# One graph containing all components in the configured stage unless filtered in YAML
-python run_pipeline.py
-
-# A separate graph for each component
-python run_pipeline.py --graph-mode per-component
+# One independent graph for each selected component
+python -m migration_assistant.bootstrap.cli
 
 # Select a stage and its components
-python run_pipeline.py --stage step-04a --components monolith catalog-service
+python -m migration_assistant.bootstrap.cli --stage step-04a --components monolith catalog-service
 
 # Use a local reference source configuration
-python run_pipeline.py --config config/reference-source.local.yaml
+python -m migration_assistant.bootstrap.cli --config config/reference-source.local.yaml
+
+# Optionally export loaded source contents as JSONL
+python -m migration_assistant.bootstrap.cli --out .cache/output/sources.jsonl
 ```
 
 Runs never install packages. Bootstrap may fetch reference code from GitHub using
@@ -82,16 +87,20 @@ inside configuration files are relative to this subproject's working directory.
 The default `components: []` loads every component in the selected stage's
 `stage.json`, at its pinned commit. Omitting the YAML field has the same effect.
 An explicit YAML list restricts the selection; `--components A B ...` overrides
-that list for one run. 
+that list for one run.
 If reusing a local configuration from before the move, adjust relative source paths.
-The standalone bootstrap CLI remains `python -m migration_assistant.bootstrap.cli`
-with `PYTHONPATH=src`, as described in the reference-loader guide.
 
-The pipeline reads bootstrap's JSONL, including complete selected file contents,
-and reconstructs those files for Graphify. This extra source copy remains intentional
-for the prototype. Graphify runs locally with `--code-only` and `GRAPHIFY_BACKEND=none`.
-It may parse only a subset of selected formats; optional SQL grammars are not installed.
-No manifests or separate Graphify runner are used.
+The application service passes the loader's selected original checkout paths directly
+to Graphify's Python API. It never combines components or reconstructs source files.
+`--out` is an optional export, not an intermediate input. Components with no loaded
+files are skipped; an entirely empty selection is an error.
+
+Graphify performs local AST extraction and exports JSON and HTML with empty community
+mappings. Clustering, community labeling, analysis, learning overlays, reports and
+LLM calls are omitted. A comment in the Graphify adapter identifies where optional
+enrichment could be added later. With Graphify's default output settings, extraction
+caches stay within each component's run folder. Graphify may parse only a subset of selected formats; missing
+optional SQL grammars and empty parses produce warnings while retaining extracted nodes.
 
 ## Results
 
@@ -100,30 +109,34 @@ run folder on each invocation:
 
 ```text
 .cache/ingestion/<UTC-time>-<unique-suffix>/
-  sources.jsonl
-  bootstrap.log
-  sources/<repoId>/<original-path>
   entities.jsonl            # canonical SymbolObservation facts
   relationships.jsonl       # canonical Relationship facts for the graph loader
   relationship-issues.jsonl # unresolved/unsupported Graphify links, when present
-  graphs/combined/                     # or graphs/<repoId>/
-    extract.log
-    cluster.log
+  graphs/<repoId>/
     graphify-out/
       graph.json
       graph.html
-      GRAPH_REPORT.md
+      cache/               # AST extraction cache
 ```
 
-Open `graph.html` in a browser. Each run gets a new folder. On failure, inspect the
-printed log path; partial output remains for diagnosis. Use `--verbose` for tracebacks.
+Open each component's `graph.html` in a browser. Each run gets a new folder. On failure,
+the error identifies the component or stage and the partial run remains for diagnosis.
+Use `--verbose` for tracebacks. HTML exceeding Graphify's visualization limit fails
+without aggregation and leaves the generated JSON available.
 `--output-dir PATH` overrides the parent folder for runs. Explicit config and output
-paths are relative to the terminal's current directory. Output inside this repository
-must be Git-ignored. Graphify does not modify reference checkouts.
+paths are relative to the terminal's current directory. Graphify does not modify
+reference checkouts.
+
+Developers choose the workspace, output and optional export paths and manage their
+Git ignore rules. The pipeline does not enforce directory placement or check whether
+paths are ignored or tracked. The default `.cache/` rule covers checkouts, outputs
+and extraction caches. Temporary directories use Python's standard OS temporary
+location. Keep checkout workspaces separate from source repositories and choose output
+paths that do not overwrite source files.
 
 ## Canonical relationship handoff
 
-`run_pipeline.py` now adapts each Graphify `graph.json` into a pair of canonical
+The relationship adapter converts each component's Graphify `graph.json` into canonical
 JSONL files in the run folder. `entities.jsonl` contains snapshot-scoped
 `SymbolObservation` facts; `relationships.jsonl` contains `Relationship` facts
 whose source and target IDs refer to those observations. Both include extractor
@@ -150,8 +163,11 @@ Install the loader's test dependencies, activate this project's environment, and
 python -m pytest tests -q
 ```
 
-The subproject's `pyproject.toml` supplies the source import path and test configuration.
+Set `PYTHONPATH=src` before running the tests.
 Tests cover the reference loader using temporary local Git fixtures and need no GitHub
-connection. They do not build or execute downloaded source code. The backend web
-application should run its own tests separately rather than collect the entire backend.
+connection. CLI and adapter contract tests use stubs without requiring Graphify;
+the real Graphify integration test runs when installed. Tests also cover custom
+output paths and independent component graphs. They do not build or execute downloaded
+source code. The backend web application should run its own tests separately rather
+than collect the entire backend.
 Windows/macOS execution remains unverified. SBOM work remains deferred.

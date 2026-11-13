@@ -1,15 +1,10 @@
 import json
 
-from run_pipeline import write_relationship_handoff
+from migration_assistant.adapters.outbound.graphify_relationships import write_relationship_handoff
 
 
 def test_pipeline_writes_graph_loader_handoff_with_resolvable_endpoints(tmp_path):
     revision = "c" * 40
-    sources = tmp_path / "sources.jsonl"
-    sources.write_text(
-        json.dumps({"repoId": "repo", "commitSha": revision}) + "\n",
-        encoding="utf-8",
-    )
     graph = tmp_path / "graph.json"
     graph.write_text(
         json.dumps(
@@ -46,7 +41,7 @@ def test_pipeline_writes_graph_loader_handoff_with_resolvable_endpoints(tmp_path
     )
 
     entity_count, relationship_count = write_relationship_handoff(
-        [graph], sources, tmp_path / "run"
+        [graph], {"repo": revision}, tmp_path / "run"
     )
 
     entities = [

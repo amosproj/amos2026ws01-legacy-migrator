@@ -50,3 +50,4 @@ bin/
 .claude/
 CLAUDE.local.md
 backend/config/reference-source.local.yaml
+backend/code-ingestion-pipeline/config/reference-source.local.yaml

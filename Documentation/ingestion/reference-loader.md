@@ -50,7 +50,7 @@ cache live there, separate from the backend web application.
    No `py` launcher? Use conda only to obtain Python 3.12, then run
    `python -m venv .venv` inside the subproject and activate that `.venv`.
 
-3. Install the dependencies declared in this subproject's `pyproject.toml`:
+3. Install the loader dependencies:
 
    ```bash
    python -m pip install "pydantic>=2" "pyyaml>=6"
@@ -58,7 +58,7 @@ cache live there, separate from the backend web application.
    ```
 
    The project has no build backend configured; keep using its source directory
-   directly. Set the import path for standalone loader commands:
+   directly. Set the import path for bootstrap and Python loader usage:
 
    ```bash
    export PYTHONPATH=src
@@ -71,7 +71,8 @@ cache live there, separate from the backend web application.
 All commands below run from `backend/code-ingestion-pipeline/` with its `.venv`
 active. When loader setup is complete, follow the
 [pipeline guide](../../backend/code-ingestion-pipeline/README.md) to install
-Graphify into this same environment. The loader itself does not require Graphify.
+Graphify into this same environment. The bootstrap CLI always runs the full pipeline
+and requires Graphify. The independent loader functions below do not require it.
 
 ## Configuration
 
@@ -97,7 +98,8 @@ Command-line options:
 | `--config PATH` | Use this config file. Default: the local file if it exists, otherwise `config/reference-source.yaml` |
 | `--stage STAGE` | Override `stage` for this run only |
 | `--components A B ...` | Override `components` for this run only |
-| `--out PATH` | Also write the loaded files as JSONL. Refused inside the source repository or the workspace |
+| `--out PATH` | Also write the loaded files as JSONL to the chosen path |
+| `--output-dir PATH` | Parent directory for pipeline runs; default `.cache/ingestion` in the ingestion subproject |
 | `--verbose` | Show the full traceback on errors |
 
 The config file itself is never changed by these options.
@@ -107,6 +109,11 @@ the loader reads all entries in the selected stage's `stage.json` under `kompone
 and checks out each component at its pinned commit before continuing the pipeline.
 
 ## Usage
+
+Bootstrap checks out and loads the selected source, generates a separate `graph.json`
+and `graph.html` for every component with loaded files, then writes canonical entity
+and relationship JSONL. It does not perform clustering, community labeling, analysis
+or report generation. Loader-only usage is available through Python, not the CLI.
 
 ```powershell
 # Default run: configured stage, all its components unless filtered in YAML
@@ -119,7 +126,7 @@ and checks out each component at its pinned commit before continuing the pipelin
 .\.venv\Scripts\python.exe -m migration_assistant.bootstrap.cli --out .cache/output/step-00.jsonl
 ```
 
-Example output of the default run (local copy, stage `step-00`):
+Example loader summary from a default pipeline run (local copy, stage `step-00`):
 
 ```text
 config: config/reference-source.local.yaml
@@ -137,11 +144,14 @@ files skipped: 119
   not_included: 33
 ```
 
-Running it again gives the same result. Changing `--stage` in the same workspace is fine.
+The summary is followed by the run folder, component graph progress and canonical
+fact counts. Each invocation creates a new run directory. Changing `--stage` in the
+same workspace is fine. See the [pipeline guide](../../backend/code-ingestion-pipeline/README.md)
+for the output layout and failure diagnostics.
 
 ## Use from Python
 
-The ingestion pipeline can call the loader directly:
+The loader remains independent of Graphify and the rest of the pipeline:
 
 ```python
 from migration_assistant.adapters.outbound.git.local_git import LocalGitAdapter
@@ -157,6 +167,10 @@ for file in result.files:
 ```
 
 After the checkout the code is a normal folder at the pinned commit, so a parser can also run directly on a component folder (`checkout.members[0].local_path`) instead of using the loaded file contents.
+
+The pipeline does exactly this: it combines each member's `local_path` with the
+selected `result.files` paths and passes those original files to Graphify, separately
+for each component. No source reconstruction or JSONL reload is necessary.
 
 ## Output
 
@@ -205,14 +219,15 @@ Errors print one line to stderr, starting with `ERROR:`. Config problems with se
 | `Submodule '<c>' is at <sha>, but stage.json pins <sha>` | Checked-out commit differs from `stage.json` |
 | `The workspace ... was created from a different source` | Cache was made from another `source`; delete the workspace folder |
 | `Component '<c>' has local changes and does not match commit <sha>` | Someone edited files in the cache |
-| `--out must not be inside the source repository` / `...the workspace` | Unsafe output path |
+| `Graph generation failed for component ...` | Graphify dependency, extraction or export failure; partial run is retained |
 | `git <command> failed: <git message>` | Git itself failed (for example no network) |
 
 ## Safety
 
-- The original repository is never modified. All clones, fetches and checkouts happen in the workspace folder, and git is refused if its working directory is inside a local source.
+- Clones, fetches and checkouts happen in the configured workspace. Developers keep this workspace separate from the original source repository.
 - The workspace (`backend/code-ingestion-pipeline/.cache/reference`) is git-ignored and can be deleted at any time.
-- Every git call uses an argument list (never a shell), with `core.hooksPath` pointing at an empty folder (hooks off), `core.fsmonitor=false`, `core.longpaths=true` and no terminal prompts.
+- Directory placement and Git ignore rules are managed by developers. The loader and pipeline do not check whether configured locations are ignored, tracked or inside the source repository. Choose output paths that do not overwrite source files. Temporary directories use Python's standard OS temporary location.
+- Every Git call uses an argument list (never a shell). Checkout and source-status commands use `core.hooksPath` pointing at an empty folder (hooks off), `core.fsmonitor=false`, `core.longpaths=true` and no terminal prompts.
 - Only the selected submodules are initialised, never recursively.
 - An `https://` source uses the https transport only (`protocol.allow=never`, `protocol.https.allow=always`). Other URL types are refused.
 - The loader checks that the cache is clean (`git status --porcelain`) before reading, so files match the pinned commit.
@@ -254,7 +269,6 @@ REFERENCE_SOURCE=/path/to/legacy-example-stages python -m pytest tests/test_real
 
 - A real clone from GitHub has not been tested yet. If the organisation is private, a plain clone needs git credentials already stored on the machine; credentials inside the URL are refused.
 - The relocated suite has been tested on Linux; Windows/macOS execution after the move remains unverified.
-- The exit-code-2 path and `--verbose` are not covered by a test.
 - Read errors on files and folders are tested with simulated errors only.
-- `pyproject.toml` has no build backend, so the package cannot be installed with pip yet.
+- The ingestion package has no build backend, so use `PYTHONPATH=src` instead of installing it with pip.
 - The workspace is tied to one source. Switching `source` needs a new or emptied workspace folder.

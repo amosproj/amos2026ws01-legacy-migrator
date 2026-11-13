@@ -162,6 +162,38 @@ def read_graphify(path: str | Path) -> dict[str, Any]:
     return payload
 
 
+def write_relationship_handoff(
+    graph_paths: list[Path], source_revisions: dict[str, str], run: Path
+) -> tuple[int, int]:
+    """Publish canonical facts using revisions from the pinned checkout result."""
+    if not source_revisions:
+        raise ValueError("Cannot create relationship handoff without source revisions")
+    snapshot_payload = json.dumps(source_revisions, sort_keys=True, separators=(",", ":"))
+    snapshot_id = "snapshot:" + sha256(snapshot_payload.encode()).hexdigest()
+    all_entities = {}
+    all_relationships = {}
+    issues = []
+    for graph_path in graph_paths:
+        entities, result = normalize_graphify_facts(
+            read_graphify(graph_path), snapshot_id=snapshot_id, source_revisions=source_revisions
+        )
+        all_entities.update({fact.record_id: fact for fact in entities})
+        all_relationships.update({fact.record_id: fact for fact in result.facts})
+        issues.extend(result.issues)
+    write_jsonl_records(
+        sorted(all_entities.values(), key=lambda fact: fact.record_id), run / "entities.jsonl"
+    )
+    write_jsonl_records(
+        sorted(all_relationships.values(), key=lambda fact: fact.record_id),
+        run / "relationships.jsonl",
+    )
+    if issues:
+        (run / "relationship-issues.jsonl").write_text(
+            "".join(issue.model_dump_json() + "\n" for issue in issues), encoding="utf-8"
+        )
+    return len(all_entities), len(all_relationships)
+
+
 class CanonicalEntityIndex:
     """Resolve Graphify nodes to issue #19 observation IDs without guessing."""
 

@@ -180,7 +180,7 @@ Relevant locations in `amos2026ws01-legacy-migrator`:
 |---|---|
 | `Documentation/ingestion/reference-loader.md` | Ingestor setup, configuration and JSONL format |
 | `backend/code-ingestion-pipeline/README.md` | Prototype graph-generation workflow |
-| `backend/code-ingestion-pipeline/run_pipeline.py` | Orchestrates loading, source reconstruction and Graphify |
+| `migration_assistant.application.pipeline.PipelineService` | Orchestrates loading, per-component Graphify extraction from checkout paths and canonical export; wired by bootstrap |
 | `backend/code-ingestion-pipeline/src/migration_assistant/` | Ingestor implementation |
 | `backend/code-ingestion-pipeline/.cache/ingestion/<run>/graphs/` | Locally generated graph artifacts |
 
