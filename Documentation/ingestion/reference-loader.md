@@ -1,3 +1,7 @@
+> **Deprecated documentation:** The reference loader is now set up as part of the
+> complete ingestion pipeline. Follow the [pipeline setup guide](../../backend/code-ingestion-pipeline/README.md)
+> instead of the standalone setup instructions below.
+
 # Reference loader
 
 Loads one stage of the reference system into the prototype so its source code can be analysed. Part of Issue #17.

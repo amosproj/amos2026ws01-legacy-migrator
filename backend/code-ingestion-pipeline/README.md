@@ -6,8 +6,9 @@ It does not use the web application's `app/`, `tests/` or Python environment.
 
 ```text
 backend/code-ingestion-pipeline/
+  requirements.txt          complete loader and Graphify runtime
   requirements-graphify.txt  Graphify requirements
-  setup.py                  add Graphify after reference-loader setup
+  setup.py                  install the complete pipeline into its virtual environment
   src/migration_assistant/
     bootstrap/              full pipeline CLI and adapter wiring
     application/            pipeline service and ports
@@ -26,58 +27,135 @@ reference repository → pinned checkout → load selected files
   → Graphify per component → graph.json + graph.html → canonical JSONL
 ```
 
-## Setup on each developer's machine
+Run commands from `backend/code-ingestion-pipeline/`, except the initial `cd`
+from the repository root. The loader and Graphify share this subproject's `.venv`.
 
-First complete the **Setup** section of the
-[reference loader guide](../../Documentation/ingestion/reference-loader.md).
-Create `.venv` inside this subproject and install the loader's dependencies there.
-Keep that environment active, then add Graphify:
+## Prerequisites
 
-```bash
-# Working directory: backend/code-ingestion-pipeline/
-python setup.py
-```
+- Python **3.12**, matching the repository's `.python-version` and setup script.
+- Git available on `PATH`; check with `git --version`.
+- Network access for the initial Python dependency installation. An HTTPS reference
+  source also needs network access and any Git credentials required by that source.
 
-When opening a new terminal, start from the repository root:
+## Install the complete pipeline
+
+`setup.py` installs `requirements.txt`, which includes Pydantic for the loader and
+the pinned Graphify dependencies from `requirements-graphify.txt`. Those dependencies
+also supply PyYAML for reading the reference configuration. There is no separate
+loader installation step. Setup installs packages only; it does not check out
+reference code or run the pipeline.
+
+### Linux and macOS
+
+From the repository root:
 
 ```bash
 cd backend/code-ingestion-pipeline
-source .venv/bin/activate
+python3.12 -m venv .venv
+.venv/bin/python setup.py
 export PYTHONPATH=src
 ```
 
-PowerShell equivalent:
+### Windows PowerShell
+
+From the repository root:
 
 ```powershell
 cd backend/code-ingestion-pipeline
-.\.venv\Scripts\Activate.ps1
+py -3.12 -m venv .venv
+.\.venv\Scripts\python.exe setup.py
 $env:PYTHONPATH = "src"
 ```
 
-`setup.py` installs only Graphify's requirements, into the already active environment.
-It does not create environments or install loader/test dependencies. It downloads
-packages but does not fetch reference code or generate graphs. Graphify also uses
-PyYAML, so its pinned requirements may select a version of that shared package.
-Every colleague follows the same order. Rerun setup when Graphify requirements change.
-Recreate environments in the new location; do not move an old environment directory.
+If the `py` launcher is unavailable, use `python -m venv .venv` after confirming
+`python --version` reports Python 3.12.
+
+These commands call the virtual environment's Python directly, so activation and
+PowerShell execution-policy changes are unnecessary. If you prefer activation,
+use `source .venv/bin/activate` on Linux/macOS or
+`.\.venv\Scripts\Activate.ps1` in PowerShell, then use `python` in subsequent commands.
+
+The package is imported from `src`; `setup.py` is a dependency installer, not a
+package build script. `PYTHONPATH` applies to the current terminal. In each new
+terminal, return to the ingestion subproject and set it again.
+
+## Configure the reference source
+
+The committed `config/reference-source.yaml` uses the HTTPS umbrella repository.
+Bootstrap uses it unless `config/reference-source.local.yaml` exists or you provide
+`--config PATH`.
+
+For a local reference copy, copy the full configuration first:
+
+```bash
+cp config/reference-source.yaml config/reference-source.local.yaml
+```
+
+PowerShell:
+
+```powershell
+Copy-Item config/reference-source.yaml config/reference-source.local.yaml
+```
+
+Edit `source` in that local file to point to the umbrella repository, whose selected
+component submodules must already be initialized. For example:
+
+```yaml
+# Linux/macOS example
+source: '/home/developer/reference/legacy-example-stages'
+```
+
+```yaml
+# Windows example: forward slashes avoid YAML backslash escaping
+source: 'D:/reference/legacy-example-stages'
+```
+
+Keep the remaining fields from the copied file. The local file replaces the
+committed configuration completely; it is not merged with it.
+
+| Setting | Purpose |
+|---|---|
+| `stage` | Stage tag to check out, such as `step-00` |
+| `components` | `[]` selects all components in the stage; a list selects specific components |
+| `workspace` | Checkout cache, default `.cache/reference` |
+| `public_url` | Base URL used for revision-pinned source links |
+| `include`, `exclude` | File selection rules |
+| `max_file_size_kb` | Maximum loaded file size |
+
+Relative source and workspace paths are resolved from the terminal's working
+directory. Keep the workspace separate from the original reference repository.
+The default `.cache/`, `.venv/`, and local configuration are Git-ignored. Developers
+manage appropriate paths and ignore rules for any custom locations; the pipeline
+does not enforce them.
 
 ## Run
 
-With the ingestion environment activated, from this subproject:
+
+Linux/macOS:
 
 ```bash
-# One independent graph for each selected component
-python -m migration_assistant.bootstrap.cli
-
-# Select a stage and its components
-python -m migration_assistant.bootstrap.cli --stage step-04a --components monolith catalog-service
-
-# Use a local reference source configuration
-python -m migration_assistant.bootstrap.cli --config config/reference-source.local.yaml
-
-# Optionally export loaded source contents as JSONL
-python -m migration_assistant.bootstrap.cli --out .cache/output/sources.jsonl
+export PYTHONPATH=src
+.venv/bin/python -m migration_assistant.bootstrap.cli
 ```
+
+Windows PowerShell:
+
+```powershell
+$env:PYTHONPATH = "src"
+.\.venv\Scripts\python.exe -m migration_assistant.bootstrap.cli
+```
+
+Append the same options on either platform:
+
+```text
+--stage step-04a --components monolith catalog-service
+--config config/reference-source.local.yaml
+--output-dir .cache/ingestion
+--out .cache/output/sources.jsonl
+--verbose
+```
+
+No API key is required for this local AST pipeline.
 
 Runs never install packages. Bootstrap may fetch reference code from GitHub using
 existing Git credentials. Its configuration controls the source, stage, components,
@@ -156,14 +234,25 @@ or deleted; new runs use the subproject's own `.cache/`.
 
 ## Tests
 
-Install the loader's test dependencies, activate this project's environment, and run:
+
+Install pytest into the same environment, then run the ingestion suite.
+
+Linux/macOS:
 
 ```bash
-# Working directory: backend/code-ingestion-pipeline/
-python -m pytest tests -q
+.venv/bin/python -m pip install "pytest>=8"
+export PYTHONPATH=src
+.venv/bin/python -m pytest tests -q
 ```
 
-Set `PYTHONPATH=src` before running the tests.
+Windows PowerShell:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install "pytest>=8"
+$env:PYTHONPATH = "src"
+.\.venv\Scripts\python.exe -m pytest tests -q
+```
+
 Tests cover the reference loader using temporary local Git fixtures and need no GitHub
 connection. CLI and adapter contract tests use stubs without requiring Graphify;
 the real Graphify integration test runs when installed. Tests also cover custom
@@ -171,3 +260,10 @@ output paths and independent component graphs. They do not build or execute down
 source code. The backend web application should run its own tests separately rather
 than collect the entire backend.
 Windows/macOS execution remains unverified. SBOM work remains deferred.
+
+## Updating or recreating the environment
+
+
+Rerun the platform's `setup.py` command when runtime requirements change. Recreate
+the subproject's `.venv` when changing its Python version or moving the checkout;
+virtual environments should not be copied between machines or operating systems.

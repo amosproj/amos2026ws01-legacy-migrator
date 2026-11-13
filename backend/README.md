@@ -7,10 +7,10 @@ Python backend of SunsetTracker. It has two parts:
    seam: without configuration a mock provider answers; with configuration any
    OpenAI-compatible endpoint is used (a local Ollama server or a future
    external API provider).
-2. **Reference loader** (ticket #17): checks out one stage of the reference
-   system and loads its source files for analysis. Setup, configuration, usage
-   and tests are described in the
-   [usage guide](../Documentation/ingestion/reference-loader.md).
+2. **Ingestion pipeline**, including the reference loader (ticket #17): checks
+   out a reference stage, loads its files, and generates component graphs and
+   canonical facts. Setup, configuration, usage and tests are described in the
+   [pipeline setup guide](code-ingestion-pipeline/README.md).
 
 Run all commands from this folder.
 
@@ -89,18 +89,13 @@ configuration — consuming components never change. The `QueryService` protocol
 in `app/query_service.py` is where the knowledge-graph query logic will be
 plugged in later without changing the API layer.
 
-## Reference loader
+## Ingestion pipeline
 
-The reference loader (ticket #17) checks out a pinned stage of the reference
-repository and loads its relevant source files without modifying the original.
-It ships its own CLI:
-
-```bash
-cd backend
-uv run migration-assistant --help
-```
-
-Details: [reference loader usage guide](../Documentation/ingestion/reference-loader.md).
+The independent `code-ingestion-pipeline/` subproject contains the loader and
+Graphify integration. It uses its own Python 3.12 virtual environment and the
+`migration_assistant.bootstrap.cli` entry point. Follow its
+[complete setup guide](code-ingestion-pipeline/README.md)
+for Linux/macOS and Windows PowerShell instructions.
 
 ## Known limitations / future work
 

@@ -1,0 +1,4 @@
+# Complete pipeline runtime: reference loader plus Graphify.
+pydantic>=2
+# Graphify's requirements also provide the loader's PyYAML dependency.
+-r requirements-graphify.txt

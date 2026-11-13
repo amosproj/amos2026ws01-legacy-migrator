@@ -13,6 +13,6 @@ browser and receive a streamed LLM answer.
 - Frontend (React): see [frontend/README.md](frontend/README.md)
 - One-command start: `./backend/run.sh` (Linux) or `.\backend\run.ps1` (Windows)
 
-## Reference loader
+## Ingestion Pipeline
 
-Reference loader (Issue #17): see [Documentation/ingestion/reference-loader.md](Documentation/ingestion/reference-loader.md).
+Ingestion pipeline (including the reference loader): see the [setup guide](backend/code-ingestion-pipeline/README.md).
