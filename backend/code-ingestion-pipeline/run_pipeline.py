@@ -9,13 +9,29 @@ import subprocess
 import sys
 import tempfile
 import traceback
+from collections.abc import Iterator
+from dataclasses import dataclass
 from datetime import UTC, datetime
-from hashlib import sha256
 from pathlib import Path, PurePosixPath, PureWindowsPath
 
 PROJECT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = PROJECT_DIR.parent.parent
 sys.path.insert(0, str(PROJECT_DIR / "src"))
+sys.path.insert(0, str(PROJECT_DIR.parent))
+
+
+@dataclass(frozen=True)
+class RelationshipHandoffResult:
+    """Counts and the deterministic snapshot identity produced by the handoff."""
+
+    entity_count: int
+    relationship_count: int
+    snapshot_id: str
+
+    def __iter__(self) -> Iterator[int]:
+        """Keep existing two-value count unpacking working for the CLI."""
+        yield self.entity_count
+        yield self.relationship_count
 
 
 def safe_relative(value: str) -> PurePosixPath:
@@ -112,16 +128,24 @@ def build_graph(source: Path, output: Path) -> None:
 
 
 def write_relationship_handoff(
-    graph_paths: list[Path], sources_jsonl: Path, run: Path
-) -> tuple[int, int]:
+    graph_paths: list[Path],
+    sources_jsonl: Path,
+    run: Path,
+    *,
+    graph_mode: str = "combined",
+) -> RelationshipHandoffResult:
     """Normalize Graphify outputs into entity and relationship JSONL for the graph loader."""
+    run.mkdir(parents=True, exist_ok=True)
     from migration_assistant.adapters.outbound.graphify_relationships import (
         normalize_graphify_facts,
         read_graphify,
         write_jsonl_records,
     )
+    from shared_contracts.records import SCHEMA_VERSION
+    from shared_contracts.snapshot_identity import compute_snapshot_identity
 
     source_revisions: dict[str, str] = {}
+    selected_paths: dict[str, set[str]] = {}
     with sources_jsonl.open(encoding="utf-8") as handle:
         for line in handle:
             source = json.loads(line)
@@ -129,11 +153,57 @@ def write_relationship_handoff(
             previous = source_revisions.setdefault(repo_id, commit_sha)
             if previous != commit_sha:
                 raise ValueError(f"Component {repo_id!r} has multiple source revisions")
+            path = source.get("path")
+            if not isinstance(path, str) or not path:
+                raise ValueError(
+                    "Every source manifest row must include a repository-relative path"
+                )
+            selected_paths.setdefault(repo_id, set()).add(path)
     if not source_revisions:
         raise ValueError("Cannot create relationship handoff from an empty source manifest")
+    if not graph_paths:
+        raise ValueError("Cannot create relationship handoff without Graphify graph files")
 
-    snapshot_payload = json.dumps(source_revisions, sort_keys=True, separators=(",", ":"))
-    snapshot_id = "snapshot:" + sha256(snapshot_payload.encode()).hexdigest()
+    extractor_versions = set()
+    missing_version = False
+    for graph_path in graph_paths:
+        graph_metadata = read_graphify(graph_path).get("graph", {})
+        version = (
+            graph_metadata.get("graphify_version") if isinstance(graph_metadata, dict) else None
+        )
+        if version:
+            extractor_versions.add(str(version))
+        else:
+            missing_version = True
+    if missing_version:
+        from importlib.metadata import PackageNotFoundError
+        from importlib.metadata import version as package_version
+
+        try:
+            extractor_versions.add(package_version("graphifyy"))
+        except PackageNotFoundError as error:
+            raise ValueError(
+                "Graphify output has no version metadata and graphifyy is not installed"
+            ) from error
+    extraction_config = {
+        "pipeline": {"name": "graphify-code-ingestion", "version": SCHEMA_VERSION},
+        "graphMode": graph_mode,
+        "graphify": {"backend": "none", "codeOnly": True, "cluster": False},
+        "selectedFiles": [
+            {"repoId": repo_id, "paths": sorted(paths)}
+            for repo_id, paths in sorted(selected_paths.items())
+        ],
+    }
+    identity = compute_snapshot_identity(
+        source_revisions,
+        [{"name": "graphify", "version": version} for version in extractor_versions],
+        extraction_config,
+    )
+    snapshot_id = identity.snapshot_id
+    (run / "snapshot-identity.json").write_text(
+        identity.model_dump_json(by_alias=True) + "\n",
+        encoding="utf-8",
+    )
     all_entities = {}
     all_relationships = {}
     issues = []
@@ -160,7 +230,11 @@ def write_relationship_handoff(
         issue_file.write_text(
             "".join(issue.model_dump_json() + "\n" for issue in issues), encoding="utf-8"
         )
-    return len(all_entities), len(all_relationships)
+    return RelationshipHandoffResult(
+        entity_count=len(all_entities),
+        relationship_count=len(all_relationships),
+        snapshot_id=snapshot_id,
+    )
 
 
 def main(argv=None) -> int:
@@ -219,7 +293,9 @@ def main(argv=None) -> int:
             graph_output = run / "graphs" / name
             build_graph(source, graph_output)
             graph_paths.append(graph_output / "graphify-out" / "graph.json")
-        entity_count, relationship_count = write_relationship_handoff(graph_paths, jsonl, run)
+        entity_count, relationship_count = write_relationship_handoff(
+            graph_paths, jsonl, run, graph_mode=args.graph_mode
+        )
         print(f"Graph handoff: {entity_count} entities, {relationship_count} relationships")
         print(f"Success. Graphs: {run / 'graphs'}")
         return 0
