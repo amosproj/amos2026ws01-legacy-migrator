@@ -8,6 +8,7 @@ import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 import yaml
@@ -17,6 +18,9 @@ BACKEND_DIR = PIPELINE_DIR.parent
 for import_path in (BACKEND_DIR, PIPELINE_DIR / "src"):
     if str(import_path) not in sys.path:
         sys.path.insert(0, str(import_path))
+
+if TYPE_CHECKING:
+    from migration_assistant.domain.reference_source import ReferenceSourceConfig
 
 PUBLIC_URL = "https://example.test/org"
 INCLUDE = [".java", ".xml", ".properties", ".sql", ".conf", ".yaml", ".yml", ".sh", "Dockerfile"]
