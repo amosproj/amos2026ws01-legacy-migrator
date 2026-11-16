@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Sequence
 from hashlib import sha256
 from pathlib import Path
 from typing import Any, Protocol
@@ -11,6 +12,7 @@ from pydantic import BaseModel, Field
 
 from app.graph_schema.models import compute_entity_id, compute_file_id, normalize_path
 from shared_contracts.records import (
+    SCHEMA_VERSION,
     ExternalSymbolObservationFact,
     RelationshipFact,
     RelationshipType,
@@ -75,7 +77,7 @@ def read_graphify(path: str | Path) -> dict[str, Any]:
 class CanonicalEntityIndex:
     """Resolve Graphify nodes to canonical observation IDs without guessing."""
 
-    def __init__(self, observations: list[Observation]) -> None:
+    def __init__(self, observations: Sequence[Observation]) -> None:
         self._by_id: dict[str, Observation] = {}
         self._by_identity: dict[tuple[str | None, str, str, str], list[str]] = {}
         self._by_path_name: dict[tuple[str | None, str, str], list[str]] = {}
@@ -172,6 +174,8 @@ def normalize_graphify_facts(
             )
             facts.append(
                 ExternalSymbolObservationFact(
+                    schema_version=SCHEMA_VERSION,
+                    record_type="ExternalSymbolObservation",
                     record_id=_stable_id(
                         [snapshot_id, "ExternalSymbolObservation", observation_id]
                     ),
@@ -211,6 +215,8 @@ def normalize_graphify_facts(
             )
             facts.append(
                 UnresolvedSymbolObservationFact(
+                    schema_version=SCHEMA_VERSION,
+                    record_type="UnresolvedSymbolObservation",
                     record_id=_stable_id(
                         [snapshot_id, "UnresolvedSymbolObservation", observation_id]
                     ),
@@ -251,6 +257,8 @@ def normalize_graphify_facts(
         )
         facts.append(
             SymbolObservationFact(
+                schema_version=SCHEMA_VERSION,
+                record_type="SymbolObservation",
                 record_id=_stable_id([snapshot_id, "SymbolObservation", observation_id]),
                 snapshot_id=snapshot_id,
                 observation_id=observation_id,
@@ -307,6 +315,15 @@ def normalize_graphify_facts(
 
 
 class _Observation:
+    observation_id: str
+    snapshot_id: str
+    repo_id: str | None
+    path: str
+    kind: str
+    name: str
+    qualified_name: str
+    source_span: SourceSpan | None
+
     def __init__(
         self, observation_id, snapshot_id, repo_id, path, kind, name, qualified_name, source_span
     ):
@@ -526,6 +543,8 @@ def normalize_graphify(
         seen.add(record_id)
         facts.append(
             RelationshipFact(
+                schema_version=SCHEMA_VERSION,
+                record_type="Relationship",
                 record_id=record_id,
                 snapshot_id=snapshot_id,
                 relationship_type=relation,

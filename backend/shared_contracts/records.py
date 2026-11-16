@@ -162,7 +162,7 @@ class SnapshotIdentity(_ContractModel):
 
     source_members: list[SourceRevision] = Field(min_length=1)
     source_snapshot_id: Sha256Digest
-    schema_version: Literal[SCHEMA_VERSION]
+    schema_version: Literal["1.0.0"]
     extractors: list[Extractor] = Field(min_length=1)
     extractor_set_digest: Sha256Digest
     extraction_config: dict[str, Any]
@@ -171,8 +171,8 @@ class SnapshotIdentity(_ContractModel):
 
 
 class _FactRecord(_ContractModel):
-    schema_version: Literal[SCHEMA_VERSION]
-    record_type: str
+    schema_version: Literal["1.0.0"]
+    record_type: Any
 
     @model_validator(mode="before")
     @classmethod

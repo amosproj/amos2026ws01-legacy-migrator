@@ -256,6 +256,8 @@ def write_relationship_handoff(
         ).hexdigest()
         code_graphs.append(
             CodeGraphFact(
+                schema_version=SCHEMA_VERSION,
+                record_type="CodeGraph",
                 record_id=record_id,
                 snapshot_id=snapshot_id,
                 repo_id=repo_id,

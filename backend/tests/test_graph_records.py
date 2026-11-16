@@ -4,6 +4,7 @@ import hashlib
 
 from app.graph_schema.models import compute_entity_id, compute_file_id, normalize_path
 from shared_contracts.records import (
+    SCHEMA_VERSION,
     CodeGraphFact,
     RelationshipFact,
     SourceSpan,
@@ -45,6 +46,8 @@ def test_file_and_entity_identity_is_scoped_to_repository_and_signature():
 
 def test_component_subgraph_root_references_its_observations():
     root = CodeGraphFact(
+        schema_version=SCHEMA_VERSION,
+        record_type="CodeGraph",
         record_id="a" * 64,
         snapshot_id="b" * 64,
         repo_id="legacy",
@@ -69,6 +72,8 @@ def test_symbol_observation_keeps_source_span_in_canonical_record():
         end_line=18,
     )
     entity = SymbolObservationFact(
+        schema_version=SCHEMA_VERSION,
+        record_type="SymbolObservation",
         record_id="d" * 64,
         snapshot_id="b" * 64,
         observation_id="class-1",
@@ -104,6 +109,8 @@ def test_unknown_relationship_keeps_original_type_and_graphify_provenance():
         end_line=21,
     )
     relationship = RelationshipFact(
+        schema_version=SCHEMA_VERSION,
+        record_type="Relationship",
         record_id="e" * 64,
         snapshot_id="b" * 64,
         relationship_type="case_of",
