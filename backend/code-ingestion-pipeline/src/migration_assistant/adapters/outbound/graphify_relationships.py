@@ -1,4 +1,4 @@
-"""Normalize Graphify edges into canonical relationship fact records."""
+"""Normalize Graphify into the canonical records.py fact contract."""
 
 from __future__ import annotations
 
@@ -9,19 +9,21 @@ from typing import Any, Protocol
 
 from pydantic import BaseModel, Field
 
+from app.graph_schema.models import compute_entity_id, compute_file_id, normalize_path
 from shared_contracts.records import (
     ExternalSymbolObservationFact,
     RelationshipFact,
+    RelationshipType,
+    SourceSpan,
     SymbolObservationFact,
+    UnresolvedSymbolObservationFact,
 )
-from shared_contracts.relationship_types import RelationshipType
-from shared_contracts.source_span import SourceSpan
 
 
 class Observation(Protocol):
     observation_id: str
     snapshot_id: str
-    repo_id: str
+    repo_id: str | None
     path: str
     kind: str
     name: str
@@ -35,6 +37,7 @@ class RelationshipIssue(BaseModel):
     edge_id: str
     code: str
     detail: str
+    raw_edge: dict[str, Any]
 
 
 class RelationshipNormalizationResult(BaseModel):
@@ -45,16 +48,14 @@ class RelationshipNormalizationResult(BaseModel):
         return "\n".join(fact.to_jsonl() for fact in self.facts)
 
     def write_jsonl(self, path: str | Path) -> None:
-        """Publish validated facts for a graph loader or fact store."""
-        with open(path, "w", encoding="utf-8", newline="\n") as output:
-            serialized = self.to_jsonl()
-            if serialized:
-                output.write(serialized)
-                output.write("\n")
+        target = Path(path)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        serialized = self.to_jsonl()
+        target.write_text(serialized + ("\n" if serialized else ""), encoding="utf-8")
 
 
 def write_jsonl_records(records: list[Any], path: str | Path) -> None:
-    """Write any canonical fact records as JSONL, creating the parent folder."""
+    """Write validated records as JSONL, creating the parent folder."""
     target = Path(path)
     target.parent.mkdir(parents=True, exist_ok=True)
     with target.open("w", encoding="utf-8", newline="\n") as output:
@@ -64,7 +65,6 @@ def write_jsonl_records(records: list[Any], path: str | Path) -> None:
 
 
 def read_graphify(path: str | Path) -> dict[str, Any]:
-    """Read one Graphify JSON graph without coupling callers to its file format."""
     with open(path, encoding="utf-8") as source:
         payload = json.load(source)
     if not isinstance(payload, dict):
@@ -73,12 +73,12 @@ def read_graphify(path: str | Path) -> dict[str, Any]:
 
 
 class CanonicalEntityIndex:
-    """Resolve Graphify nodes to issue #19 observation IDs without guessing."""
+    """Resolve Graphify nodes to canonical observation IDs without guessing."""
 
     def __init__(self, observations: list[Observation]) -> None:
-        self._by_id = {}
-        self._by_identity: dict[tuple[str, str, str, str], list[str]] = {}
-        self._by_path_name: dict[tuple[str, str, str], list[str]] = {}
+        self._by_id: dict[str, Observation] = {}
+        self._by_identity: dict[tuple[str | None, str, str, str], list[str]] = {}
+        self._by_path_name: dict[tuple[str | None, str, str], list[str]] = {}
         for observation in observations:
             if observation.observation_id in self._by_id:
                 raise ValueError(
@@ -87,34 +87,29 @@ class CanonicalEntityIndex:
             self._by_id[observation.observation_id] = observation
             identity = (
                 observation.repo_id,
-                _path(observation.path),
+                normalize_path(observation.path),
                 observation.kind,
                 observation.qualified_name,
             )
             self._by_identity.setdefault(identity, []).append(observation.observation_id)
-            path_name = (observation.repo_id, _path(observation.path), observation.name)
+            path_name = (observation.repo_id, normalize_path(observation.path), observation.name)
             self._by_path_name.setdefault(path_name, []).append(observation.observation_id)
 
     def resolve(self, node: dict[str, Any]) -> tuple[str | None, str | None]:
         observation_id = node.get("observationId", node.get("observation_id"))
         if observation_id is not None:
             if observation_id in self._by_id:
-                return observation_id, None
+                return str(observation_id), None
             return None, f"Unknown canonical observation ID: {observation_id}"
-
         identity = (
-            str(node.get("repoId", node.get("repo_id", ""))),
-            _path(str(node.get("path", ""))),
+            node.get("repoId", node.get("repo_id")),
+            normalize_path(str(node.get("path", ""))),
             str(node.get("kind", "")),
             str(node.get("qualifiedName", node.get("qualified_name", ""))),
         )
         candidates = self._by_identity.get(identity, [])
         if not candidates:
-            path_name = (
-                identity[0],
-                identity[1],
-                str(node.get("name", "")),
-            )
+            path_name = (identity[0], identity[1], str(node.get("name", "")))
             candidates = self._by_path_name.get(path_name, [])
         if len(candidates) == 1:
             return candidates[0], None
@@ -128,53 +123,54 @@ def normalize_graphify_facts(
     *,
     snapshot_id: str,
     source_revisions: dict[str, str],
+    source_line_counts: dict[tuple[str, str], int] | None = None,
+    default_repo_id: str | None = None,
     extractor_version: str = "unknown",
 ) -> tuple[
-    list[SymbolObservationFact | ExternalSymbolObservationFact],
+    list[SymbolObservationFact | ExternalSymbolObservationFact | UnresolvedSymbolObservationFact],
     RelationshipNormalizationResult,
 ]:
-    """Build snapshot-scoped entity records and relationships from Graphify's graph.
-
-    Graphify's current schema uses ``links`` and node IDs that are not canonical
-    entity IDs. This seam resolves source nodes to deterministic observation IDs,
-    emits those entities, and publishes links whose endpoints resolve to either
-    source-backed or external-symbol observations.
-    """
+    """Build canonical entity and relationship facts from one Graphify graph."""
     nodes = payload.get("nodes")
-    if not isinstance(nodes, list):
+    edges = payload.get("links", payload.get("edges", []))
+    if not isinstance(nodes, list) or not isinstance(edges, list):
         raise ValueError("Graphify payload must contain list-valued nodes and links")
-    graph_metadata = payload.get("graph", {})
-    if extractor_version == "unknown" and isinstance(graph_metadata, dict):
-        extractor_version = str(graph_metadata.get("graphify_version", extractor_version))
+    graph_meta = payload.get("graph", {})
+    if extractor_version == "unknown" and isinstance(graph_meta, dict):
+        extractor_version = str(graph_meta.get("graphify_version", extractor_version))
 
-    observations: list[Any] = []
-    entity_facts: list[SymbolObservationFact | ExternalSymbolObservationFact] = []
-    node_to_observation: dict[str, str] = {}
+    method_ids = _class_owned_callable_ids(nodes, edges)
+    observations: list[_Observation] = []
+    facts: list[
+        SymbolObservationFact | ExternalSymbolObservationFact | UnresolvedSymbolObservationFact
+    ] = []
+    node_observation_ids: dict[str, str] = {}
+
     for node in nodes:
         if not isinstance(node, dict) or not node.get("id"):
             raise ValueError("Every Graphify node must be an object with an id")
-        node_id = str(node["id"])
-        location = _graphify_span(node, source_revisions)
-        if location is None:
-            if node.get("source_file") and not node.get("external"):
-                continue
-            name = str(node.get("label") or node.get("name") or node_id)
-            qualified_name = str(node.get("qualifiedName", node.get("qualified_name", name)))
-            observation_id = _stable_id([snapshot_id, "ExternalSymbolObservation", node_id])
-            node_to_observation[node_id] = observation_id
+        raw_id = str(node["id"])
+        kind = _node_kind(node, method_ids)
+        repo_id, path = _source_reference(node)
+        location = _graphify_span(
+            node,
+            source_revisions,
+            source_line_counts=source_line_counts,
+            default_repo_id=default_repo_id,
+            kind=kind,
+        )
+        name = str(node.get("label") or node.get("name") or raw_id)
+        qualified_name = str(node.get("qualifiedName") or node.get("qualified_name") or name)
+
+        if _is_external_node(node):
+            observation_id = _stable_id([snapshot_id, "ExternalSymbolObservation", raw_id])
+            node_observation_ids[raw_id] = observation_id
             observations.append(
                 _Observation(
-                    observation_id=observation_id,
-                    snapshot_id=snapshot_id,
-                    repo_id="",
-                    path="",
-                    kind="external",
-                    name=name,
-                    qualified_name=qualified_name,
-                    source_span=None,
+                    observation_id, snapshot_id, None, "", "external", name, qualified_name, None
                 )
             )
-            entity_facts.append(
+            facts.append(
                 ExternalSymbolObservationFact(
                     record_id=_stable_id(
                         [snapshot_id, "ExternalSymbolObservation", observation_id]
@@ -187,25 +183,73 @@ def normalize_graphify_facts(
                 )
             )
             continue
+
+        if location is None:
+            repo_id = repo_id or default_repo_id
+            observation_id = _stable_id(
+                [
+                    snapshot_id,
+                    "UnresolvedSymbolObservation",
+                    repo_id or "",
+                    path or "",
+                    kind,
+                    qualified_name,
+                ]
+            )
+            node_observation_ids[raw_id] = observation_id
+            observations.append(
+                _Observation(
+                    observation_id,
+                    snapshot_id,
+                    repo_id,
+                    path or "",
+                    kind,
+                    name,
+                    qualified_name,
+                    None,
+                )
+            )
+            facts.append(
+                UnresolvedSymbolObservationFact(
+                    record_id=_stable_id(
+                        [snapshot_id, "UnresolvedSymbolObservation", observation_id]
+                    ),
+                    snapshot_id=snapshot_id,
+                    observation_id=observation_id,
+                    kind=kind,
+                    name=name,
+                    qualified_name=qualified_name,
+                    repo_id=repo_id,
+                    source_file=path,
+                    extractor_version=extractor_version,
+                )
+            )
+            continue
+
         repo_id, span = location
-        kind = _node_kind(node)
-        name = str(node.get("label") or node.get("name") or node_id)
-        qualified_name = f"{span.path}::{name}::{node_id}"
-        observation_id = _stable_id([snapshot_id, repo_id, span.path, kind, qualified_name])
-        node_to_observation[node_id] = observation_id
-        observations.append(
-            _Observation(
-                observation_id=observation_id,
-                snapshot_id=snapshot_id,
-                repo_id=repo_id,
-                path=span.path,
-                kind=kind,
-                name=name,
-                qualified_name=qualified_name,
-                source_span=span,
+        path = span.path
+        qualified_name = str(
+            node.get("qualifiedName") or node.get("qualified_name") or f"{path}::{name}::{raw_id}"
+        )
+        observation_id = (
+            compute_file_id(snapshot_id, repo_id, path)
+            if kind == "file"
+            else compute_entity_id(
+                snapshot_id,
+                repo_id,
+                path,
+                kind,
+                qualified_name,
+                signature=str(node["signature"]) if node.get("signature") else None,
             )
         )
-        entity_facts.append(
+        node_observation_ids[raw_id] = observation_id
+        observations.append(
+            _Observation(
+                observation_id, snapshot_id, repo_id, path, kind, name, qualified_name, span
+            )
+        )
+        facts.append(
             SymbolObservationFact(
                 record_id=_stable_id([snapshot_id, "SymbolObservation", observation_id]),
                 snapshot_id=snapshot_id,
@@ -220,120 +264,178 @@ def normalize_graphify_facts(
         )
 
     index = CanonicalEntityIndex(observations)
-    # Graphify names its endpoint list `links`; preserve the input and attach the
-    # canonical IDs computed above so resolution is exact, not label-based.
-    graph_nodes = []
+    mapped_nodes = []
     for node in nodes:
-        if not isinstance(node, dict):
-            continue
         mapped = dict(node)
-        if str(node.get("id", "")) in node_to_observation:
-            mapped["observationId"] = node_to_observation[str(node["id"])]
-        graph_nodes.append(mapped)
-    raw_edges = payload.get("links", payload.get("edges", []))
-    if not isinstance(raw_edges, list):
-        raise ValueError("Graphify payload must contain list-valued nodes and links")
-    edges = []
-    for position, edge in enumerate(raw_edges):
+        if str(node.get("id", "")) in node_observation_ids:
+            mapped["observationId"] = node_observation_ids[str(node["id"])]
+        mapped_nodes.append(mapped)
+    mapped_edges = []
+    for position, edge in enumerate(edges):
         if not isinstance(edge, dict):
-            edges.append(edge)
+            mapped_edges.append(edge)
             continue
         mapped = dict(edge)
+        mapped["__originalGraphifyEdge"] = dict(edge)
         mapped.setdefault("id", f"edge-{position}")
-        evidence_location = _graphify_span(edge, source_revisions)
-        if (
-            evidence_location is not None
-            and "sourceSpan" not in mapped
-            and "source_span" not in mapped
-        ):
-            repo_id, span = evidence_location
-            line_start, line_end = _line_range(edge.get("source_location"))
-            mapped["sourceSpan"] = {
-                "repoId": repo_id,
-                "commitSha": span.commit_sha,
-                "path": span.path,
-                "startLine": line_start,
-                "endLine": line_end,
-            }
-        edges.append(mapped)
-    normalized = normalize_graphify(
-        {**payload, "nodes": graph_nodes, "edges": edges},
+        if not _edge_has_span(mapped):
+            edge_location = _graphify_span(
+                mapped,
+                source_revisions,
+                default_repo_id=default_repo_id,
+            )
+            if edge_location:
+                repo_id, span = edge_location
+                lines = _line_range(mapped.get("source_location"))
+                if lines:
+                    mapped["sourceSpan"] = {
+                        "repoId": repo_id,
+                        "commitSha": span.commit_sha,
+                        "path": span.path,
+                        "startLine": lines[0],
+                        "endLine": lines[1],
+                    }
+        mapped_edges.append(mapped)
+    result = normalize_graphify(
+        {**payload, "nodes": mapped_nodes, "edges": mapped_edges},
         index,
         snapshot_id=snapshot_id,
         extractor_version=extractor_version,
     )
-    entity_facts.sort(key=lambda fact: fact.record_id)
-    return entity_facts, normalized
+    facts.sort(key=lambda fact: fact.record_id)
+    return facts, result
 
 
 class _Observation:
-    def __init__(self, **values: Any) -> None:
-        self.__dict__.update(values)
+    def __init__(
+        self, observation_id, snapshot_id, repo_id, path, kind, name, qualified_name, source_span
+    ):
+        self.observation_id = observation_id
+        self.snapshot_id = snapshot_id
+        self.repo_id = repo_id
+        self.path = path
+        self.kind = kind
+        self.name = name
+        self.qualified_name = qualified_name
+        self.source_span = source_span
 
 
 def _graphify_span(
-    node: dict[str, Any], source_revisions: dict[str, str]
+    node: dict[str, Any],
+    source_revisions: dict[str, str],
+    *,
+    source_line_counts: dict[tuple[str, str], int] | None = None,
+    default_repo_id: str | None = None,
+    kind: str | None = None,
 ) -> tuple[str, SourceSpan] | None:
-    raw_path = str(node.get("source_file", "")).replace("\\", "/").strip("/")
-    repo_id, separator, path = raw_path.partition("/")
-    if not separator or repo_id not in source_revisions:
+    repo_id, path = _source_reference(node)
+    repo_id = repo_id or default_repo_id
+    if repo_id is None or path is None or repo_id not in source_revisions:
         return None
-    start_line, end_line = _line_range(node.get("source_location"))
+    lines = None
+    if kind == "file":
+        count = (source_line_counts or {}).get((repo_id, path))
+        if count:
+            lines = (1, count)
+    if lines is None:
+        lines = _line_range(node.get("source_location"))
+    if lines is None:
+        return None
     return repo_id, SourceSpan(
         repo_id=repo_id,
         commit_sha=source_revisions[repo_id],
         path=path,
-        start_line=start_line,
-        end_line=end_line,
+        start_line=lines[0],
+        end_line=lines[1],
     )
 
 
-def _line_range(value: Any) -> tuple[int, int]:
-    text = str(value or "L1").removeprefix("L")
+def _source_reference(node: dict[str, Any]) -> tuple[str | None, str | None]:
+    raw_path = str(node.get("source_file", "")).replace("\\", "/").strip("/")
+    repo_id, separator, path = raw_path.partition("/")
+    if separator:
+        return repo_id, normalize_path(path)
+    repo_id = node.get("repoId", node.get("repo_id"))
+    path = node.get("path")
+    if repo_id and path:
+        return str(repo_id), normalize_path(str(path))
+    return None, None
+
+
+def _line_range(value: Any) -> tuple[int, int] | None:
+    if value is None:
+        return None
     try:
-        parts = text.split("-", 1)
+        parts = str(value).removeprefix("L").split("-", 1)
         start = int(parts[0])
         end = int(parts[1].removeprefix("L")) if len(parts) > 1 else start
-        if start > 0 and end >= start:
-            return start, end
+        return (start, end) if start > 0 and end >= start else None
     except ValueError:
-        pass
-    return 1, 1
+        return None
 
 
-def _node_kind(node: dict[str, Any]) -> str:
+def _node_kind(node: dict[str, Any], method_node_ids: set[str] | None = None) -> str:
+    method_node_ids = method_node_ids or set()
+    node_id = str(node.get("id", ""))
     node_type = str(node.get("type", "")).casefold()
-    if node_type in {"class", "method", "function", "field", "interface", "enum"}:
-        return "method" if node_type == "function" else node_type
+    if node_type in {"file", "module"} or node.get("_file"):
+        return "file"
     if node.get("_callable_class"):
         return "class"
+    if node_type in {"class", "method", "interface", "enum", "field", "file", "module"}:
+        return node_type
+    if node_type in {"function", "procedure", "callable"}:
+        return "method" if node_id in method_node_ids else "function"
     if node.get("_callable"):
-        return "method"
-    return "symbol"
+        return "method" if node_id in method_node_ids else "function"
+    return node_type if node_type and node_type != "symbol" else "symbol"
 
 
-def _stable_id(value: list[str]) -> str:
-    encoded = json.dumps(value, ensure_ascii=False, separators=(",", ":"))
-    return sha256(encoded.encode("utf-8")).hexdigest()
+def _class_owned_callable_ids(nodes: list[Any], edges: list[Any]) -> set[str]:
+    callable_ids = {
+        str(node["id"])
+        for node in nodes
+        if isinstance(node, dict) and node.get("id") and node.get("_callable")
+    }
+    class_ids = {
+        str(node["id"])
+        for node in nodes
+        if isinstance(node, dict)
+        and node.get("id")
+        and (node.get("_callable_class") or str(node.get("type", "")).casefold() == "class")
+    }
+    return {
+        str(edge.get("target", edge.get("to", "")))
+        for edge in edges
+        if isinstance(edge, dict)
+        and str(edge.get("relation", edge.get("type", ""))).casefold()
+        in {"contains", "method", "declares_member"}
+        and str(edge.get("source", edge.get("from", ""))) in class_ids
+        and str(edge.get("target", edge.get("to", ""))) in callable_ids
+    }
 
 
-_CANONICAL_TYPES = {
-    relationship.value.casefold(): relationship for relationship in RelationshipType
-}
-_GRAPHIFY_TYPE_ALIASES = {
-    "call": RelationshipType.CALLS,
-    "callable": RelationshipType.CALLS,
-    "inherits": RelationshipType.EXTENDS,
-    "inheritance": RelationshipType.EXTENDS,
-    "method": RelationshipType.DECLARES_MEMBER,
-    "case_of": RelationshipType.REFERENCES,
-    "reference": RelationshipType.REFERENCES,
-    "import": RelationshipType.IMPORTS,
-    "implements": RelationshipType.IMPLEMENTS,
-    "depends_on": RelationshipType.REFERENCES,
-    "mixes_in": RelationshipType.IMPLEMENTS,
-}
-_TYPE_MAP = {**_CANONICAL_TYPES, **_GRAPHIFY_TYPE_ALIASES}
+def _is_external_node(node: dict[str, Any]) -> bool:
+    return bool(node.get("external")) or str(node.get("type", "")).casefold() in {
+        "external",
+        "library",
+        "external_symbol",
+    }
+
+
+_TYPE_MAP = {value.value.casefold(): value for value in RelationshipType}
+_TYPE_MAP.update(
+    {
+        "call": RelationshipType.CALLS,
+        "callable": RelationshipType.CALLS,
+        "inherits": RelationshipType.EXTENDS,
+        "inheritance": RelationshipType.EXTENDS,
+        "method": RelationshipType.DECLARES_MEMBER,
+        "reference": RelationshipType.REFERENCES,
+        "import": RelationshipType.IMPORTS,
+        "implements": RelationshipType.IMPLEMENTS,
+    }
+)
 
 
 def normalize_graphify(
@@ -344,16 +446,14 @@ def normalize_graphify(
     extractor_version: str = "unknown",
     endpoint_observation_ids: dict[str, str] | None = None,
 ) -> RelationshipNormalizationResult:
-    """Convert Graphify's structured graph output into validated canonical facts."""
+    """Normalize relationship records while retaining raw Graphify provenance."""
     if not snapshot_id:
         raise ValueError("snapshot_id is required for relationship facts")
     nodes = payload.get("nodes")
     edges = payload.get("edges", payload.get("links"))
     if not isinstance(nodes, list) or not isinstance(edges, list):
         raise ValueError("Graphify payload must contain list-valued nodes and edges")
-
     node_by_id: dict[str, dict[str, Any]] = {}
-    issues: list[RelationshipIssue] = []
     for node in nodes:
         if not isinstance(node, dict) or not node.get("id"):
             raise ValueError("Every Graphify node must be an object with an id")
@@ -362,29 +462,32 @@ def normalize_graphify(
             raise ValueError(f"Duplicate Graphify node ID: {node_id}")
         node_by_id[node_id] = node
 
+    issues: list[RelationshipIssue] = []
     facts: list[RelationshipFact] = []
-    seen_ids: set[str] = set()
+    seen: set[str] = set()
     for position, edge in enumerate(edges):
         if not isinstance(edge, dict):
             raise ValueError(f"Graphify edge at index {position} is not an object")
         edge_id = str(edge.get("id", f"edge-{position}"))
-        raw_type = str(edge.get("type", edge.get("relation", edge.get("label", "")))).casefold()
+        original_edge = edge.get("__originalGraphifyEdge")
+        if not isinstance(original_edge, dict):
+            original_edge = edge
+        raw_type = str(edge.get("type", edge.get("relation", edge.get("label", "")))).strip()
         source_key = str(edge.get("source", edge.get("from", "")))
         target_key = str(edge.get("target", edge.get("to", "")))
-        relationship_type = _relationship_type(
-            raw_type,
-            node_by_id.get(source_key),
-            node_by_id.get(target_key),
-        )
-        if relationship_type is None:
+        if not raw_type:
             issues.append(
-                RelationshipIssue(
-                    edge_id=edge_id,
-                    code="unsupported_type",
-                    detail=f"Unsupported Graphify relationship type: {raw_type}",
+                _issue(
+                    edge_id,
+                    "unsupported_type",
+                    "Graphify edge has no relationship type",
+                    original_edge,
                 )
             )
             continue
+        relation = _relationship_type(
+            raw_type, node_by_id.get(source_key), node_by_id.get(target_key)
+        )
         source_id, source_error = _resolve_endpoint(
             source_key, node_by_id, entities, endpoint_observation_ids
         )
@@ -392,44 +495,50 @@ def normalize_graphify(
             target_key, node_by_id, entities, endpoint_observation_ids
         )
         if source_error:
-            issues.append(
-                RelationshipIssue(edge_id=edge_id, code="unresolved_source", detail=source_error)
-            )
+            issues.append(_issue(edge_id, "unresolved_source", source_error, original_edge))
         if target_error:
-            issues.append(
-                RelationshipIssue(edge_id=edge_id, code="unresolved_target", detail=target_error)
-            )
+            issues.append(_issue(edge_id, "unresolved_target", target_error, original_edge))
         if source_id is None or target_id is None:
             continue
 
         evidence = _evidence(edge)
         if evidence is None:
             issues.append(
-                RelationshipIssue(
-                    edge_id=edge_id,
-                    code="missing_evidence",
-                    detail="Graphify edge has no usable source path and line evidence",
+                _issue(
+                    edge_id,
+                    "missing_evidence",
+                    "Graphify edge has no usable source path and line evidence",
+                    original_edge,
                 )
             )
+        evidence_id = _evidence_id(evidence) if evidence else None
+        relation_value = relation.value if isinstance(relation, RelationshipType) else relation
+        record_id = _record_id(
+            snapshot_id,
+            relation_value,
+            source_id,
+            target_id,
+            evidence_id,
+            edge_id if evidence_id is None else None,
+        )
+        if record_id in seen:
             continue
-        evidence_id = _evidence_id(evidence)
-        record_id = _record_id(snapshot_id, relationship_type, source_id, target_id, evidence_id)
-        if record_id in seen_ids:
-            continue
-        seen_ids.add(record_id)
+        seen.add(record_id)
         facts.append(
             RelationshipFact(
                 record_id=record_id,
                 snapshot_id=snapshot_id,
-                relationship_type=relationship_type,
+                relationship_type=relation,
                 source_observation_id=source_id,
                 target_observation_id=target_id,
                 evidence_ids=[evidence_id] if evidence_id else [],
                 source_span=evidence,
+                source_edge_id=edge_id,
+                original_relationship_type=raw_type,
+                original_edge=dict(original_edge),
                 extractor_version=extractor_version,
             )
         )
-
     facts.sort(key=lambda fact: fact.record_id)
     return RelationshipNormalizationResult(facts=facts, issues=issues)
 
@@ -442,7 +551,6 @@ def normalize_graphify_file(
     extractor_version: str = "unknown",
     endpoint_observation_ids: dict[str, str] | None = None,
 ) -> RelationshipNormalizationResult:
-    """Read Graphify's output and normalize it for the canonical fact writer."""
     return normalize_graphify(
         read_graphify(graph_path),
         entities,
@@ -452,109 +560,92 @@ def normalize_graphify_file(
     )
 
 
-def _resolve_endpoint(
-    key: str,
-    nodes: dict[str, dict[str, Any]],
-    entities: CanonicalEntityIndex,
-    explicit: dict[str, str] | None,
-) -> tuple[str | None, str | None]:
+def _resolve_endpoint(key, nodes, entities, explicit):
     if explicit and key in explicit:
-        try:
-            resolved, error = entities.resolve({"observationId": explicit[key]})
-        except ValueError as error:
-            return None, str(error)
-        return resolved, error
+        return entities.resolve({"observationId": explicit[key]})
     node = nodes.get(key)
-    if node is None:
-        return None, f"Unknown Graphify node ID: {key}"
-    return entities.resolve(node)
+    return (None, f"Unknown Graphify node ID: {key}") if node is None else entities.resolve(node)
 
 
-def _relationship_type(
-    raw_type: str,
-    source_node: dict[str, Any] | None,
-    target_node: dict[str, Any] | None,
-) -> RelationshipType | None:
-    if raw_type == "contains":
-        target_kind = str((target_node or {}).get("type", "")).casefold()
-        if target_kind in {"method", "function", "field"} or (target_node or {}).get("_callable"):
+def _relationship_type(raw_type, source_node, target_node):
+    normalized = raw_type.casefold()
+    if normalized == "contains":
+        source_kind = _node_kind(source_node or {})
+        target_kind = _node_kind(target_node or {})
+        if source_kind in {"file", "module"} and target_kind in {
+            "class",
+            "interface",
+            "function",
+            "method",
+        }:
+            return RelationshipType.DECLARES
+        if source_kind in {"class", "interface"} and target_kind in {"method", "function", "field"}:
             return RelationshipType.DECLARES_MEMBER
-        if target_kind in {"class", "interface", "enum"} or (target_node or {}).get(
-            "_callable_class"
-        ):
-            source_kind = str((source_node or {}).get("type", "")).casefold()
-            if source_kind in {"file", "module", "component"}:
-                return RelationshipType.DECLARES
+        if source_kind in {"class", "interface"} and target_kind in {"class", "interface"}:
             return RelationshipType.CONTAINS_TYPE
-        source_kind = str((source_node or {}).get("type", "")).casefold()
-        if source_kind in {"file", "module", "component"}:
+        if source_kind == target_kind == "file":
             return RelationshipType.HAS_FILE
-        return RelationshipType.REFERENCES
-    return _TYPE_MAP.get(raw_type)
+        return raw_type
+    return _TYPE_MAP.get(normalized, raw_type)
 
 
-def _evidence(edge: dict[str, Any]) -> SourceSpan | None:
+def _evidence(edge):
     raw = edge.get("sourceSpan", edge.get("source_span", edge.get("evidence")))
     if not isinstance(raw, dict) and edge.get("source_file"):
-        # Graphify stores repository-relative paths as <repoId>/<path>.
-        raw_path = str(edge["source_file"]).replace("\\", "/").strip("/")
-        repo_id, separator, path = raw_path.partition("/")
-        location = str(edge.get("source_location", ""))
-        line_text = location.removeprefix("L").split("-", 1)[0]
-        if separator and line_text.isdigit():
-            raw = {
-                "repoId": repo_id,
-                "path": path,
-                "startLine": int(line_text),
-                "endLine": int(line_text),
-            }
+        repo_id, separator, path = (
+            str(edge["source_file"]).replace("\\", "/").strip("/").partition("/")
+        )
+        lines = _line_range(edge.get("source_location"))
+        # sourceSpan is attached by normalize_graphify_facts when commit data is known.
+        if separator and lines:
+            return None
     if not isinstance(raw, dict):
         return None
-    path = raw.get("path")
-    line = raw.get("startLine", raw.get("line"))
     repo_id = raw.get("repoId", raw.get("repo_id"))
     commit_sha = raw.get("commitSha", raw.get("commit_sha"))
-    if not path or not line or not repo_id or not commit_sha:
+    path = raw.get("path")
+    start = raw.get("startLine", raw.get("start_line", raw.get("line")))
+    end = raw.get("endLine", raw.get("end_line", start))
+    if not all((repo_id, commit_sha, path, start)):
         return None
     try:
         return SourceSpan(
             repo_id=str(repo_id),
+            path=normalize_path(str(path)),
             commit_sha=str(commit_sha),
-            path=str(path),
-            start_line=int(line),
-            end_line=int(raw.get("endLine", raw.get("end_line", line))),
+            start_line=int(start),
+            end_line=int(end),
         )
     except (TypeError, ValueError):
         return None
 
 
-def _record_id(
-    snapshot_id: str, relationship_type: str, source: str, target: str, evidence_id: str | None
-) -> str:
-    value = json.dumps(
-        [snapshot_id, relationship_type, source, target, evidence_id],
-        separators=(",", ":"),
-        ensure_ascii=False,
-    )
-    return sha256(value.encode("utf-8")).hexdigest()
+def _edge_has_span(edge):
+    return isinstance(edge.get("sourceSpan", edge.get("source_span", edge.get("evidence"))), dict)
 
 
-def _evidence_id(evidence: SourceSpan) -> str:
-    value = json.dumps(
-        evidence.model_dump(by_alias=True, exclude_none=True),
-        ensure_ascii=False,
-        sort_keys=True,
-        separators=(",", ":"),
-    )
-    return f"git:{sha256(value.encode('utf-8')).hexdigest()}"
+def _issue(edge_id, code, detail, raw_edge):
+    return RelationshipIssue(edge_id=edge_id, code=code, detail=detail, raw_edge=dict(raw_edge))
 
 
-def _evidence_locator(evidence: SourceSpan) -> str:
-    return (
-        f"git:{evidence.repo_id}@{evidence.commit_sha}:{evidence.path}"
-        f"#L{evidence.start_line}-L{evidence.end_line}"
-    )
+def _record_id(snapshot_id, relation, source, target, evidence_id, source_edge_id=None):
+    identity = [snapshot_id, relation, source, target, evidence_id]
+    if source_edge_id is not None:
+        identity.append(source_edge_id)
+    encoded = json.dumps(identity, separators=(",", ":"), ensure_ascii=False)
+    return sha256(encoded.encode("utf-8")).hexdigest()
 
 
-def _path(value: str) -> str:
-    return value.replace("\\", "/").strip("/")
+def _evidence_id(span):
+    locator = _evidence_locator(span)
+    return "git:" + sha256(locator.encode("utf-8")).hexdigest()
+
+
+def _evidence_locator(span):
+    return f"git:{span.repo_id}@{span.commit_sha}:{span.path}#L{span.start_line}-L{span.end_line}"
+
+
+def _stable_id(parts):
+    return sha256(
+        json.dumps(parts, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()

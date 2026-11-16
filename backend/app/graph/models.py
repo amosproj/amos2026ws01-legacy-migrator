@@ -11,9 +11,14 @@ from shared_contracts.graph_queries import (
     MigrationStatusKind,
     MigrationStatusResult,
 )
-from shared_contracts.node_types import GraphNodeType
-from shared_contracts.records import GraphEdge, GraphNode, SymbolQueryResult, SymbolQuerySymbol
-from shared_contracts.relationship_types import RelationshipType
+from shared_contracts.records import (
+    GraphEdge,
+    GraphNode,
+    GraphNodeType,
+    RelationshipType,
+    SymbolQueryResult,
+    SymbolQuerySymbol,
+)
 
 __all__ = [
     "ComponentMigrationStatus",

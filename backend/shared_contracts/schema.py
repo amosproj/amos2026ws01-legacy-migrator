@@ -18,8 +18,9 @@ from shared_contracts.graph_queries import (
     GraphQueryRequest,
     MigrationStatusResult,
 )
-from shared_contracts.node_types import SOURCE_LOCATED_NODE_TYPES
 from shared_contracts.records import (
+    SOURCE_LOCATED_NODE_TYPES,
+    CodeGraphRecord,
     CompareRequest,
     ComparisonResult,
     ExternalSymbolObservationRecord,
@@ -30,6 +31,7 @@ from shared_contracts.records import (
     SnapshotIdentity,
     SymbolObservationRecord,
     SymbolQueryResult,
+    UnresolvedSymbolObservationRecord,
     VectorDocumentRecord,
 )
 
@@ -38,6 +40,8 @@ ProjectContractPayload = (
     | MigrationManifest
     | SymbolObservationRecord
     | ExternalSymbolObservationRecord
+    | UnresolvedSymbolObservationRecord
+    | CodeGraphRecord
     | RelationshipRecord
     | GraphNode
     | GraphEdge
@@ -64,8 +68,8 @@ def project_contract_schema() -> dict:
     schema = TypeAdapter(ProjectContract).json_schema(by_alias=True)
     schema["$schema"] = "https://json-schema.org/draft/2020-12/schema"
     schema["description"] = (
-        "Shared contract for migration inputs, snapshot identities, ingestion facts, typed graph "
-        "nodes and edges, query and comparison results, and source-grounded vector documents."
+        "Shared contract for migration inputs, snapshot identities, ingestion records, graph query "
+        "results, comparisons, and source-grounded vector documents."
     )
     schema["$defs"]["GraphNode"]["allOf"] = [
         {

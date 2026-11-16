@@ -3,17 +3,105 @@
 from __future__ import annotations
 
 import json
+from enum import StrEnum
 from typing import Annotated, Any, Literal, get_args
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
 from pydantic.alias_generators import to_camel
 
-from shared_contracts.node_types import SOURCE_LOCATED_NODE_TYPES, GraphNodeType
-from shared_contracts.relationship_types import RelationshipType
 from shared_contracts.source_span import COMMIT_SHA_PATTERN, SourceSpan
 
 SCHEMA_VERSION = "1.0.0"
 Sha256Digest = Annotated[str, StringConstraints(pattern=r"^[0-9a-f]{64}$")]
+
+
+class GraphNodeType(StrEnum):
+    """Node labels used by graph query and persistence DTOs."""
+
+    PROJECT = "Project"
+    SNAPSHOT = "Snapshot"
+    COMPONENT = "Component"
+    COMPONENT_STATE = "ComponentState"
+    CODE_GRAPH = "CodeGraph"
+    FILE = "File"
+    CLASS = "Class"
+    INTERFACE = "Interface"
+    METHOD = "Method"
+    FUNCTION = "Function"
+    FIELD = "Field"
+    ENUM = "Enum"
+    TABLE = "Table"
+    CODE_ENTITY = "CodeEntity"
+    EXTERNAL_SYMBOL = "ExternalSymbol"
+    MODULE = "Module"
+    SYMBOL_OBSERVATION = "SymbolObservation"
+    COMMIT = "Commit"
+    ACTOR = "Actor"
+    EXTERNAL_SYSTEM = "ExternalSystem"
+    BOUNDED_CONTEXT = "BoundedContext"
+    DEPLOYMENT_NODE = "DeploymentNode"
+    MESSAGING_ROUTE = "MessagingRoute"
+    JIRA_ISSUE = "JiraIssue"
+    CONFLUENCE_PAGE = "ConfluencePage"
+    MARKDOWN_FILE = "MarkdownFile"
+    DOC_CHUNK = "DocChunk"
+    MIGRATION_STATUS = "MigrationStatus"
+    EXTRACTION_RUN = "ExtractionRun"
+
+
+SOURCE_LOCATED_NODE_TYPES = frozenset(
+    {
+        GraphNodeType.CLASS,
+        GraphNodeType.INTERFACE,
+        GraphNodeType.METHOD,
+        GraphNodeType.FUNCTION,
+        GraphNodeType.FIELD,
+        GraphNodeType.ENUM,
+        GraphNodeType.TABLE,
+        GraphNodeType.CODE_ENTITY,
+        GraphNodeType.FILE,
+        GraphNodeType.SYMBOL_OBSERVATION,
+    }
+)
+
+
+class RelationshipType(StrEnum):
+    """Known relationship names; unrecognized names remain valid raw strings."""
+
+    HAS_SNAPSHOT = "HAS_SNAPSHOT"
+    HAS_BASELINE = "HAS_BASELINE"
+    HAS_COMPONENT = "HAS_COMPONENT"
+    OF_COMPONENT = "OF_COMPONENT"
+    HAS_CODE_GRAPH = "HAS_CODE_GRAPH"
+    HAS_FILE = "HAS_FILE"
+    RECORDED_BY = "RECORDED_BY"
+    SCOPES = "SCOPES"
+    CHANGED = "CHANGED"
+    SAME_ENTITY_AS = "SAME_ENTITY_AS"
+    PROVIDES = "PROVIDES"
+    USES = "USES"
+    HOSTS = "HOSTS"
+    STORES = "STORES"
+    PUBLISHES = "PUBLISHES"
+    SUBSCRIBES = "SUBSCRIBES"
+    CHILD_OF = "CHILD_OF"
+    HAS_CHUNK = "HAS_CHUNK"
+    EMBEDS_ISSUE = "EMBEDS_ISSUE"
+    REFERENCES_ISSUE = "REFERENCES_ISSUE"
+    MENTIONS = "MENTIONS"
+    DOCUMENTS = "DOCUMENTS"
+    AFFECTS = "AFFECTS"
+    STATUS_OF = "STATUS_OF"
+    DECLARES = "DECLARES"
+    DECLARES_MEMBER = "DECLARES_MEMBER"
+    CONTAINS_TYPE = "CONTAINS_TYPE"
+    CALLS = "CALLS"
+    EXTENDS = "EXTENDS"
+    IMPLEMENTS = "IMPLEMENTS"
+    REFERENCES = "REFERENCES"
+    IMPORTS = "IMPORTS"
+    DERIVED_FROM = "DERIVED_FROM"
+    SOURCED_FROM = "SOURCED_FROM"
 
 
 class _ContractModel(BaseModel):
@@ -138,13 +226,55 @@ class ExternalSymbolObservationRecord(_FactRecord):
     evidence_references: list[str]
 
 
+class UnresolvedSymbolObservationPayload(_ContractModel):
+    """A graph endpoint with no verified source span."""
+
+    observation_id: str = Field(min_length=1)
+    kind: str = Field(min_length=1)
+    name: str = Field(min_length=1)
+    qualified_name: str = Field(min_length=1)
+    repo_id: str | None = None
+    source_file: str | None = None
+    source_status: Literal["unresolved"] = "unresolved"
+    extractor: Extractor
+
+
+class UnresolvedSymbolObservationRecord(_FactRecord):
+    record_type: Literal["UnresolvedSymbolObservation"]
+    record_id: Sha256Digest
+    snapshot_id: str = Field(min_length=1)
+    payload: UnresolvedSymbolObservationPayload
+    evidence_references: list[str] = Field(default_factory=list)
+
+
+class CodeGraphPayload(_ContractModel):
+    """Root of the code subgraph extracted from one pinned repository."""
+
+    repo_id: str = Field(min_length=1)
+    commit_sha: str = Field(pattern=COMMIT_SHA_PATTERN)
+    member_observation_ids: list[str] = Field(default_factory=list)
+    file_observation_ids: list[str] = Field(default_factory=list)
+    extractor: Extractor
+
+
+class CodeGraphRecord(_FactRecord):
+    record_type: Literal["CodeGraph"]
+    record_id: Sha256Digest
+    snapshot_id: str = Field(min_length=1)
+    payload: CodeGraphPayload
+    evidence_references: list[str] = Field(default_factory=list)
+
+
 class RelationshipPayload(_ContractModel):
-    relationship_type: RelationshipType
+    relationship_type: Annotated[RelationshipType | str, Field(union_mode="left_to_right")]
     source_observation_id: str = Field(min_length=1)
     target_observation_id: str = Field(min_length=1)
     evidence_ids: list[str]
     source_span: SourceSpan | None
     extractor: Extractor
+    source_edge_id: str | None = None
+    original_relationship_type: str | None = None
+    original_edge: dict[str, Any] | None = None
 
 
 class RelationshipRecord(_FactRecord):
@@ -163,17 +293,20 @@ class RelationshipFact(_FactRecord):
     record_type: Literal["Relationship"]
     record_id: Sha256Digest
     snapshot_id: str = Field(min_length=1)
-    relationship_type: RelationshipType
+    relationship_type: Annotated[RelationshipType | str, Field(union_mode="left_to_right")]
     source_observation_id: str = Field(min_length=1)
     target_observation_id: str = Field(min_length=1)
     evidence_ids: list[str] = Field(default_factory=list)
     source_span: SourceSpan | None = None
+    source_edge_id: str | None = None
+    original_relationship_type: str | None = None
+    original_edge: dict[str, Any] | None = None
     extractor_name: str = Field(default="graphify", min_length=1)
     extractor_version: str = Field(default="unknown", min_length=1)
 
     def to_record_dict(self) -> dict[str, Any]:
         payload = {
-            "relationshipType": self.relationship_type.value,
+            "relationshipType": _relationship_value(self.relationship_type),
             "sourceObservationId": self.source_observation_id,
             "targetObservationId": self.target_observation_id,
             "evidenceIds": list(self.evidence_ids),
@@ -184,6 +317,12 @@ class RelationshipFact(_FactRecord):
             ),
             "extractor": {"name": self.extractor_name, "version": self.extractor_version},
         }
+        if self.source_edge_id is not None:
+            payload["sourceEdgeId"] = self.source_edge_id
+        if self.original_relationship_type is not None:
+            payload["originalRelationshipType"] = self.original_relationship_type
+        if self.original_edge is not None:
+            payload["originalEdge"] = dict(self.original_edge)
         record = {
             "schemaVersion": self.schema_version,
             "recordType": self.record_type,
@@ -274,8 +413,84 @@ class ExternalSymbolObservationFact(_FactRecord):
         return json.dumps(self.to_record_dict(), ensure_ascii=False, separators=(",", ":"))
 
 
+class UnresolvedSymbolObservationFact(_FactRecord):
+    """Canonical endpoint record for a non-external node without a source span."""
+
+    record_type: Literal["UnresolvedSymbolObservation"]
+    record_id: Sha256Digest
+    snapshot_id: str = Field(min_length=1)
+    observation_id: str = Field(min_length=1)
+    kind: str = Field(min_length=1)
+    name: str = Field(min_length=1)
+    qualified_name: str = Field(min_length=1)
+    repo_id: str | None = None
+    source_file: str | None = None
+    extractor_name: str = Field(default="graphify", min_length=1)
+    extractor_version: str = Field(default="unknown", min_length=1)
+
+    def to_record_dict(self) -> dict[str, Any]:
+        payload = {
+            "observationId": self.observation_id,
+            "kind": self.kind,
+            "name": self.name,
+            "qualifiedName": self.qualified_name,
+            "repoId": self.repo_id,
+            "sourceFile": self.source_file,
+            "sourceStatus": "unresolved",
+            "extractor": {"name": self.extractor_name, "version": self.extractor_version},
+        }
+        record = {
+            "schemaVersion": self.schema_version,
+            "recordType": self.record_type,
+            "recordId": self.record_id,
+            "snapshotId": self.snapshot_id,
+            "payload": {key: value for key, value in payload.items() if value is not None},
+            "evidenceReferences": [],
+        }
+        UnresolvedSymbolObservationRecord.model_validate(record)
+        return record
+
+    def to_jsonl(self) -> str:
+        return json.dumps(self.to_record_dict(), ensure_ascii=False, separators=(",", ":"))
+
+
+class CodeGraphFact(_FactRecord):
+    """Canonical per-repository code graph root emitted by ingestion."""
+
+    record_type: Literal["CodeGraph"]
+    record_id: Sha256Digest
+    snapshot_id: str = Field(min_length=1)
+    repo_id: str = Field(min_length=1)
+    commit_sha: str = Field(pattern=COMMIT_SHA_PATTERN)
+    member_observation_ids: list[str] = Field(default_factory=list)
+    file_observation_ids: list[str] = Field(default_factory=list)
+    extractor_name: str = Field(default="graphify", min_length=1)
+    extractor_version: str = Field(default="unknown", min_length=1)
+
+    def to_record_dict(self) -> dict[str, Any]:
+        record = {
+            "schemaVersion": self.schema_version,
+            "recordType": self.record_type,
+            "recordId": self.record_id,
+            "snapshotId": self.snapshot_id,
+            "payload": {
+                "repoId": self.repo_id,
+                "commitSha": self.commit_sha,
+                "memberObservationIds": list(self.member_observation_ids),
+                "fileObservationIds": list(self.file_observation_ids),
+                "extractor": {"name": self.extractor_name, "version": self.extractor_version},
+            },
+            "evidenceReferences": [],
+        }
+        CodeGraphRecord.model_validate(record)
+        return record
+
+    def to_jsonl(self) -> str:
+        return json.dumps(self.to_record_dict(), ensure_ascii=False, separators=(",", ":"))
+
+
 class GraphNode(_ContractModel):
-    """Serialized graph node envelope shared by #21 and #23."""
+    """Serialized graph node envelope shared by persistence and query layers."""
 
     id: str = Field(min_length=1)
     label: GraphNodeType
@@ -296,7 +511,7 @@ class GraphEdge(_ContractModel):
     """Typed edge shape used by graph persistence and query results."""
 
     id: str = Field(min_length=1)
-    relationship_type: RelationshipType
+    relationship_type: Annotated[RelationshipType | str, Field(union_mode="left_to_right")]
     source_id: str = Field(min_length=1)
     target_id: str = Field(min_length=1)
     properties: dict[str, Any] = Field(default_factory=dict)
@@ -307,7 +522,7 @@ class GraphEdge(_ContractModel):
             "id": self.id,
             "sourceId": self.source_id,
             "targetId": self.target_id,
-            "relationshipType": self.relationship_type.value,
+            "relationshipType": _relationship_value(self.relationship_type),
             "properties": dict(self.properties),
         }
 
@@ -434,3 +649,7 @@ class ComparisonResult(_ContractModel):
 
 def _evidence_locator(span: SourceSpan) -> str:
     return f"git:{span.repo_id}@{span.commit_sha}:{span.path}#L{span.start_line}-L{span.end_line}"
+
+
+def _relationship_value(value: RelationshipType | str) -> str:
+    return value.value if isinstance(value, RelationshipType) else value

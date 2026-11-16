@@ -1,4 +1,4 @@
-"""Contracts shared by the ingestion pipeline, graph layer, and backend API."""
+"""Contracts shared by ingestion, graph queries, and the backend API."""
 
 from shared_contracts.graph_queries import (
     ComponentMigrationStatus,
@@ -9,24 +9,34 @@ from shared_contracts.graph_queries import (
     GraphQueryRequest,
     MigrationStatusResult,
 )
-from shared_contracts.graph_schema import CodeEntityNode, GraphNodeModel
-from shared_contracts.node_types import GraphNodeType
 from shared_contracts.records import (
+    CodeGraphFact,
+    CodeGraphRecord,
     CompareRequest,
     ComparisonResult,
+    ExternalSymbolObservationFact,
+    ExternalSymbolObservationRecord,
     GraphEdge,
     GraphNode,
+    GraphNodeType,
     MigrationManifest,
+    RelationshipFact,
+    RelationshipRecord,
+    RelationshipType,
     SnapshotIdentity,
+    SourceSpan,
+    SymbolObservationFact,
+    SymbolObservationRecord,
     SymbolQueryResult,
     SymbolQuerySymbol,
+    UnresolvedSymbolObservationFact,
+    UnresolvedSymbolObservationRecord,
     VectorDocumentRecord,
 )
-from shared_contracts.relationship_types import RelationshipType
-from shared_contracts.source_span import SourceSpan
 
 __all__ = [
-    "CodeEntityNode",
+    "CodeGraphFact",
+    "CodeGraphRecord",
     "CompareRequest",
     "ComparisonResult",
     "ComponentMigrationStatus",
@@ -34,17 +44,24 @@ __all__ = [
     "CouplingResult",
     "DecommissionCandidate",
     "DecommissionResult",
+    "ExternalSymbolObservationFact",
+    "ExternalSymbolObservationRecord",
     "GraphEdge",
     "GraphNode",
-    "GraphNodeModel",
     "GraphNodeType",
     "GraphQueryRequest",
     "MigrationManifest",
     "MigrationStatusResult",
+    "RelationshipFact",
+    "RelationshipRecord",
     "RelationshipType",
     "SnapshotIdentity",
     "SourceSpan",
+    "SymbolObservationFact",
+    "SymbolObservationRecord",
     "SymbolQueryResult",
     "SymbolQuerySymbol",
+    "UnresolvedSymbolObservationFact",
+    "UnresolvedSymbolObservationRecord",
     "VectorDocumentRecord",
 ]

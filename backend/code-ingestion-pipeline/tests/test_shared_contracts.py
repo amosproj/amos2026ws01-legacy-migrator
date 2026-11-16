@@ -14,17 +14,18 @@ from app.graph.models import (
 from app.graph.models import (
     SymbolQueryResult as QuerySymbolQueryResult,
 )
-from app.graph_schema.models import ClassNode, EdgeType
 from app.graph_schema.models import SourceSpan as GraphSchemaSourceSpan
 from migration_assistant.domain import SourceSpan as IngestionSourceSpan
 from shared_contracts import RelationshipType, SourceSpan
-from shared_contracts.node_types import GraphNodeType
+from shared_contracts.graph_identity import compute_entity_id, compute_file_id
+from shared_contracts.node_types import GraphNodeType as CompatibilityGraphNodeType
 from shared_contracts.records import (
     SCHEMA_VERSION,
     CompareRequest,
     ComparisonResult,
     GraphEdge,
     GraphNode,
+    GraphNodeType,
     MigrationManifest,
     MigrationMember,
     MigrationStep,
@@ -33,6 +34,12 @@ from shared_contracts.records import (
     SymbolObservationFact,
     SymbolQueryResult,
     SymbolQuerySymbol,
+)
+from shared_contracts.records import (
+    RelationshipType as RecordRelationshipType,
+)
+from shared_contracts.relationship_types import (
+    RelationshipType as CompatibilityRelationshipType,
 )
 from shared_contracts.schema import project_contract_schema, validate_project_contract
 from shared_contracts.snapshot_identity import canonical_json, compute_snapshot_identity
@@ -62,7 +69,8 @@ def test_graph_and_query_layers_reuse_the_shared_node_edge_and_query_models():
     assert QueryGraphNode is GraphNode
     assert QueryGraphEdge is GraphEdge
     assert QuerySymbolQueryResult is SymbolQueryResult
-    assert EdgeType is RelationshipType
+    assert RecordRelationshipType is RelationshipType is CompatibilityRelationshipType
+    assert GraphNodeType is CompatibilityGraphNodeType
 
     span = SourceSpan(
         repo_id="repo",
@@ -71,14 +79,14 @@ def test_graph_and_query_layers_reuse_the_shared_node_edge_and_query_models():
         start_line=4,
         end_line=7,
     )
-    code_node = ClassNode(
-        id="class-1",
-        name="Order",
+    code_node = SymbolObservationFact(
+        record_id="a" * 64,
         snapshot_id="snapshot-1",
-        owner_component_state_id="component-state-1",
-        component_key="catalog",
-        path="src/Order.java",
+        observation_id="observation-1",
+        kind="class",
+        name="Order",
         qualified_name="app.Order",
+        repo_id="repo",
         source_span=span,
     )
     edge = GraphEdge(
@@ -89,6 +97,7 @@ def test_graph_and_query_layers_reuse_the_shared_node_edge_and_query_models():
     )
 
     assert code_node.source_span is span
+    assert code_node.to_record_dict()["payload"]["observationId"] == "observation-1"
     assert edge.to_record() == {
         "id": "edge-1",
         "sourceId": "source-1",
@@ -96,6 +105,20 @@ def test_graph_and_query_layers_reuse_the_shared_node_edge_and_query_models():
         "relationshipType": "CALLS",
         "properties": {},
     }
+
+
+def test_graph_identity_helpers_keep_repository_and_signature_in_identity():
+    assert compute_file_id("snapshot", "legacy", "src\\Order.java") == compute_file_id(
+        "snapshot", "legacy", "src/Order.java"
+    )
+    assert compute_file_id("snapshot", "legacy", "src/Order.java") != compute_file_id(
+        "snapshot", "target", "src/Order.java"
+    )
+    assert compute_entity_id(
+        "snapshot", "repo", "src/Order.java", "method", "Order.save", "save(Order)"
+    ) != compute_entity_id(
+        "snapshot", "repo", "src/Order.java", "method", "Order.save", "save(Customer)"
+    )
 
 
 def test_source_span_rejects_non_relative_paths_and_invalid_ranges():

@@ -1,6 +1,7 @@
 """Run bootstrap and Graphify in the same active Python environment."""
 
 import argparse
+import hashlib
 import importlib.util
 import json
 import os
@@ -13,6 +14,7 @@ from collections.abc import Iterator
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path, PurePosixPath, PureWindowsPath
+from typing import Any
 
 PROJECT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = PROJECT_DIR.parent.parent
@@ -134,18 +136,19 @@ def write_relationship_handoff(
     *,
     graph_mode: str = "combined",
 ) -> RelationshipHandoffResult:
-    """Normalize Graphify outputs into entity and relationship JSONL for the graph loader."""
+    """Write per-repository CodeGraph roots, entity records, and relationships."""
     run.mkdir(parents=True, exist_ok=True)
     from migration_assistant.adapters.outbound.graphify_relationships import (
         normalize_graphify_facts,
         read_graphify,
         write_jsonl_records,
     )
-    from shared_contracts.records import SCHEMA_VERSION
+    from shared_contracts.records import SCHEMA_VERSION, CodeGraphFact
     from shared_contracts.snapshot_identity import compute_snapshot_identity
 
     source_revisions: dict[str, str] = {}
     selected_paths: dict[str, set[str]] = {}
+    source_line_counts: dict[tuple[str, str], int] = {}
     with sources_jsonl.open(encoding="utf-8") as handle:
         for line in handle:
             source = json.loads(line)
@@ -159,6 +162,9 @@ def write_relationship_handoff(
                     "Every source manifest row must include a repository-relative path"
                 )
             selected_paths.setdefault(repo_id, set()).add(path)
+            content = source.get("content")
+            if isinstance(content, str):
+                source_line_counts[(repo_id, path)] = len(content.splitlines())
     if not source_revisions:
         raise ValueError("Cannot create relationship handoff from an empty source manifest")
     if not graph_paths:
@@ -208,19 +214,63 @@ def write_relationship_handoff(
     all_relationships = {}
     issues = []
     for graph_path in graph_paths:
+        default_repo_id = None
+        if graph_mode == "per-component":
+            default_repo_id = graph_path.parent.parent.name
+        elif len(source_revisions) == 1:
+            default_repo_id = next(iter(source_revisions))
         entities, result = normalize_graphify_facts(
             read_graphify(graph_path),
             snapshot_id=snapshot_id,
             source_revisions=source_revisions,
+            source_line_counts=source_line_counts,
+            default_repo_id=default_repo_id,
         )
         all_entities.update({fact.record_id: fact for fact in entities})
         all_relationships.update({fact.record_id: fact for fact in result.facts})
         issues.extend(result.issues)
 
+    members_by_repo: dict[str, list[Any]] = {repo_id: [] for repo_id in source_revisions}
+    for fact in all_entities.values():
+        if fact.record_type == "SymbolObservation":
+            repo_id = fact.source_span.repo_id
+        elif fact.record_type == "UnresolvedSymbolObservation":
+            repo_id = fact.repo_id
+        else:
+            continue
+        if repo_id in members_by_repo:
+            members_by_repo[repo_id].append(fact)
+
+    extractor_version = ",".join(sorted(extractor_versions))
+    code_graphs = []
+    for repo_id, commit_sha in sorted(source_revisions.items()):
+        members = sorted(members_by_repo[repo_id], key=lambda fact: fact.observation_id)
+        member_ids = [fact.observation_id for fact in members]
+        file_ids = [fact.observation_id for fact in members if fact.kind == "file"]
+        record_id = hashlib.sha256(
+            json.dumps(
+                [snapshot_id, "CodeGraph", repo_id, commit_sha],
+                ensure_ascii=False,
+                separators=(",", ":"),
+            ).encode("utf-8")
+        ).hexdigest()
+        code_graphs.append(
+            CodeGraphFact(
+                record_id=record_id,
+                snapshot_id=snapshot_id,
+                repo_id=repo_id,
+                commit_sha=commit_sha,
+                member_observation_ids=member_ids,
+                file_observation_ids=file_ids,
+                extractor_version=extractor_version,
+            )
+        )
+
     write_jsonl_records(
         sorted(all_entities.values(), key=lambda fact: fact.record_id),
         run / "entities.jsonl",
     )
+    write_jsonl_records(code_graphs, run / "code-graphs.jsonl")
     write_jsonl_records(
         sorted(all_relationships.values(), key=lambda fact: fact.record_id),
         run / "relationships.jsonl",

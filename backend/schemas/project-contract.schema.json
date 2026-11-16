@@ -21,6 +21,90 @@
       "title": "Chunker",
       "type": "object"
     },
+    "CodeGraphPayload": {
+      "additionalProperties": false,
+      "description": "Root of the code subgraph extracted from one pinned repository.",
+      "properties": {
+        "repoId": {
+          "minLength": 1,
+          "title": "Repoid",
+          "type": "string"
+        },
+        "commitSha": {
+          "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$",
+          "title": "Commitsha",
+          "type": "string"
+        },
+        "memberObservationIds": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Memberobservationids",
+          "type": "array"
+        },
+        "fileObservationIds": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Fileobservationids",
+          "type": "array"
+        },
+        "extractor": {
+          "$ref": "#/$defs/Extractor"
+        }
+      },
+      "required": [
+        "repoId",
+        "commitSha",
+        "extractor"
+      ],
+      "title": "CodeGraphPayload",
+      "type": "object"
+    },
+    "CodeGraphRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "schemaVersion": {
+          "const": "1.0.0",
+          "title": "Schemaversion",
+          "type": "string"
+        },
+        "recordType": {
+          "const": "CodeGraph",
+          "title": "Recordtype",
+          "type": "string"
+        },
+        "recordId": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Recordid",
+          "type": "string"
+        },
+        "snapshotId": {
+          "minLength": 1,
+          "title": "Snapshotid",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/CodeGraphPayload"
+        },
+        "evidenceReferences": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidencereferences",
+          "type": "array"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "recordType",
+        "recordId",
+        "snapshotId",
+        "payload"
+      ],
+      "title": "CodeGraphRecord",
+      "type": "object"
+    },
     "CompareRequest": {
       "additionalProperties": false,
       "description": "Pinned comparison request shape from the architecture's MCP contract.",
@@ -594,7 +678,15 @@
           "type": "string"
         },
         "relationshipType": {
-          "$ref": "#/$defs/RelationshipType"
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RelationshipType"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Relationshiptype"
         },
         "sourceId": {
           "minLength": 1,
@@ -623,7 +715,7 @@
     },
     "GraphNode": {
       "additionalProperties": false,
-      "description": "Serialized graph node envelope shared by #21 and #23.",
+      "description": "Serialized graph node envelope shared by persistence and query layers.",
       "properties": {
         "id": {
           "minLength": 1,
@@ -667,6 +759,7 @@
                   "CodeEntity",
                   "Enum",
                   "Field",
+                  "File",
                   "Function",
                   "Interface",
                   "Method",
@@ -697,7 +790,7 @@
       ]
     },
     "GraphNodeType": {
-      "description": "Combined node taxonomy from the graph schema and architecture contract.",
+      "description": "Node labels used by graph query and persistence DTOs.",
       "enum": [
         "Project",
         "Snapshot",
@@ -926,7 +1019,15 @@
       "additionalProperties": false,
       "properties": {
         "relationshipType": {
-          "$ref": "#/$defs/RelationshipType"
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RelationshipType"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Relationshiptype"
         },
         "sourceObservationId": {
           "minLength": 1,
@@ -957,6 +1058,43 @@
         },
         "extractor": {
           "$ref": "#/$defs/Extractor"
+        },
+        "sourceEdgeId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sourceedgeid"
+        },
+        "originalRelationshipType": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Originalrelationshiptype"
+        },
+        "originalEdge": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Originaledge"
         }
       },
       "required": [
@@ -1017,7 +1155,7 @@
       "type": "object"
     },
     "RelationshipType": {
-      "description": "The single canonical relationship dictionary used across graph layers.",
+      "description": "Known relationship names; unrecognized names remain valid raw strings.",
       "enum": [
         "HAS_SNAPSHOT",
         "HAS_BASELINE",
@@ -1413,6 +1551,118 @@
       "title": "SymbolQuerySymbol",
       "type": "object"
     },
+    "UnresolvedSymbolObservationPayload": {
+      "additionalProperties": false,
+      "description": "A graph endpoint with no verified source span.",
+      "properties": {
+        "observationId": {
+          "minLength": 1,
+          "title": "Observationid",
+          "type": "string"
+        },
+        "kind": {
+          "minLength": 1,
+          "title": "Kind",
+          "type": "string"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "qualifiedName": {
+          "minLength": 1,
+          "title": "Qualifiedname",
+          "type": "string"
+        },
+        "repoId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Repoid"
+        },
+        "sourceFile": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sourcefile"
+        },
+        "sourceStatus": {
+          "const": "unresolved",
+          "default": "unresolved",
+          "title": "Sourcestatus",
+          "type": "string"
+        },
+        "extractor": {
+          "$ref": "#/$defs/Extractor"
+        }
+      },
+      "required": [
+        "observationId",
+        "kind",
+        "name",
+        "qualifiedName",
+        "extractor"
+      ],
+      "title": "UnresolvedSymbolObservationPayload",
+      "type": "object"
+    },
+    "UnresolvedSymbolObservationRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "schemaVersion": {
+          "const": "1.0.0",
+          "title": "Schemaversion",
+          "type": "string"
+        },
+        "recordType": {
+          "const": "UnresolvedSymbolObservation",
+          "title": "Recordtype",
+          "type": "string"
+        },
+        "recordId": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Recordid",
+          "type": "string"
+        },
+        "snapshotId": {
+          "minLength": 1,
+          "title": "Snapshotid",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/UnresolvedSymbolObservationPayload"
+        },
+        "evidenceReferences": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidencereferences",
+          "type": "array"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "recordType",
+        "recordId",
+        "snapshotId",
+        "payload"
+      ],
+      "title": "UnresolvedSymbolObservationRecord",
+      "type": "object"
+    },
     "VectorDocumentPayload": {
       "additionalProperties": false,
       "properties": {
@@ -1551,6 +1801,12 @@
       "$ref": "#/$defs/ExternalSymbolObservationRecord"
     },
     {
+      "$ref": "#/$defs/UnresolvedSymbolObservationRecord"
+    },
+    {
+      "$ref": "#/$defs/CodeGraphRecord"
+    },
+    {
       "$ref": "#/$defs/RelationshipRecord"
     },
     {
@@ -1595,5 +1851,5 @@
   ],
   "title": "Migration Assistant project contract",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "description": "Shared contract for migration inputs, snapshot identities, ingestion facts, typed graph nodes and edges, query and comparison results, and source-grounded vector documents."
+  "description": "Shared contract for migration inputs, snapshot identities, ingestion records, graph query results, comparisons, and source-grounded vector documents."
 }

@@ -57,7 +57,14 @@ def test_pipeline_writes_graph_loader_handoff_with_resolvable_endpoints(tmp_path
     relationships = [
         json.loads(line) for line in (tmp_path / "run/relationships.jsonl").read_text().splitlines()
     ]
+    code_graphs = [
+        json.loads(line) for line in (tmp_path / "run/code-graphs.jsonl").read_text().splitlines()
+    ]
     entity_ids = {entity["payload"]["observationId"] for entity in entities}
+    assert len(code_graphs) == 1
+    assert code_graphs[0]["recordType"] == "CodeGraph"
+    assert set(code_graphs[0]["payload"]["memberObservationIds"]) == entity_ids
+    assert code_graphs[0]["payload"]["repoId"] == "repo"
     assert (entity_count, relationship_count) == (2, 1)
     assert all(rel["payload"]["sourceObservationId"] in entity_ids for rel in relationships)
     assert all(rel["payload"]["targetObservationId"] in entity_ids for rel in relationships)

@@ -10,14 +10,14 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
-from shared_contracts.node_types import GraphNodeType
 from shared_contracts.records import (
     GraphEdge,
     GraphNode,
+    GraphNodeType,
+    RelationshipType,
     SymbolQueryResult,
     SymbolQuerySymbol,
 )
-from shared_contracts.relationship_types import RelationshipType
 
 __all__ = [
     "ComponentMigrationStatus",
