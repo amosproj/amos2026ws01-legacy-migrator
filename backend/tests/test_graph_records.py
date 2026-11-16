@@ -19,7 +19,7 @@ def test_identity_helpers_retain_issue_21_hash_formulas():
     )
 
     entity_token = "snapshot:legacy:src/orders/Order.java:method:Order.save:save(Order)"
-    assert(
+    assert (
         compute_entity_id(
             "snapshot",
             "legacy",
