@@ -1,6 +1,8 @@
 """Configuration of the reference source (Issue #17)."""
 
+from collections.abc import Mapping
 from pathlib import Path
+from typing import Any
 
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
@@ -84,7 +86,7 @@ def load_config(path: str | Path) -> ReferenceSourceConfig:
         raise ConfigError("\n".join(problems)) from error
 
 
-def _describe(problem: dict, name: str) -> str:
+def _describe(problem: Mapping[str, Any], name: str) -> str:
     field = ".".join(str(part) for part in problem["loc"])
     if problem["type"] == "missing":
         return f"Missing field '{field}' in {name}"

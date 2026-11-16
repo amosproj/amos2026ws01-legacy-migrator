@@ -39,11 +39,31 @@ Start everything with one command:
 Both scripts wire the backend to the local Ollama server automatically; without
 Ollama the backend still runs and answers with a mock provider.
 
-## Tests
+## Tests and CI checks
+
+The GitHub Actions workflow (`.github/workflows/backend-tests.yml`) runs
+automatically on pull requests and pushes to `main` and `develop` when files in
+`backend/` or the workflow file change. It checks formatting, linting, types,
+both unit test suites, bytecode compilation, and API startup.
+
+Run the same checks from `backend/`:
 
 ```bash
 cd backend
-uv run pytest
+uv sync --locked
+uv run ruff check .
+uv run ruff format --check .
+uv run ty check
+uv run pytest tests -v
+uv run --directory code-ingestion-pipeline --project .. pytest tests -v
+uv run python -m compileall -q app code-ingestion-pipeline/src code-ingestion-pipeline/run_pipeline.py
+uv run python -c "
+from fastapi.testclient import TestClient
+from app.main import app
+with TestClient(app) as client:
+    r = client.get('/api/health')
+    assert r.status_code == 200, r.text
+"
 ```
 
 ## Configuration

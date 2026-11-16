@@ -139,15 +139,21 @@ or deleted; new runs use the subproject's own `.cache/`.
 
 ## Tests
 
-Install the loader's test dependencies, activate this project's environment, and run:
+Run the ingestion tests from `backend/code-ingestion-pipeline/` with `uv` (uses
+`backend/pyproject.toml`):
 
 ```bash
 # Working directory: backend/code-ingestion-pipeline/
-python -m pytest tests -q
+uv run --project .. pytest tests -q
 ```
 
-The subproject's `pyproject.toml` supplies the source import path and test configuration.
-Tests cover the reference loader using temporary local Git fixtures and need no GitHub
-connection. They do not build or execute downloaded source code. The backend web
-application should run its own tests separately rather than collect the entire backend.
-Windows/macOS execution remains unverified. SBOM work remains deferred.
+You can also run the tests with an active virtual environment:
+
+```bash
+# Working directory: backend/code-ingestion-pipeline/
+PYTHONPATH=src:. python -m pytest tests -q
+```
+
+The tests check the reference loader and Graphify relationship handoff with
+temporary local Git fixtures. They do not need a GitHub connection, and they do
+not build or run downloaded source code.

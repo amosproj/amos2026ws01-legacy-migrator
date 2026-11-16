@@ -1,0 +1,71 @@
+name: Backend checks
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-tests.yml"
+  pull_request:
+    branches:
+      - main
+      - develop
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-tests.yml"
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: backend
+
+jobs:
+  test:
+    name: Python 3.12
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "backend/uv.lock"
+
+      - name: Set up Python 3.12
+        run: uv python install 3.12
+
+      - name: Install dependencies
+        run: uv sync --locked
+
+      - name: Lint and check formatting
+        run: |
+          uv run ruff check .
+          uv run ruff format --check .
+
+      - name: Typecheck
+        run: uv run ty check
+
+      - name: Run query API unit tests
+        run: uv run pytest tests -v
+
+      - name: Run code ingestion pipeline unit tests
+        working-directory: backend/code-ingestion-pipeline
+        run: uv run --project .. pytest tests -v
+
+      - name: Validate bytecode compilation and API startup
+        run: |
+          uv run python -m compileall -q app code-ingestion-pipeline/src code-ingestion-pipeline/run_pipeline.py
+          uv run python -c "
+          from fastapi.testclient import TestClient
+          from app.main import app
+          with TestClient(app) as client:
+              r = client.get('/api/health')
+              assert r.status_code == 200, r.text
+          "
