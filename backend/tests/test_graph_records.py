@@ -19,14 +19,18 @@ def test_identity_helpers_retain_issue_21_hash_formulas():
     )
 
     entity_token = "snapshot:legacy:src/orders/Order.java:method:Order.save:save(Order)"
-    assert compute_entity_id(
-        "snapshot",
-        "legacy",
-        "src/orders/Order.java",
-        "method",
-        "Order.save",
-        "save(Order)",
-    ) == hashlib.sha256(entity_token.encode("utf-8")).hexdigest()
+    assert( 
+        compute_entity_id(
+            "snapshot",
+            "legacy",
+            "src/orders/Order.java",
+            "method",
+            "Order.save",
+            "save(Order)",
+        )
+        == hashlib.sha256(entity_token.encode("utf-8")).hexdigest()
+    )
+
 
 
 def test_file_and_entity_identity_is_scoped_to_repository_and_signature():

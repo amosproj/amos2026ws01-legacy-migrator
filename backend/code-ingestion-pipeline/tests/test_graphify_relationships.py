@@ -112,8 +112,7 @@ def test_missing_and_ambiguous_endpoints_are_reported_without_facts():
     assert result.facts == []
     assert {issue.code for issue in result.issues} == {"unresolved_source", "unresolved_target"}
     assert all(
-        issue.raw_edge.get("id") in {"missing-edge", "unknown-edge"}
-        for issue in result.issues
+        issue.raw_edge.get("id") in {"missing-edge", "unknown-edge"} for issue in result.issues
     )
 
 
