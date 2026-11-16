@@ -92,9 +92,9 @@ classDiagram
     class MarkdownFile
     class DocChunk
     class MigrationStatus
-    Snapshot --> ExtractionRun : recorded_by
-    Snapshot --> SymbolObservation : scopes
-    Module --> File : CONTAINS
+    Snapshot --> ExtractionRun : RECORDED_BY
+    Snapshot --> SymbolObservation : SCOPES
+    Module --> File : HAS_FILE
     File --> SymbolObservation : DECLARES
     Commit --> File : CHANGED
     SymbolObservation --> SymbolObservation : CALLS
@@ -102,10 +102,12 @@ classDiagram
     Module --> BoundedContext : IMPLEMENTS
     Module --> Interface : PROVIDES
     Actor --> Interface : USES
-    ExternalSystem --> Interface : USES_or_PROVIDES
-    DeploymentNode --> Module : HOSTS_instance
-    DeploymentNode --> SymbolObservation : STORES_table
-    Module --> MessagingRoute : PUBLISHES_or_SUBSCRIBES
+    ExternalSystem --> Interface : USES
+    ExternalSystem --> Interface : PROVIDES
+    DeploymentNode --> Module : HOSTS
+    DeploymentNode --> SymbolObservation : STORES
+    Module --> MessagingRoute : PUBLISHES
+    Module --> MessagingRoute : SUBSCRIBES
     DeploymentNode --> DeploymentNode : CHILD_OF
     ConfluencePage --> DocChunk : HAS_CHUNK
     MarkdownFile --> DocChunk : HAS_CHUNK
@@ -123,11 +125,11 @@ classDiagram
 
 ```
 
-The diagram is a vocabulary overview, not an exhaustive cardinality or physical AGE DDL specification. Full relationship rules:
+The diagram is a vocabulary overview, not an exhaustive cardinality or physical AGE DDL specification. Canonical relationship names are defined once by `backend/shared_contracts/relationship_types.py` and exported in `backend/schemas/project-contract.schema.json`. Full relationship rules:
 
 | Area | Required target semantics | MVP activation |
 |---|---|---|
-| Source | Module CONTAINS File; File DECLARES SymbolObservation; Commit CHANGED File; supported symbol CALLS observations. | Module/file/symbol observations and commit changes where supported; missing call resolution is reported. |
+| Source | Module HAS_FILE File; File DECLARES SymbolObservation; Commit CHANGED File; supported symbol CALLS observations. | Module/file/symbol observations and commit changes where supported; missing call resolution is reported. |
 | Correspondence | SAME_ENTITY_AS carries method, state and evidence. | Explicit user selection or configured accepted mapping is sufficient; name-based proposals cannot establish identity. |
 | Architecture | Actor, ExternalSystem, Interface, BoundedContext, DeploymentNode, MessagingRoute; USES, PROVIDES, IMPLEMENTS, HOSTS with instance metadata, STORES, PUBLISHES/SUBSCRIBES and CHILD_OF. | Retained vocabulary; populate only from available evidence, not inferred from the chat deployment. |
 | Documentation | JiraIssue, ConfluencePage, MarkdownFile, DocChunk; HAS_CHUNK, EMBEDS_ISSUE, CHILD_OF, REFERENCES_ISSUE, MENTIONS, DOCUMENTS and AFFECTS. | Deferred integration; no Jira/Confluence input required for Git comparison. |

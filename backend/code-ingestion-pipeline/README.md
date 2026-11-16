@@ -99,9 +99,10 @@ run folder on each invocation:
   sources.jsonl
   bootstrap.log
   sources/<repoId>/<original-path>
-  entities.jsonl            # canonical SymbolObservation facts
+  code-graphs.jsonl          # one CodeGraph root per pinned repository
+  entities.jsonl            # source-backed, external, and unresolved observations
   relationships.jsonl       # canonical Relationship facts for the graph loader
-  relationship-issues.jsonl # unresolved/unsupported Graphify links, when present
+  relationship-issues.jsonl # unresolvable Graphify links, including raw edge data
   graphs/combined/                     # or graphs/<repoId>/
     extract.log
     cluster.log
@@ -119,20 +120,31 @@ must be Git-ignored. Graphify does not modify reference checkouts.
 
 ## Canonical relationship handoff
 
-`run_pipeline.py` now adapts each Graphify `graph.json` into a pair of canonical
-JSONL files in the run folder. `entities.jsonl` contains snapshot-scoped
-`SymbolObservation` facts; `relationships.jsonl` contains `Relationship` facts
-whose source and target IDs refer to those observations. Both include extractor
-provenance and revision-pinned source evidence. These files are the structured
-handoff for the graph loader.
+`run_pipeline.py` adapts Graphify output into canonical JSONL in the run folder.
+`code-graphs.jsonl` contains one root per pinned repository, with its member and
+file observation IDs. `entities.jsonl` contains `SymbolObservation`,
+`ExternalSymbolObservation`, and `UnresolvedSymbolObservation` records;
+`relationships.jsonl` contains `Relationship` records that connect observations
+across component roots. The project contract is defined once in
+`../schemas/project-contract.schema.json` and its Python models live in
+`../shared_contracts/`. It covers snapshot identities, facts, graph nodes and
+fact records, typed graph query results, and vector documents. Each run also writes
+`snapshot-identity.json` with the source, extractor, configuration, and analysis
+digests used for its `snapshotId`. The handoff result exposes the same value as
+`snapshot_id` to later pipeline functions while retaining count unpacking for
+the existing CLI.
+Regenerate the schema with `python -m shared_contracts.schema` from `backend/`.
 
 The adapter reads Graphify's native `nodes`/`links` schema (and the older
-`nodes`/`edges` shape for fixtures), mapping `calls`, `inherits`, `implements`,
-`references`, imports, and dependencies to `CALLS`, `INHERITS`, or `REFERENCES`.
-Unknown, ambiguous, external, and unresolved endpoints are written to
-`relationship-issues.jsonl` and never published as dangling edges. The adapter
-is independent of Graphify installation in tests; mock graph JSON uses the same
-normalization seam.
+`nodes`/`edges` shape for fixtures). Raw Graphify labels are normalized into the
+single `RelationshipType` enum shared with graph persistence and query models:
+for example, `inherits` becomes `EXTENDS`, `method` becomes `DECLARES_MEMBER`,
+`imports` becomes `IMPORTS`, and `uses` remains `USES`. `contains` is classified
+only when endpoint kinds give a clear meaning. Unmapped labels such as `case_of`
+remain unchanged, with their original edge payload, ID, and extractor provenance
+in the relationship record. Nodes without verified source locations remain
+explicit unresolved observations. Edges without resolvable endpoints are reported
+with their raw payload in `relationship-issues.jsonl`.
 
 Old environments and cached outputs elsewhere in the repository have not been moved
 or deleted; new runs use the subproject's own `.cache/`.

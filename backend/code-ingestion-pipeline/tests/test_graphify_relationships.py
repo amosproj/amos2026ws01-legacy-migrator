@@ -9,6 +9,7 @@ from migration_assistant.adapters.outbound.graphify_relationships import (
     normalize_graphify_file,
     read_graphify,
 )
+from shared_contracts.relationship_types import RelationshipType
 
 
 def observation(observation_id: str, name: str, path: str, kind: str = "class"):
@@ -110,21 +111,47 @@ def test_missing_and_ambiguous_endpoints_are_reported_without_facts():
 
     assert result.facts == []
     assert {issue.code for issue in result.issues} == {"unresolved_source", "unresolved_target"}
+    assert all(
+        issue.raw_edge.get("id") in {"missing-edge", "unknown-edge"} for issue in result.issues
+    )
 
 
-def test_unsupported_types_and_invalid_payload_are_explicit():
+def test_unknown_relationship_types_are_preserved_with_raw_provenance():
     entities = CanonicalEntityIndex([observation("one", "Order", "src/Order.java")])
     result = normalize_graphify(
         {
             "nodes": [{"id": "n", "observationId": "one"}],
-            "edges": [{"id": "edge", "source": "n", "target": "n", "type": "same_entity_as"}],
+            "edges": [
+                {
+                    "id": "edge",
+                    "source": "n",
+                    "target": "n",
+                    "type": "unknown_link",
+                    "sourceSpan": {
+                        "repoId": "repo",
+                        "commitSha": "a" * 40,
+                        "path": "src/Order.java",
+                        "startLine": 5,
+                        "endLine": 5,
+                    },
+                }
+            ],
         },
         entities,
         snapshot_id="snapshot",
     )
 
-    assert result.facts == []
-    assert result.issues[0].code == "unsupported_type"
+    assert result.facts[0].relationship_type == "unknown_link"
+    assert result.facts[0].to_record_dict()["payload"]["originalEdge"]["id"] == "edge"
+    assert result.issues == []
+
+    missing_type = normalize_graphify(
+        {"nodes": [{"id": "n", "observationId": "one"}], "edges": [{"source": "n"}]},
+        entities,
+        snapshot_id="snapshot",
+    )
+    assert missing_type.issues[0].code == "unsupported_type"
+    assert missing_type.issues[0].raw_edge == {"source": "n"}
     with pytest.raises(ValueError, match="list-valued"):
         normalize_graphify({"nodes": [], "edges": {}}, entities, snapshot_id="snapshot")
 
@@ -238,13 +265,115 @@ def test_native_graphify_links_produce_entities_and_valid_relationships():
         extractor_version="0.9.100",
     )
 
-    assert len(entities) == 2
-    assert {entity.record_type for entity in entities} == {"SymbolObservation"}
-    assert len(result.facts) == 1
-    fact = result.facts[0]
+    assert len(entities) == 3
+    assert {entity.record_type for entity in entities} == {
+        "SymbolObservation",
+        "ExternalSymbolObservation",
+    }
+    assert {fact.relationship_type for fact in result.facts} == {"CALLS", "REFERENCES"}
+    fact = next(fact for fact in result.facts if fact.relationship_type == "CALLS")
     entity_ids = {entity.observation_id for entity in entities}
     assert fact.source_observation_id in entity_ids
-    assert fact.target_observation_id in entity_ids
     assert fact.relationship_type == "CALLS"
     assert fact.source_span.commit_sha == revision
-    assert result.issues[0].code == "unresolved_target"
+    assert all(fact.target_observation_id in entity_ids for fact in result.facts)
+    assert result.issues == []
+
+
+def test_component_facts_include_file_spans_and_unresolved_endpoints():
+    entities, result = normalize_graphify_facts(
+        {
+            "nodes": [
+                {
+                    "id": "file",
+                    "type": "file",
+                    "label": "src/Order.java",
+                    "source_file": "repo/src/Order.java",
+                },
+                {
+                    "id": "class",
+                    "type": "class",
+                    "label": "Order",
+                    "source_file": "repo/src/Order.java",
+                    "source_location": "L2-L8",
+                },
+                {"id": "missing", "type": "class", "label": "Missing"},
+            ],
+            "links": [
+                {
+                    "id": "uses-missing",
+                    "source": "class",
+                    "target": "missing",
+                    "relation": "uses",
+                    "source_file": "repo/src/Order.java",
+                    "source_location": "L4",
+                }
+            ],
+        },
+        snapshot_id="snapshot-1",
+        source_revisions={"repo": "f" * 40},
+        source_line_counts={("repo", "src/Order.java"): 8},
+        default_repo_id="repo",
+    )
+
+    by_name = {entity.name: entity for entity in entities}
+    assert by_name["src/Order.java"].kind == "file"
+    assert by_name["src/Order.java"].source_span.start_line == 1
+    assert by_name["src/Order.java"].source_span.end_line == 8
+    unresolved = by_name["Missing"].to_record_dict()
+    assert unresolved["recordType"] == "UnresolvedSymbolObservation"
+    assert unresolved["payload"]["sourceStatus"] == "unresolved"
+    assert unresolved["payload"]["repoId"] == "repo"
+    assert len(result.facts) == 1
+    assert result.facts[0].target_observation_id == by_name["Missing"].observation_id
+    assert result.facts[0].relationship_type == RelationshipType.USES
+
+
+@pytest.mark.parametrize(
+    ("raw_type", "target_kind", "expected"),
+    [
+        ("calls", "method", RelationshipType.CALLS),
+        ("inherits", "class", RelationshipType.EXTENDS),
+        ("implements", "interface", RelationshipType.IMPLEMENTS),
+        ("imports", "class", RelationshipType.IMPORTS),
+        ("method", "method", RelationshipType.DECLARES_MEMBER),
+        ("contains", "method", RelationshipType.DECLARES_MEMBER),
+        ("contains", "class", RelationshipType.CONTAINS_TYPE),
+        ("uses", "class", RelationshipType.USES),
+        ("same_entity_as", "class", RelationshipType.SAME_ENTITY_AS),
+    ],
+)
+def test_known_graphify_relationship_labels_use_the_shared_dictionary(
+    raw_type, target_kind, expected
+):
+    source = observation("source", "Order", "src/Order.java")
+    target = observation("target", "Other", "src/Other.java", kind=target_kind)
+    result = normalize_graphify(
+        {
+            "nodes": [
+                {"id": "source", "observationId": source.observation_id, "type": "class"},
+                {"id": "target", "observationId": target.observation_id, "type": target_kind},
+            ],
+            "edges": [
+                {
+                    "source": "source",
+                    "target": "target",
+                    "type": raw_type,
+                    "sourceSpan": {
+                        "repoId": "repo",
+                        "commitSha": "a" * 40,
+                        "path": "src/Order.java",
+                        "startLine": 8,
+                        "endLine": 8,
+                    },
+                }
+            ],
+        },
+        CanonicalEntityIndex([source, target]),
+        snapshot_id="snapshot",
+    )
+
+    assert result.issues == []
+    assert len(result.facts) == 1
+    assert result.facts[0].relationship_type is expected
+    assert result.facts[0].to_record_dict()["payload"]["relationshipType"] == expected.value
