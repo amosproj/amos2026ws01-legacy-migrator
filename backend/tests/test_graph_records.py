@@ -32,7 +32,6 @@ def test_identity_helpers_retain_issue_21_hash_formulas():
     )
 
 
-
 def test_file_and_entity_identity_is_scoped_to_repository_and_signature():
     assert compute_file_id("snapshot", "legacy", "src/Order.java") != compute_file_id(
         "snapshot", "target", "src/Order.java"
