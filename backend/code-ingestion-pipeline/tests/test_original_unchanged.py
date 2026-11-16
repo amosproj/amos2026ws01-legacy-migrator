@@ -4,6 +4,7 @@ import subprocess
 from pathlib import Path
 
 from conftest import git, tree_hashes
+
 from migration_assistant.adapters.outbound.git.local_git import LocalGitAdapter
 from migration_assistant.adapters.outbound.git.source_loader import load_sources
 

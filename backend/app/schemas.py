@@ -10,6 +10,21 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
+from .contracts import GraphNodeType, RelationshipType, SourceSpan, SymbolQueryResult
+
+__all__ = [
+    "ChatRequest",
+    "DiffFile",
+    "DiffRequest",
+    "DiffResponse",
+    "GraphNodeType",
+    "HealthResponse",
+    "RelationshipType",
+    "Repository",
+    "SourceSpan",
+    "SymbolQueryResult",
+]
+
 QueryText = Annotated[str, Field(min_length=1, max_length=32_000)]
 
 

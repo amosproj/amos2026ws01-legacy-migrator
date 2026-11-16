@@ -1,6 +1,7 @@
 """Optional integration test against the real local copy of the reference source.
 
-Run with: REFERENCE_SOURCE=<path to legacy-example-stages> pytest tests/test_real_reference_source.py
+Run with:
+    REFERENCE_SOURCE=<path to legacy-example-stages> pytest tests/test_real_reference_source.py
 """
 
 import os

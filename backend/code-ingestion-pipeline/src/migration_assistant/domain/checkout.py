@@ -34,9 +34,7 @@ class SubmoduleError(CheckoutError):
 
 
 class _Model(BaseModel):
-    model_config = ConfigDict(
-        frozen=True, alias_generator=to_camel, populate_by_name=True
-    )
+    model_config = ConfigDict(frozen=True, alias_generator=to_camel, populate_by_name=True)
 
 
 class ComponentCheckout(_Model):

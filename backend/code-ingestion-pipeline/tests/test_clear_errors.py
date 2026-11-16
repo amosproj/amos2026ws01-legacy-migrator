@@ -22,7 +22,9 @@ def test_unknown_stage(reference):
 
 
 def test_component_not_in_stage(reference):
-    with pytest.raises(ComponentNotInStageError, match="'catalog-service' is not in stage 'step-00'"):
+    with pytest.raises(
+        ComponentNotInStageError, match="'catalog-service' is not in stage 'step-00'"
+    ):
         LocalGitAdapter().checkout(reference.config(components=["catalog-service"]))
 
 
@@ -33,7 +35,13 @@ def test_source_not_found(reference, tmp_path):
 
 @pytest.mark.parametrize(
     "source",
-    ["http://github.com/x/y", "ssh://git@github.com/x/y", "file:///tmp/x", "ext::sh -c id", "https://user:secret@github.com/x/y"],
+    [
+        "http://github.com/x/y",
+        "ssh://git@github.com/x/y",
+        "file:///tmp/x",
+        "ext::sh -c id",
+        "https://user:secret@github.com/x/y",
+    ],
 )
 def test_unsupported_source_urls_are_refused(reference, source):
     with pytest.raises((SourceNotFoundError,)):
@@ -82,7 +90,9 @@ def test_workspace_from_another_source_is_not_reused(reference, monkeypatch):
 
     with pytest.raises(CheckoutError, match="created from a different source"):
         LocalGitAdapter().checkout(
-            reference.config(source="https://github.com/legacy-modernization-example/legacy-example-stages")
+            reference.config(
+                source="https://github.com/legacy-modernization-example/legacy-example-stages"
+            )
         )
     assert commands == []
 

@@ -86,7 +86,9 @@ def _run(args: argparse.Namespace) -> None:
         print(f"output: {args.out}")
 
 
-def _with_overrides(config: ReferenceSourceConfig, args: argparse.Namespace) -> ReferenceSourceConfig:
+def _with_overrides(
+    config: ReferenceSourceConfig, args: argparse.Namespace
+) -> ReferenceSourceConfig:
     overrides = {}
     if args.stage is not None:
         overrides["stage"] = args.stage
@@ -98,7 +100,8 @@ def _with_overrides(config: ReferenceSourceConfig, args: argparse.Namespace) -> 
         return ReferenceSourceConfig.model_validate({**config.model_dump(), **overrides})
     except ValidationError as error:
         problems = [
-            f"Invalid value for option '{'.'.join(str(p) for p in problem['loc'])}': {problem['msg']}"
+            f"Invalid value for option '{'.'.join(str(p) for p in problem['loc'])}': "
+            f"{problem['msg']}"
             for problem in error.errors()
         ]
         raise ConfigError("\n".join(problems)) from error
