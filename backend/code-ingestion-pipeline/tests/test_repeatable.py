@@ -56,7 +56,8 @@ def test_all_components_follow_the_selected_stage_in_the_same_workspace(referenc
         "legacy-example-catalog-service": reference.origin.sha_catalog_step_04a,
     }
     assert {file.repo_id for file in later.files} == {
-        "legacy-example-monolith", "legacy-example-catalog-service",
+        "legacy-example-monolith",
+        "legacy-example-catalog-service",
     }
     assert later == _run(config)
 

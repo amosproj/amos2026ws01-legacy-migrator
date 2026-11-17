@@ -1,0 +1,2 @@
+{"repoId": "repo-a", "commitSha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "path": "src/Order.java", "content": "package example;\nclass Order {\n  void run() {\n    external();\n  }\n}\n"}
+{"repoId": "repo-b", "commitSha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "path": "src/Other.java", "content": "class Other {}\n"}

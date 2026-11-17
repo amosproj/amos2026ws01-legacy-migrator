@@ -3,6 +3,7 @@
 import logging
 from pathlib import Path
 
+from migration_assistant.application.diagnostics import capture_diagnostics
 from migration_assistant.domain.checkout import ComponentCheckout
 from migration_assistant.domain.pipeline import PipelineError
 from migration_assistant.domain.sources import SourceFile
@@ -12,6 +13,16 @@ logger = logging.getLogger(__name__)
 
 class GraphifyAdapter:
     def build(
+        self, member: ComponentCheckout, files: list[SourceFile], root: Path, output: Path
+    ) -> Path:
+        output.mkdir(parents=True, exist_ok=True)
+        with (
+            (output / "extract.log").open("w", encoding="utf-8") as log,
+            capture_diagnostics(log),
+        ):
+            return self._build(member, files, root, output)
+
+    def _build(
         self, member: ComponentCheckout, files: list[SourceFile], root: Path, output: Path
     ) -> Path:
         try:
@@ -25,16 +36,14 @@ class GraphifyAdapter:
             ) from error
 
         component_root = member.local_path.resolve()
-        root = root.resolve()
-        paths = []
-        source_paths = {}
-        for file in files:
-            path = (component_root / file.path).resolve()
-            paths.append(path)
-            source_paths[path.relative_to(root).as_posix()] = f"{member.repo_id}/{file.path}"
+        # Develop's per-component runner scans each reconstructed component as
+        # its own root. Preserve those relative paths and Graphify node IDs
+        # when reading the selected files directly from the checkout instead.
+        # Do not prepend repo_id: that would change the canonical handoff.
+        paths = [(component_root / file.path).resolve() for file in files]
         artifacts = output / "graphify-out"
         artifacts.mkdir(parents=True, exist_ok=True)
-        extraction = extract(paths, root=root, cache_root=output)
+        extraction = extract(paths, root=component_root, cache_root=output)
         if extraction.get("failed_sources"):
             # Graphify also reports unsupported grammars and empty parses here.
             # Keep the extracted portion, matching its code-only CLI behavior.
@@ -43,16 +52,10 @@ class GraphifyAdapter:
                 member.repo_id,
                 extraction["failed_sources"],
             )
-        for record in extraction["nodes"] + extraction["edges"]:
-            for field in ("source_file", "definition_file"):
-                value = record.get(field)
-                if value:
-                    path = Path(value)
-                    if path.is_absolute() and path.is_relative_to(root):
-                        value = path.relative_to(root).as_posix()
-                    record[field] = source_paths.get(str(value).replace("\\", "/"), value)
-
-        graph = build_from_json(extraction, directed=True, dedup=False)
+        # Use the same graph-building defaults as develop's cluster-only load;
+        # original_links below retains parallel edges and their direction even
+        # though community calculation and report generation are omitted.
+        graph = build_from_json(extraction, directed=bool(extraction.get("directed", False)))
         # Optional: call graphify.cluster.cluster and label_communities_by_hub
         # here, then pass their communities/labels to both exporters below.
         # graphify.cluster.score_all, graphify.analyze and graphify.report.generate

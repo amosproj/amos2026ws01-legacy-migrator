@@ -92,8 +92,17 @@ frontend does not display yet.
 | Port 8000 or 3000 already in use | Stop the other process, or set `PORT` |
 | Chat shows an error event instead of an answer | Ollama is not running or the model is missing |
 
-## Tests
+## Tests and quality checks
+
+Run all backend checks from `backend/`:
 
 ```bash
-uv run pytest
+cd backend
+uv sync --locked
+uv run ruff check .
+uv run ruff format --check .
+uv run ty check
+uv run pytest tests -v
+uv run --directory code-ingestion-pipeline --project .. pytest tests -v
+uv run python -m compileall -q app shared_contracts code-ingestion-pipeline/src
 ```

@@ -33,7 +33,10 @@ def main(argv=None) -> int:
     except (OSError, subprocess.CalledProcessError) as error:
         print(f"Setup failed: {error}", file=sys.stderr)
         return 1
-    print("Setup complete. Set PYTHONPATH=src, then run: python -m migration_assistant.bootstrap.cli")
+    print(
+        "Setup complete. Set PYTHONPATH to src and the backend directory, "
+        "then run: python -m migration_assistant.bootstrap.cli"
+    )
     return 0
 
 

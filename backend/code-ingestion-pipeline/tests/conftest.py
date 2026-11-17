@@ -1,16 +1,27 @@
 """Shared fixtures: a tiny fake reference setup built with real git."""
 
+from __future__ import annotations
+
 import hashlib
 import json
 import os
 import subprocess
+import sys
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 import yaml
 
-from migration_assistant.domain.reference_source import ReferenceSourceConfig, load_config
+PIPELINE_DIR = Path(__file__).resolve().parents[1]
+BACKEND_DIR = PIPELINE_DIR.parent
+for import_path in (BACKEND_DIR, PIPELINE_DIR / "src"):
+    if str(import_path) not in sys.path:
+        sys.path.insert(0, str(import_path))
+
+if TYPE_CHECKING:
+    from migration_assistant.domain.reference_source import ReferenceSourceConfig
 
 PUBLIC_URL = "https://example.test/org"
 INCLUDE = [".java", ".xml", ".properties", ".sql", ".conf", ".yaml", ".yml", ".sh", "Dockerfile"]
@@ -83,6 +94,8 @@ class Reference:
         return self.origin.umbrella
 
     def config(self, **overrides) -> ReferenceSourceConfig:
+        from migration_assistant.domain.reference_source import ReferenceSourceConfig, load_config
+
         base = load_config(self.config_path)
         return ReferenceSourceConfig.model_validate({**base.model_dump(), **overrides})
 
@@ -149,7 +162,8 @@ def origin(tmp_path_factory, git_environment) -> Origin:
     sha_00 = _commit(component, "step-00", "step-00")
 
     _write(
-        component, "src/Main.java",
+        component,
+        "src/Main.java",
         "class Main { int version = 4; void run() { helper(); } void helper() {} }\n",
     )
     _write(component, "src/Extra.java", "class Extra {}\n")
@@ -187,7 +201,9 @@ def origin(tmp_path_factory, git_environment) -> Origin:
     catalog = org / "legacy-example-catalog-service"
     catalog.mkdir()
     git(catalog, "init", "-q", "-b", "main")
-    _write(catalog, "src/Main.java", "class Catalog { void run() { helper(); } void helper() {} }\n")
+    _write(
+        catalog, "src/Main.java", "class Catalog { void run() { helper(); } void helper() {} }\n"
+    )
     catalog_sha = _commit(catalog, "step-04a", "step-04a")
     git(
         umbrella,
@@ -256,7 +272,10 @@ def pipeline_cli(monkeypatch, tmp_path):
         artifacts = output / "graphify-out"
         artifacts.mkdir(parents=True)
         graph = artifacts / "graph.json"
-        graph.write_text(json.dumps({"nodes": [], "links": []}), encoding="utf-8")
+        graph.write_text(
+            json.dumps({"graph": {"graphify_version": "0.9.100"}, "nodes": [], "links": []}),
+            encoding="utf-8",
+        )
         (artifacts / "graph.html").write_text("<html>test graph</html>", encoding="utf-8")
         return graph
 

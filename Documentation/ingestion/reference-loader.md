@@ -65,11 +65,11 @@ cache live there, separate from the backend web application.
    directly. Set the import path for bootstrap and Python loader usage:
 
    ```bash
-   export PYTHONPATH=src
+   export PYTHONPATH=src:..
    ```
 
    ```powershell
-   $env:PYTHONPATH = "src"
+   $env:PYTHONPATH = "src;.."
    ```
 
 All commands below run from `backend/code-ingestion-pipeline/` with its `.venv`
@@ -274,5 +274,5 @@ REFERENCE_SOURCE=/path/to/legacy-example-stages python -m pytest tests/test_real
 - A real clone from GitHub has not been tested yet. If the organisation is private, a plain clone needs git credentials already stored on the machine; credentials inside the URL are refused.
 - The relocated suite has been tested on Linux; Windows/macOS execution after the move remains unverified.
 - Read errors on files and folders are tested with simulated errors only.
-- The ingestion package has no build backend, so use `PYTHONPATH=src` instead of installing it with pip.
+- The ingestion package has no build backend. Set `PYTHONPATH` to both `src` and `..` so the shared backend contracts are importable.
 - The workspace is tied to one source. Switching `source` needs a new or emptied workspace folder.

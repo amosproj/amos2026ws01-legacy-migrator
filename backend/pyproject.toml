@@ -45,6 +45,7 @@ dependencies = [
 dev = [
     "pytest==9.1.1",
     "ruff==0.16.8",
+    "ty==0.0.104",
 ]
 
 [tool.ruff]
@@ -63,4 +64,21 @@ known-first-party = ["migration_assistant", "app"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = [".", "src"]
+pythonpath = [".", "src", "code-ingestion-pipeline", "code-ingestion-pipeline/src"]
+
+[tool.ty.environment]
+python-version = "3.12"
+extra-paths = [
+    ".",
+    "code-ingestion-pipeline",
+    "code-ingestion-pipeline/src",
+    "code-ingestion-pipeline/tests",
+]
+
+[tool.ty.src]
+include = [
+    "app",
+    "tests",
+    "code-ingestion-pipeline/src",
+    "code-ingestion-pipeline/setup.py",
+]

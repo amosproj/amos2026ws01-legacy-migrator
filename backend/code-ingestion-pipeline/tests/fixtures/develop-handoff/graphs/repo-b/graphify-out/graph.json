@@ -1,0 +1,27 @@
+{
+  "graph": {
+    "graphify_version": "0.9.100"
+  },
+  "nodes": [
+    {
+      "id": "file-b",
+      "type": "file",
+      "label": "Other.java",
+      "source_file": "repo-b/src/Other.java"
+    },
+    {
+      "id": "class-b",
+      "type": "class",
+      "label": "Other",
+      "source_file": "repo-b/src/Other.java"
+    }
+  ],
+  "links": [
+    {
+      "id": "no-evidence-b",
+      "source": "file-b",
+      "target": "class-b",
+      "relation": "contains"
+    }
+  ]
+}

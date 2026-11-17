@@ -68,26 +68,26 @@ def test_only_selected_original_paths_are_extracted(reference, tmp_path, graphif
     config = reference.config()
     checkout = LocalGitAdapter().checkout(config)
     loaded = load_sources(config, checkout)
-    member, = checkout.members
+    (member,) = checkout.members
     output = tmp_path / "graph"
 
     graph_path = GraphifyAdapter().build(member, loaded.files, checkout.workspace, output)
 
     paths, root, cache_root = calls["extract"]
     assert paths == [member.local_path / file.path for file in loaded.files]
-    assert root == checkout.workspace
+    assert root == member.local_path
     assert cache_root == output
-    assert calls["build"] == {"directed": True, "dedup": False}
+    assert calls["build"] == {"directed": False}
     assert calls["json"][0] == {}
     assert calls["json"][1]["built_at_commit"] == member.commit_sha
     assert calls["html"] == ({}, {"learning_overlay": {}})
     graph = json.loads(graph_path.read_text())
     assert len(graph["links"]) == 2  # Preserve parallel relationships.
-    assert all(node["source_file"].startswith(member.repo_id + "/") for node in graph["nodes"])
+    assert all(node["source_file"] == loaded.files[0].path for node in graph["nodes"])
     assert {path.name for path in graph_path.parent.iterdir()} == {"graph.json", "graph.html"}
 
 
-def test_same_relative_filename_in_different_components_keeps_repository_identity(
+def test_component_relative_paths_match_develop_without_repository_prefix(
     reference, tmp_path, graphify_api
 ):
     calls, _ = graphify_api
@@ -96,10 +96,11 @@ def test_same_relative_filename_in_different_components_keeps_repository_identit
     loaded = load_sources(config, checkout)
     for member in checkout.members:
         file = next(file for file in loaded.files if file.repo_id == member.repo_id)
-        # The adapter's mapping must depend on the component, not the basename.
+        # Keep develop's per-component path convention, including its known
+        # handoff repository-resolution issue for paths containing a slash.
         file = file.model_copy(update={"path": "src/Common.java"})
         GraphifyAdapter().build(member, [file], checkout.workspace, tmp_path / member.repo_id)
-        assert calls["extraction"]["nodes"][0]["source_file"] == f"{member.repo_id}/src/Common.java"
+        assert calls["extraction"]["nodes"][0]["source_file"] == "src/Common.java"
 
 
 def test_unparsed_sources_are_reported_without_discarding_extracted_graph(
@@ -120,6 +121,9 @@ def test_unparsed_sources_are_reported_without_discarding_extracted_graph(
     assert path.is_file()
     assert "pom.xml" in caplog.text
     assert "legacy-example-monolith" in caplog.text
+    log = (tmp_path / "graph" / "extract.log").read_text()
+    assert "pom.xml" in log
+    assert "legacy-example-monolith" in log
 
 
 def test_html_limit_failure_preserves_json(reference, tmp_path, graphify_api, capsys):
@@ -129,14 +133,15 @@ def test_html_limit_failure_preserves_json(reference, tmp_path, graphify_api, ca
         raise ValueError("Graph too large for HTML viz")
 
     modules["graphify.export"].to_html = too_large
-    code = cli.main([
-        "--config", str(reference.config_path), "--output-dir", str(tmp_path / "runs")
-    ])
+    code = cli.main(
+        ["--config", str(reference.config_path), "--output-dir", str(tmp_path / "runs")]
+    )
     assert code == 1
     assert "legacy-example-monolith" in capsys.readouterr().err
-    run, = (tmp_path / "runs").iterdir()
+    (run,) = (tmp_path / "runs").iterdir()
     graph = run / "graphs" / "legacy-example-monolith" / "graphify-out" / "graph.json"
     assert graph.is_file()
     assert not graph.with_name("graph.html").exists()
-
-
+    log = (graph.parent.parent / "extract.log").read_text()
+    assert "Traceback" in log
+    assert "Graph too large for HTML viz" in log

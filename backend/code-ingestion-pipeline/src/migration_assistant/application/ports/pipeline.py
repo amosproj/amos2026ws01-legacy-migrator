@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Protocol
 
 from migration_assistant.domain.checkout import CheckoutResult, ComponentCheckout
+from migration_assistant.domain.pipeline import RelationshipHandoffResult
 from migration_assistant.domain.reference_source import ReferenceSourceConfig
 from migration_assistant.domain.sources import LoadResult, SourceFile
 
@@ -20,8 +21,13 @@ class GraphBuilder(Protocol):
 
 class HandoffWriter(Protocol):
     def __call__(
-        self, graph_paths: list[Path], source_revisions: dict[str, str], run: Path
-    ) -> tuple[int, int]: ...
+        self,
+        graph_paths: list[Path],
+        sources_jsonl: Path,
+        run: Path,
+        *,
+        graph_mode: str = "combined",
+    ) -> RelationshipHandoffResult: ...
 
 
 class PipelineStorage(Protocol):

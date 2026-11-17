@@ -4,8 +4,8 @@ import builtins
 import json
 
 import pytest
-
 from conftest import git, tree_hashes
+
 from migration_assistant.adapters.outbound.git.local_git import LocalGitAdapter
 from migration_assistant.adapters.outbound.git.source_loader import load_sources
 from migration_assistant.adapters.outbound.graphify import GraphifyAdapter
@@ -27,10 +27,17 @@ def service(graph_builder):
 
 
 def test_cli_builds_separate_graphs_without_source_copies(reference, pipeline_cli, tmp_path):
-    code = cli.main([
-        "--config", str(reference.config_path), "--stage", "step-04a",
-        "--components", "monolith", "catalog-service",
-    ])
+    code = cli.main(
+        [
+            "--config",
+            str(reference.config_path),
+            "--stage",
+            "step-04a",
+            "--components",
+            "monolith",
+            "catalog-service",
+        ]
+    )
 
     assert code == 0
     assert len(pipeline_cli) == 2
@@ -40,9 +47,12 @@ def test_cli_builds_separate_graphs_without_source_copies(reference, pipeline_cl
         assert root == reference.workspace
         assert output.name == member.repo_id
         assert git(member.local_path, "status", "--porcelain") == ""
-    run, = (tmp_path / "runs").iterdir()
+    (run,) = (tmp_path / "runs").iterdir()
     assert not (run / "sources").exists()
-    assert not (run / "sources.jsonl").exists()
+    assert (run / "sources.jsonl").is_file()
+    assert (run / "bootstrap.log").is_file()
+    assert (run / "snapshot-identity.json").is_file()
+    assert (run / "code-graphs.jsonl").is_file()
     assert (run / "entities.jsonl").is_file()
     assert (run / "relationships.jsonl").is_file()
 
@@ -62,6 +72,9 @@ def test_component_without_loaded_files_is_skipped(reference, pipeline_cli, tmp_
     )
     assert list(result.graph_paths) == ["legacy-example-monolith"]
     assert len(pipeline_cli) == 1
+    identity = json.loads((result.run_directory / "snapshot-identity.json").read_text())
+    assert {member["repoId"] for member in identity["sourceMembers"]} == set(result.graph_paths)
+    assert result.snapshot_id == identity["snapshotId"]
 
 
 def test_cli_rejects_graph_mode():
@@ -85,7 +98,7 @@ def test_missing_graphify_is_a_component_error_with_partial_run(reference, tmp_p
     message = "component 'legacy-example-monolith'.*setup.py"
     with pytest.raises(PipelineError, match=message) as error:
         service(GraphifyAdapter()).run(config, tmp_path / "runs")
-    run, = (tmp_path / "runs").iterdir()
+    (run,) = (tmp_path / "runs").iterdir()
     assert str(run) in str(error.value)
 
 
@@ -122,18 +135,21 @@ def test_real_graphify_generates_only_minimal_artifacts_and_repeatable_facts(ref
         assert data["graph"]["graphify_version"] == "0.9.100"
         assert all(node.get("community") is None for node in data["nodes"])
         sources = {node["source_file"] for node in data["nodes"] if node.get("source_file")}
-        allowed = {
-            f"{file.repo_id}/{file.path}"
-            for file in first.load_result.files if file.repo_id == member.repo_id
-        }
+        allowed = {file.path for file in first.load_result.files if file.repo_id == member.repo_id}
         assert sources <= allowed
         assert sources
         assert {path.name for path in graph.parent.iterdir() if path.is_file()} == {
-            "graph.json", "graph.html"
+            "graph.json",
+            "graph.html",
         }
         assert (graph.parent / "cache").is_dir()
         assert (graph.parent / "graph.html").stat().st_size > 0
-    for name in ("entities.jsonl", "relationships.jsonl"):
+    for name in (
+        "entities.jsonl",
+        "relationships.jsonl",
+        "code-graphs.jsonl",
+        "snapshot-identity.json",
+    ):
         assert (first.run_directory / name).read_bytes() == (
             second.run_directory / name
         ).read_bytes()
@@ -148,6 +164,8 @@ def test_real_graphify_generates_only_minimal_artifacts_and_repeatable_facts(ref
     entity_ids = {record["payload"]["observationId"] for record in entities}
     revisions = {member.repo_id: member.commit_sha for member in first.load_result.checkout.members}
     for entity in entities:
+        if entity["recordType"] != "SymbolObservation":
+            continue
         span = entity["payload"]["sourceSpan"]
         assert span["commitSha"] == revisions[span["repoId"]]
         assert not span["path"].startswith("components/")

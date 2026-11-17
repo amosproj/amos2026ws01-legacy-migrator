@@ -18,6 +18,7 @@ from migration_assistant.domain.sources import SourceLoadError
 
 pytestmark = pytest.mark.usefixtures("pipeline_cli")
 
+
 def test_unknown_stage(reference):
     with pytest.raises(UnknownStageError, match="Unknown stage 'step-99'"):
         LocalGitAdapter().checkout(reference.config(stage="step-99"))
@@ -170,13 +171,13 @@ def test_cli_output_locations_are_developer_controlled(reference, capsys, monkey
 
     monkeypatch.setattr(subprocess, "run", without_git_path_checks)
 
-    code = cli.main([
-        "--config", str(reference.config_path), "--out", str(out), "--output-dir", str(output)
-    ])
+    code = cli.main(
+        ["--config", str(reference.config_path), "--out", str(out), "--output-dir", str(output)]
+    )
 
     assert code == 0, capsys.readouterr().err
     assert out.is_file()
-    run, = output.iterdir()
+    (run,) = output.iterdir()
     assert (run / "entities.jsonl").is_file()
 
 

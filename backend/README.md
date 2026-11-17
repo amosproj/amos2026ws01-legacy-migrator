@@ -39,11 +39,31 @@ Start everything with one command:
 Both scripts wire the backend to the local Ollama server automatically; without
 Ollama the backend still runs and answers with a mock provider.
 
-## Tests
+## Tests and CI checks
+
+The GitHub Actions workflow (`.github/workflows/backend-tests.yml`) runs
+automatically on pull requests and pushes to `main` and `develop` when files in
+`backend/` or the workflow file change. It checks formatting, linting, types,
+both unit test suites, bytecode compilation, and API startup.
+
+Run the same checks from `backend/`:
 
 ```bash
 cd backend
-uv run pytest
+uv sync --locked
+uv run ruff check .
+uv run ruff format --check .
+uv run ty check
+uv run pytest tests -v
+uv run --directory code-ingestion-pipeline --project .. pytest tests -v
+uv run python -m compileall -q app shared_contracts code-ingestion-pipeline/src
+uv run python -c "
+from fastapi.testclient import TestClient
+from app.main import app
+with TestClient(app) as client:
+    r = client.get('/api/health')
+    assert r.status_code == 200, r.text
+"
 ```
 
 ## Configuration
@@ -74,9 +94,9 @@ backend/
 │   ├── query_service.py      # QueryService seam (mock + LLM-backed)
 │   ├── llm.py                # LlmProvider seam (mock + OpenAI-compatible)
 │   └── repositories.py       # mock repository list
-├── src/migration_assistant/  # reference loader (ticket #17)
-├── tests/                    # tests for both parts
-├── config/                   # reference loader configuration
+├── code-ingestion-pipeline/  # loader, Graphify adapters, configuration and tests
+├── shared_contracts/         # canonical ingestion and graph/query contracts
+├── tests/                    # query API and graph contract tests
 ├── pyproject.toml
 ├── run.sh                    # one-command start (Linux)
 ├── run.ps1                   # one-command start (Windows Terminal)
@@ -91,11 +111,11 @@ plugged in later without changing the API layer.
 
 ## Ingestion pipeline
 
-The independent `code-ingestion-pipeline/` subproject contains the loader and
-Graphify integration. It uses its own Python 3.12 virtual environment and the
-`migration_assistant.bootstrap.cli` entry point. Follow its
-[complete setup guide](code-ingestion-pipeline/README.md)
-for Linux/macOS and Windows PowerShell instructions.
+The `code-ingestion-pipeline/` directory contains the loader and Graphify
+integration. Its `setup.py` installs the loader and Graphify together into its own
+Python 3.12 virtual environment. Follow the
+[complete setup guide](code-ingestion-pipeline/README.md) for installation,
+configuration, and canonical output details.
 
 ## Known limitations / future work
 

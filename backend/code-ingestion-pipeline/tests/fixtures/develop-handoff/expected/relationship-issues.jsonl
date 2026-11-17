@@ -1,0 +1,4 @@
+{"edge_id":"unknown-label","code":"missing_evidence","detail":"Graphify edge has no usable source path and line evidence","raw_edge":{"id":"unknown-label","source":"method-a","target":"unresolved-a","relation":"case_of","customMetadata":{"preserve":true}}}
+{"edge_id":"unknown-target","code":"unresolved_target","detail":"Unknown Graphify node ID: does-not-exist","raw_edge":{"id":"unknown-target","source":"method-a","target":"does-not-exist","relation":"uses"}}
+{"edge_id":"missing-type","code":"unsupported_type","detail":"Graphify edge has no relationship type","raw_edge":{"id":"missing-type","source":"class-a","target":"method-a"}}
+{"edge_id":"no-evidence-b","code":"missing_evidence","detail":"Graphify edge has no usable source path and line evidence","raw_edge":{"id":"no-evidence-b","source":"file-b","target":"class-b","relation":"contains"}}

@@ -2,8 +2,10 @@
 
 from collections import defaultdict
 from collections.abc import Callable
+from io import StringIO
 from pathlib import Path
 
+from migration_assistant.application.diagnostics import capture_diagnostics
 from migration_assistant.application.ports.git_repo import GitRepo
 from migration_assistant.application.ports.pipeline import (
     GraphBuilder,
@@ -44,8 +46,14 @@ class PipelineService:
         output = output.expanduser().resolve()
         if source_export is not None:
             source_export = source_export.expanduser().resolve()
-        checkout = self.git_repo.checkout(config)
-        loaded = self.source_loader(config, checkout)
+        bootstrap_log = StringIO()
+        with capture_diagnostics(bootstrap_log):
+            print(f"Loading stage: {config.stage}")
+            checkout = self.git_repo.checkout(config)
+            loaded = self.source_loader(config, checkout)
+            for member in checkout.members:
+                print(f"component: {member.repo_id} {member.commit_sha}")
+            print(f"files loaded: {loaded.counts.loaded}")
         if not loaded.files:
             raise PipelineError(
                 "No source files selected; check the stage, components and filters."
@@ -54,16 +62,19 @@ class PipelineService:
             on_loaded(loaded)
 
         run = self.storage.create_run(output)
+        (run / "bootstrap.log").write_text(bootstrap_log.getvalue(), encoding="utf-8")
         if progress is not None:
             progress(f"Run folder: {run}")
         try:
+            sources_jsonl = run / "sources.jsonl"
+            self.storage.write_sources(sources_jsonl, loaded.files)
             if source_export is not None:
                 self.storage.write_sources(source_export, loaded.files)
             by_component: dict[str, list[SourceFile]] = defaultdict(list)
             for file in loaded.files:
                 by_component[file.repo_id].append(file)
             graphs = {}
-            for member in checkout.members:
+            for member in sorted(checkout.members, key=lambda member: member.repo_id):
                 files = by_component.get(member.repo_id, [])
                 if not files:
                     continue
@@ -77,11 +88,19 @@ class PipelineService:
                     raise PipelineError(
                         f"Graph generation failed for component '{member.repo_id}': {error}"
                     ) from error
-            revisions = {member.repo_id: member.commit_sha for member in checkout.members}
             try:
-                entities, relationships = self.handoff_writer(list(graphs.values()), revisions, run)
+                handoff = self.handoff_writer(
+                    list(graphs.values()), sources_jsonl, run, graph_mode="per-component"
+                )
             except (OSError, ValueError, RuntimeError) as error:
                 raise PipelineError(f"Canonical handoff failed: {error}") from error
         except (PipelineError, OSError, ValueError) as error:
             raise PipelineError(f"{error}; partial outputs: {run}") from error
-        return PipelineResult(loaded, run, graphs, entities, relationships)
+        return PipelineResult(
+            loaded,
+            run,
+            graphs,
+            handoff.entity_count,
+            handoff.relationship_count,
+            handoff.snapshot_id,
+        )
