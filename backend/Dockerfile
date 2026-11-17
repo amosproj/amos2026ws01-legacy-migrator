@@ -15,8 +15,6 @@ RUN uv sync --frozen --no-dev
 COPY app/ app/
 COPY shared_contracts/ shared_contracts/
 COPY schemas/ schemas/
-COPY code-ingestion-pipeline/ code-ingestion-pipeline/
-COPY src/ src/
 
 ENV PATH="/app/.venv/bin:$PATH"
 
