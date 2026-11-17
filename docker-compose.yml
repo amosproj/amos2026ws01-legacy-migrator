@@ -1,0 +1,27 @@
+# Start the whole app locally: `docker compose up` (see Documentation/containers.md).
+# By default the backend starts with the built-in mock provider — no model
+# endpoint needed. To use a real LLM (Ollama or any OpenAI-compatible endpoint),
+# set LLM_BASE_URL and LLM_NAME in .env (see .env.example).
+services:
+  backend:
+    build: ./backend
+    image: ghcr.io/amosproj/amos2026ws01-legacy-migrator-backend:latest
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    extra_hosts:
+      # Lets the backend reach Ollama running on the host (default port 11434),
+      # mirroring backend/run.sh wiring.
+      - "host.docker.internal:host-gateway"
+    environment:
+      LLM_BASE_URL: ${LLM_BASE_URL:-}
+      LLM_NAME: ${LLM_NAME:-}
+      LLM_EXTRA_BODY: ${LLM_EXTRA_BODY:-}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    image: ghcr.io/amosproj/amos2026ws01-legacy-migrator-frontend:latest
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+    restart: unless-stopped

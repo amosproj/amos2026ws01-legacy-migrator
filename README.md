@@ -12,6 +12,8 @@ browser and receive a streamed LLM answer.
 - Backend (FastAPI): see [backend/README.md](backend/README.md)
 - Frontend (React): see [frontend/README.md](frontend/README.md)
 - One-command start: `./backend/run.sh` (Linux) or `.\backend\run.ps1` (Windows)
+- Docker images: see [Documentation/containers.md](Documentation/containers.md)
+  (`docker compose up` from the repo root)
 
 ## Reference loader
 
