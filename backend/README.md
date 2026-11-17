@@ -112,10 +112,10 @@ plugged in later without changing the API layer.
 ## Ingestion pipeline
 
 The `code-ingestion-pipeline/` directory contains the loader and Graphify
-integration. Its `setup.py` installs the loader and Graphify together into its own
-Python 3.12 virtual environment. Follow the
-[complete setup guide](code-ingestion-pipeline/README.md) for installation,
-configuration, and canonical output details.
+integration. It shares `backend/.venv`, `pyproject.toml`, and `uv.lock` with the API.
+After `uv sync --locked`, run it from that directory with `uv run --project .. ingest`.
+Follow the [complete setup guide](code-ingestion-pipeline/README.md) for configuration
+and canonical output details.
 
 ## Known limitations / future work
 

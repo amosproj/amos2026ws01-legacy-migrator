@@ -28,55 +28,20 @@ A local source needs no network. An `https://` source is fetched once into the c
 
 ## Setup
 
-The reference loader is part of the independent ingestion subproject at
-`backend/code-ingestion-pipeline/`. Its code, configuration, tests, environment and
-cache live there, separate from the backend web application.
+The reference loader and Graphify share the backend's uv environment. Install
+Python 3.12, uv, and Git, then run from the repository root:
 
-1. Install Python 3.12 (see `.python-version`) and Git.
-2. From the repository root, enter the ingestion subproject, then create and
-   activate its own virtual environment. Do not reuse or move the web application's
-   environment.
+```bash
+cd backend
+uv sync --locked
+cd code-ingestion-pipeline
+```
 
-   ```bash
-   cd backend/code-ingestion-pipeline
-   python3.12 -m venv .venv
-   source .venv/bin/activate
-   ```
-
-   PowerShell equivalent:
-
-   ```powershell
-   cd backend/code-ingestion-pipeline
-   py -3.12 -m venv .venv
-   .\.venv\Scripts\Activate.ps1
-   ```
-
-   No `py` launcher? Use conda only to obtain Python 3.12, then run
-   `python -m venv .venv` inside the subproject and activate that `.venv`.
-
-3. Install the loader dependencies:
-
-   ```bash
-   python -m pip install "pydantic>=2" "pyyaml>=6"
-   python -m pip install "pytest>=8"  # optional, for tests
-   ```
-
-   The project has no build backend configured; keep using its source directory
-   directly. Set the import path for bootstrap and Python loader usage:
-
-   ```bash
-   export PYTHONPATH=src:..
-   ```
-
-   ```powershell
-   $env:PYTHONPATH = "src;.."
-   ```
-
-All commands below run from `backend/code-ingestion-pipeline/` with its `.venv`
-active. When loader setup is complete, follow the
-[pipeline guide](../../backend/code-ingestion-pipeline/README.md) to install
-Graphify into this same environment. The bootstrap CLI always runs the full pipeline
-and requires Graphify. The independent loader functions below do not require it.
+These commands also work in PowerShell. No separate virtual environment, manual
+pip installation, or `PYTHONPATH` is needed. Commands below run from
+`backend/code-ingestion-pipeline/`; prefix Python commands with
+`uv run --project ..`. The full pipeline entry point is `uv run --project .. ingest`.
+The standalone loader functions described below remain available.
 
 ## Configuration
 
@@ -121,13 +86,13 @@ or report generation. Loader-only usage is available through Python, not the CLI
 
 ```powershell
 # Default run: configured stage, all its components unless filtered in YAML
-.\.venv\Scripts\python.exe -m migration_assistant.bootstrap.cli
+uv run --project .. ingest
 
 # Another stage, two components
-.\.venv\Scripts\python.exe -m migration_assistant.bootstrap.cli --stage step-04a --components monolith catalog-service
+uv run --project .. ingest --stage step-04a --components monolith catalog-service
 
 # Also write the files as JSONL
-.\.venv\Scripts\python.exe -m migration_assistant.bootstrap.cli --out .cache/output/step-00.jsonl
+uv run --project .. ingest --out .cache/output/step-00.jsonl
 ```
 
 Example loader summary from a default pipeline run (local copy, stage `step-00`):
@@ -241,7 +206,7 @@ Errors print one line to stderr, starting with `ERROR:`. Config problems with se
 ## Tests
 
 ```powershell
-python -m pytest tests -v
+uv run --project .. pytest tests -v
 ```
 
 The suite builds a small fake reference setup with real git in a temporary folder
@@ -252,11 +217,11 @@ Optional integration test against your real local copy (skipped when the variabl
 
 ```powershell
 $env:REFERENCE_SOURCE = "D:/path/to/legacy-example-stages"
-python -m pytest tests/test_real_reference_source.py -v
+uv run --project .. pytest tests/test_real_reference_source.py -v
 ```
 
 ```bash
-REFERENCE_SOURCE=/path/to/legacy-example-stages python -m pytest tests/test_real_reference_source.py -v
+REFERENCE_SOURCE=/path/to/legacy-example-stages uv run --project .. pytest tests/test_real_reference_source.py -v
 ```
 
 ## Acceptance criteria
@@ -274,5 +239,4 @@ REFERENCE_SOURCE=/path/to/legacy-example-stages python -m pytest tests/test_real
 - A real clone from GitHub has not been tested yet. If the organisation is private, a plain clone needs git credentials already stored on the machine; credentials inside the URL are refused.
 - The relocated suite has been tested on Linux; Windows/macOS execution after the move remains unverified.
 - Read errors on files and folders are tested with simulated errors only.
-- The ingestion package has no build backend. Set `PYTHONPATH` to both `src` and `..` so the shared backend contracts are importable.
 - The workspace is tied to one source. Switching `source` needs a new or emptied workspace folder.

@@ -95,7 +95,7 @@ def test_missing_graphify_is_a_component_error_with_partial_run(reference, tmp_p
     # The standalone loader still works with Graphify imports forbidden.
     config = reference.config()
     assert load_sources(config, LocalGitAdapter().checkout(config)).counts.loaded == 3
-    message = "component 'legacy-example-monolith'.*setup.py"
+    message = "component 'legacy-example-monolith'.*uv sync"
     with pytest.raises(PipelineError, match=message) as error:
         service(GraphifyAdapter()).run(config, tmp_path / "runs")
     (run,) = (tmp_path / "runs").iterdir()

@@ -31,8 +31,7 @@ class GraphifyAdapter:
             from graphify.extract import extract
         except ImportError as error:
             raise PipelineError(
-                "Graphify dependencies are unavailable; run python setup.py in the "
-                "ingestion virtual environment."
+                "Graphify dependencies are unavailable; run uv sync --locked from backend/."
             ) from error
 
         component_root = member.local_path.resolve()

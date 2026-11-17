@@ -41,6 +41,16 @@ dependencies = [
     "uvicorn[standard]==0.52.4",
 ]
 
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project.scripts]
+ingest = "migration_assistant.bootstrap.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app", "shared_contracts", "code-ingestion-pipeline/src/migration_assistant"]
+
 [dependency-groups]
 dev = [
     "pytest==9.1.1",
@@ -80,5 +90,4 @@ include = [
     "app",
     "tests",
     "code-ingestion-pipeline/src",
-    "code-ingestion-pipeline/setup.py",
 ]

@@ -1,6 +1,6 @@
 """Command line: load a reference stage and extract graphs and canonical facts per component.
 
-Run with: python -m migration_assistant.bootstrap.cli
+Run from code-ingestion-pipeline/ with: uv run --project .. ingest
 """
 
 import argparse
@@ -51,7 +51,7 @@ def main(argv: list[str] | None = None) -> int:
 
 def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        prog="python -m migration_assistant.bootstrap.cli",
+        prog="ingest",
         description="Load a reference stage and generate graphs and canonical facts per component.",
     )
     parser.add_argument(

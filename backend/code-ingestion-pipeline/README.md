@@ -1,41 +1,37 @@
 # Reference source to graph pipeline
 
-The CLI loads a pinned reference stage and extracts a separate graph for each
-selected component. It reads selected files directly from checkout, without source
-reconstruction, clustering, or graph reports. Canonical handoff models are shared
-with the backend in `../shared_contracts/`.
+The ingestion pipeline shares the backend's uv environment, dependencies, and
+lockfile. The CLI loads a pinned reference stage and extracts a separate graph
+for each selected component. It reads selected files directly from checkout;
+it does not reconstruct source copies, run clustering, or generate graph reports.
 
 ## Setup and run
 
-Install Python 3.12 and Git. The loader and Graphify are installed together by the
-subproject's setup script. Run from the repository root:
-
-Linux/macOS:
+Install uv, Python 3.12, and Git. From the repository root:
 
 ```bash
-cd backend/code-ingestion-pipeline
-python3.12 -m venv .venv
-source .venv/bin/activate
-python setup.py
-export PYTHONPATH=src:..
-python -m migration_assistant.bootstrap.cli
+cd backend
+uv sync --locked
+cd code-ingestion-pipeline
+uv run --project .. ingest
 ```
 
-Windows PowerShell:
+The commands are the same in Linux/macOS terminals and Windows PowerShell.
+`uv sync --locked` installs the API, loader, Graphify, CLI, and development tools
+into `backend/.venv`. No separate ingestion environment, pip setup script, or
+`PYTHONPATH` configuration is needed. The module entry point remains available:
 
-```powershell
-cd backend/code-ingestion-pipeline
-py -3.12 -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python setup.py
-$env:PYTHONPATH = "src;.."
-python -m migration_assistant.bootstrap.cli
+```bash
+uv run --project .. python -m migration_assistant.bootstrap.cli
 ```
 
-The import path includes `src` for the ingestion package and `..` for the incoming
-backend shared contracts. Setup installs `requirements.txt`, including the pinned
-Graphify requirements in `requirements-graphify.txt`. Normal pipeline runs never
-install dependencies. No API key is needed for local AST extraction.
+Runs do not invoke package installers. Use `uv sync --locked` after dependency
+changes. Normal uv commands may synchronize the environment before invoking the
+CLI; use `uv run --locked --no-sync --project .. ingest` after setup when an
+explicitly preinstalled environment is required.
+
+No API key is needed for local AST extraction. Fetching an HTTPS reference source
+uses Git and any existing Git credentials.
 
 ## Configuration
 
@@ -79,11 +75,11 @@ working directory.
 CLI overrides:
 
 ```bash
-python -m migration_assistant.bootstrap.cli --stage step-04a
-python -m migration_assistant.bootstrap.cli --components monolith catalog-service
-python -m migration_assistant.bootstrap.cli --config config/reference-source.local.yaml
-python -m migration_assistant.bootstrap.cli --output-dir .cache/ingestion --verbose
-python -m migration_assistant.bootstrap.cli --out .cache/export/sources.jsonl
+uv run --project .. ingest --stage step-04a
+uv run --project .. ingest --components monolith catalog-service
+uv run --project .. ingest --config config/reference-source.local.yaml
+uv run --project .. ingest --output-dir .cache/ingestion --verbose
+uv run --project .. ingest --out .cache/export/sources.jsonl
 ```
 
 `--out` writes an additional source export. Every run saves its own `sources.jsonl`
@@ -153,7 +149,7 @@ The normalizer and serialization use `../shared_contracts/`; the generated schem
 is `../schemas/project-contract.schema.json`. Regenerate it from `backend/` with:
 
 ```bash
-python -m shared_contracts.schema
+uv run python -m shared_contracts.schema
 ```
 
 Snapshot configuration records `graphMode: per-component` even though the CLI no
@@ -169,17 +165,19 @@ repository membership. Fixing it requires a separate output-contract change.
 
 ## Tests
 
-Use the same Python 3.12 environment and import path as the CLI:
+From `backend/code-ingestion-pipeline/`:
 
 ```bash
-python -m pip install pytest
-python -m pytest tests -q
+uv run --locked --project .. pytest tests -q
 ```
 
-CI also runs the ingestion suite through the backend's existing uv environment:
+From `backend/`, run API tests separately:
 
 ```bash
-uv run --project .. pytest tests -q
+uv run --locked pytest tests -q
+uv run --locked ruff check .
+uv run --locked ruff format --check .
+uv run --locked ty check
 ```
 
 Tests use temporary local Git repositories and need no GitHub connection. Real
