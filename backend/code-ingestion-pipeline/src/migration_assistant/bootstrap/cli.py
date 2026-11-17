@@ -1,6 +1,6 @@
-"""Command line: check out one stage of the reference source and load its files (Issue #17).
+"""Command line: load a reference stage and extract graphs and canonical facts per component.
 
-Run with: python -m migration_assistant.bootstrap.cli
+Run from code-ingestion-pipeline/ with: uv run --project .. ingest
 """
 
 import argparse
@@ -12,27 +12,34 @@ from pydantic import ValidationError
 
 from migration_assistant.adapters.outbound.git.local_git import LocalGitAdapter
 from migration_assistant.adapters.outbound.git.source_loader import load_sources
+from migration_assistant.adapters.outbound.graphify import GraphifyAdapter
+from migration_assistant.adapters.outbound.graphify_relationships import write_relationship_handoff
+from migration_assistant.adapters.outbound.pipeline_storage import LocalPipelineStorage
+from migration_assistant.application.pipeline import PipelineService
 from migration_assistant.domain.checkout import CheckoutError
+from migration_assistant.domain.pipeline import PipelineError
 from migration_assistant.domain.reference_source import (
     ConfigError,
     ReferenceSourceConfig,
     default_config_path,
-    is_remote_source,
     load_config,
 )
+from migration_assistant.domain.sources import LoadResult
 
 EXIT_ERROR = 1
 EXIT_UNEXPECTED = 2
+DEFAULT_OUTPUT_DIR = Path(__file__).resolve().parents[3] / ".cache" / "ingestion"
 
 
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
     try:
         _run(args)
-    except (ConfigError, CheckoutError) as error:
+    except (ConfigError, CheckoutError, PipelineError, OSError, KeyboardInterrupt) as error:
         if args.verbose:
             traceback.print_exc()
-        print(f"ERROR: {' ; '.join(str(error).splitlines())}", file=sys.stderr)
+        message = " ; ".join(str(error).splitlines()) or "Interrupted"
+        print(f"ERROR: {message}", file=sys.stderr)
         return EXIT_ERROR
     except Exception:
         if args.verbose:
@@ -44,8 +51,8 @@ def main(argv: list[str] | None = None) -> int:
 
 def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        prog="python -m migration_assistant.bootstrap.cli",
-        description="Check out a stage of the reference source and load its files.",
+        prog="ingest",
+        description="Load a reference stage and generate graphs and canonical facts per component.",
     )
     parser.add_argument(
         "--config",
@@ -56,6 +63,12 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--stage", help="override the stage for this run")
     parser.add_argument("--components", nargs="+", help="override the components for this run")
     parser.add_argument("--out", type=Path, help="write the loaded files as JSONL")
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        default=DEFAULT_OUTPUT_DIR,
+        help="parent directory for timestamped runs (default: .cache/ingestion in this subproject)",
+    )
     parser.add_argument("--verbose", action="store_true", help="show the full traceback on errors")
     return parser.parse_args(argv)
 
@@ -63,13 +76,35 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
 def _run(args: argparse.Namespace) -> None:
     config_path = args.config or default_config_path()
     config = _with_overrides(load_config(config_path), args)
+    service = PipelineService(
+        git_repo=LocalGitAdapter(),
+        source_loader=load_sources,
+        graph_builder=GraphifyAdapter(),
+        handoff_writer=write_relationship_handoff,
+        storage=LocalPipelineStorage(),
+    )
+
+    def on_loaded(loaded: LoadResult) -> None:
+        print(f"config: {Path(config_path).as_posix()}")
+        _print_loaded(loaded)
+
+    result = service.run(
+        config,
+        args.output_dir,
+        source_export=args.out,
+        on_loaded=on_loaded,
+        progress=lambda message: print(message, flush=True),
+    )
     if args.out is not None:
-        _check_out_path(args.out, config)
+        print(f"output: {args.out}")
+    print(
+        f"Graph handoff: {result.entity_count} entities, {result.relationship_count} relationships"
+    )
+    print(f"Success. Graphs: {result.run_directory / 'graphs'}")
 
-    checkout = LocalGitAdapter().checkout(config)
-    result = load_sources(config, checkout)
 
-    print(f"config: {Path(config_path).as_posix()}")
+def _print_loaded(result: LoadResult) -> None:
+    checkout = result.checkout
     print(f"stage: {checkout.stage}")
     print(f"umbrella: {checkout.umbrella_ref} {checkout.umbrella_commit_sha}")
     for member in checkout.members:
@@ -80,10 +115,6 @@ def _run(args: argparse.Namespace) -> None:
     print(f"files skipped: {result.counts.skipped}")
     for reason, count in result.counts.skipped_by_reason.items():
         print(f"  {reason}: {count}")
-
-    if args.out is not None:
-        _write_jsonl(args.out, result.files)
-        print(f"output: {args.out}")
 
 
 def _with_overrides(
@@ -105,24 +136,6 @@ def _with_overrides(
             for problem in error.errors()
         ]
         raise ConfigError("\n".join(problems)) from error
-
-
-def _check_out_path(out: Path, config: ReferenceSourceConfig) -> None:
-    target = out.resolve()
-    protected_paths = [("workspace", config.workspace)]
-    if not is_remote_source(config.source):
-        protected_paths.insert(0, ("source repository", Path(config.source)))
-    for label, protected in protected_paths:
-        protected = protected.resolve()
-        if target == protected or protected in target.parents:
-            raise ConfigError(f"--out must not be inside the {label}: {protected}")
-
-
-def _write_jsonl(out: Path, files: list) -> None:
-    out.parent.mkdir(parents=True, exist_ok=True)
-    with out.open("w", encoding="utf-8", newline="\n") as handle:
-        for file in files:
-            handle.write(file.model_dump_json(by_alias=True) + "\n")
 
 
 if __name__ == "__main__":

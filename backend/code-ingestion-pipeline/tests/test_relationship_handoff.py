@@ -1,7 +1,6 @@
 import json
 
-from run_pipeline import write_relationship_handoff
-
+from migration_assistant.adapters.outbound.graphify_relationships import write_relationship_handoff
 from shared_contracts.records import SnapshotIdentity
 
 
@@ -77,3 +76,4 @@ def test_pipeline_writes_graph_loader_handoff_with_resolvable_endpoints(tmp_path
     assert identity["snapshotId"] == relationships[0]["snapshotId"]
     assert len(identity["snapshotId"]) == 64
     assert identity["snapshotId"] == identity["snapshotId"].lower()
+    assert not (tmp_path / "run/relationship-issues.jsonl").exists()

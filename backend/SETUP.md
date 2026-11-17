@@ -35,8 +35,19 @@ ollama pull qwen3.5:0.8b
 
 ```bash
 cd backend
-uv sync          # creates .venv and installs pinned dependencies
+uv sync --locked # installs API and ingestion together into backend/.venv
 ```
+
+The ingestion CLI is installed by the same command. To run it with the committed
+reference configuration:
+
+```bash
+cd code-ingestion-pipeline
+uv run --project .. ingest
+```
+
+See [the ingestion guide](code-ingestion-pipeline/README.md) for source configuration.
+Return to `backend/` before starting the API with the scripts below.
 
 Then start everything with one command:
 
@@ -104,5 +115,5 @@ uv run ruff format --check .
 uv run ty check
 uv run pytest tests -v
 uv run --directory code-ingestion-pipeline --project .. pytest tests -v
-uv run python -m compileall -q app code-ingestion-pipeline/src code-ingestion-pipeline/run_pipeline.py
+uv run python -m compileall -q app shared_contracts code-ingestion-pipeline/src
 ```

@@ -10,7 +10,7 @@ WORKDIR /app
 
 # Dependencies first so this layer is cached between source changes.
 COPY pyproject.toml uv.lock ./
-RUN uv sync --frozen --no-dev
+RUN uv sync --frozen --no-dev --no-install-project
 
 COPY app/ app/
 COPY shared_contracts/ shared_contracts/

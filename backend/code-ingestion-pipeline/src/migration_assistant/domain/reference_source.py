@@ -21,7 +21,8 @@ class ReferenceSourceConfig(BaseModel):
     public_url: str
     # Opaque key: only a safety check (not empty, no leading "-", limited characters).
     stage: str = Field(pattern=r"^[A-Za-z0-9._/][A-Za-z0-9._/-]*$")
-    components: list[str] = Field(min_length=1)
+    # An omitted or empty filter selects every component in the stage.
+    components: list[str] = Field(default_factory=list)
     workspace: Path
     include: list[str] = Field(min_length=1)
     exclude: list[str]

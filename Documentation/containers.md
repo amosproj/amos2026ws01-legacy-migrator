@@ -180,4 +180,3 @@ above).
 | Chat shows an error event, health says `openai-compatible` | Container cannot reach Ollama | Start Ollama with `OLLAMA_HOST=0.0.0.0:11434`; check the firewall note above |
 | Frontend loads but chat calls fail with CORS | Frontend origin not in `CORS_ORIGINS` | Set `CORS_ORIGINS` in `.env` to include `http://localhost:3000` |
 | `docker compose up` fails to build | Stale cache / missing lockfile | `docker compose build --no-cache` |
-

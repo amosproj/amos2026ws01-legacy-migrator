@@ -35,8 +35,23 @@ def test_real_project_config_loads():
     config = load_config("config/reference-source.yaml")
 
     assert config.source == "https://github.com/legacy-modernization-example/legacy-example-stages"
-
+    assert config.components == []
     assert config.max_file_size_kb == 1024
+
+
+@pytest.mark.parametrize("components", [None, []])
+def test_components_filter_can_be_omitted_or_empty(reference, components):
+    _rewrite(reference, components=components)
+
+    assert load_config(reference.config_path).components == []
+
+
+@pytest.mark.parametrize("components", [[""], ["   "], "monolith"])
+def test_invalid_components_filter_is_rejected(reference, components):
+    _rewrite(reference, components=components)
+
+    with pytest.raises(ConfigError, match="Invalid value for field 'components"):
+        load_config(reference.config_path)
 
 
 def test_local_override_is_preferred_when_it_exists(tmp_path, monkeypatch):

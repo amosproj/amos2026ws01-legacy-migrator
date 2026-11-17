@@ -15,6 +15,6 @@ browser and receive a streamed LLM answer.
 - Docker images: see [Documentation/containers.md](Documentation/containers.md)
   (`docker compose up` from the repo root)
 
-## Reference loader
+## Ingestion Pipeline
 
-Reference loader (Issue #17): see [Documentation/ingestion/reference-loader.md](Documentation/ingestion/reference-loader.md).
+Ingestion pipeline (including the reference loader): see the [setup guide](backend/code-ingestion-pipeline/README.md).

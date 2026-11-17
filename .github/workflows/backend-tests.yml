@@ -61,7 +61,7 @@ jobs:
 
       - name: Validate bytecode compilation and API startup
         run: |
-          uv run python -m compileall -q app code-ingestion-pipeline/src code-ingestion-pipeline/run_pipeline.py
+          uv run python -m compileall -q app shared_contracts code-ingestion-pipeline/src
           uv run python -c "
           from fastapi.testclient import TestClient
           from app.main import app

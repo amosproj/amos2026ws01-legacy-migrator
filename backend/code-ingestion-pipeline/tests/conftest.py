@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 import subprocess
 import sys
@@ -79,6 +80,7 @@ class Origin:
     component: Path
     sha_step_00: str
     sha_step_04a: str
+    sha_catalog_step_04a: str
 
 
 @dataclass(frozen=True)
@@ -159,7 +161,11 @@ def origin(tmp_path_factory, git_environment) -> Origin:
     _write(component, "notes.txt", "just notes\n")
     sha_00 = _commit(component, "step-00", "step-00")
 
-    _write(component, "src/Main.java", "class Main { int version = 4; }\n")
+    _write(
+        component,
+        "src/Main.java",
+        "class Main { int version = 4; void run() { helper(); } void helper() {} }\n",
+    )
     _write(component, "src/Extra.java", "class Extra {}\n")
     _write(component, "Dockerfile", "FROM scratch\n")
     _write(component, DEEP_FILE, "class Deep {}\n")
@@ -192,10 +198,43 @@ def origin(tmp_path_factory, git_environment) -> Origin:
     _commit(umbrella, "step-00", "step-00")
 
     git(umbrella / "components" / "monolith", "checkout", "-q", sha_04a)
-    _write(umbrella, "stage.json", _stage_json("step-04a", sha_04a))
+    catalog = org / "legacy-example-catalog-service"
+    catalog.mkdir()
+    git(catalog, "init", "-q", "-b", "main")
+    _write(
+        catalog, "src/Main.java", "class Catalog { void run() { helper(); } void helper() {} }\n"
+    )
+    catalog_sha = _commit(catalog, "step-04a", "step-04a")
+    git(
+        umbrella,
+        "-c",
+        "protocol.file.allow=always",
+        "submodule",
+        "add",
+        "-q",
+        str(catalog),
+        "components/catalog-service",
+    )
+    git(
+        umbrella,
+        "config",
+        "-f",
+        ".gitmodules",
+        "submodule.components/catalog-service.url",
+        "../legacy-example-catalog-service",
+    )
+    stage = json.loads(_stage_json("step-04a", sha_04a))
+    stage["komponenten"]["catalog-service"] = {"tag": "step-04a", "sha": catalog_sha}
+    _write(umbrella, "stage.json", json.dumps(stage))
     _commit(umbrella, "step-04a", "step-04a")
 
-    return Origin(umbrella=umbrella, component=component, sha_step_00=sha_00, sha_step_04a=sha_04a)
+    return Origin(
+        umbrella=umbrella,
+        component=component,
+        sha_step_00=sha_00,
+        sha_step_04a=sha_04a,
+        sha_catalog_step_04a=catalog_sha,
+    )
 
 
 @pytest.fixture
@@ -218,3 +257,28 @@ def reference(origin, tmp_path) -> Reference:
         encoding="utf-8",
     )
     return Reference(origin=origin, config_path=config_path, workspace=workspace)
+
+
+@pytest.fixture
+def pipeline_cli(monkeypatch, tmp_path):
+    """Exercise bootstrap and the real loader without requiring Graphify."""
+    from migration_assistant.adapters.outbound.graphify import GraphifyAdapter
+    from migration_assistant.bootstrap import cli
+
+    calls = []
+
+    def build(self, member, files, root, output):
+        calls.append((member, files, root, output))
+        artifacts = output / "graphify-out"
+        artifacts.mkdir(parents=True)
+        graph = artifacts / "graph.json"
+        graph.write_text(
+            json.dumps({"graph": {"graphify_version": "0.9.100"}, "nodes": [], "links": []}),
+            encoding="utf-8",
+        )
+        (artifacts / "graph.html").write_text("<html>test graph</html>", encoding="utf-8")
+        return graph
+
+    monkeypatch.setattr(cli, "DEFAULT_OUTPUT_DIR", tmp_path / "runs")
+    monkeypatch.setattr(GraphifyAdapter, "build", build)
+    return calls

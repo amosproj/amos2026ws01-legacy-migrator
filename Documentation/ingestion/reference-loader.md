@@ -1,3 +1,7 @@
+> **Deprecated documentation:** The reference loader is now set up as part of the
+> complete ingestion pipeline. Follow the [pipeline setup guide](../../backend/code-ingestion-pipeline/README.md)
+> instead of the standalone setup instructions below.
+
 # Reference loader
 
 Loads one stage of the reference system into the prototype so its source code can be analysed. Part of Issue #17.
@@ -24,54 +28,20 @@ A local source needs no network. An `https://` source is fetched once into the c
 
 ## Setup
 
-The reference loader is part of the independent ingestion subproject at
-`backend/code-ingestion-pipeline/`. Its code, configuration, tests, environment and
-cache live there, separate from the backend web application.
+The reference loader and Graphify share the backend's uv environment. Install
+Python 3.12, uv, and Git, then run from the repository root:
 
-1. Install Python 3.12 (see `.python-version`) and Git.
-2. From the repository root, enter the ingestion subproject, then create and
-   activate its own virtual environment. Do not reuse or move the web application's
-   environment.
+```bash
+cd backend
+uv sync --locked
+cd code-ingestion-pipeline
+```
 
-   ```bash
-   cd backend/code-ingestion-pipeline
-   python3.12 -m venv .venv
-   source .venv/bin/activate
-   ```
-
-   PowerShell equivalent:
-
-   ```powershell
-   cd backend/code-ingestion-pipeline
-   py -3.12 -m venv .venv
-   .\.venv\Scripts\Activate.ps1
-   ```
-
-   No `py` launcher? Use conda only to obtain Python 3.12, then run
-   `python -m venv .venv` inside the subproject and activate that `.venv`.
-
-3. Install the dependencies declared in this subproject's `pyproject.toml`:
-
-   ```bash
-   python -m pip install "pydantic>=2" "pyyaml>=6"
-   python -m pip install "pytest>=8"  # optional, for tests
-   ```
-
-   The project has no build backend configured; keep using its source directory
-   directly. Set the import path for standalone loader commands:
-
-   ```bash
-   export PYTHONPATH=src
-   ```
-
-   ```powershell
-   $env:PYTHONPATH = "src"
-   ```
-
-All commands below run from `backend/code-ingestion-pipeline/` with its `.venv`
-active. When loader setup is complete, follow the
-[pipeline guide](../../backend/code-ingestion-pipeline/README.md) to install
-Graphify into this same environment. The loader itself does not require Graphify.
+These commands also work in PowerShell. No separate virtual environment, manual
+pip installation, or `PYTHONPATH` is needed. Commands below run from
+`backend/code-ingestion-pipeline/`; prefix Python commands with
+`uv run --project ..`. The full pipeline entry point is `uv run --project .. ingest`.
+The standalone loader functions described below remain available.
 
 ## Configuration
 
@@ -82,7 +52,7 @@ Default file: `backend/code-ingestion-pipeline/config/reference-source.yaml` (co
 | `source` | `https://` URL or local path of the umbrella repository (`legacy-example-stages`) |
 | `public_url` | Base URL of the GitHub organisation, used to build links |
 | `stage` | Stage tag to load, for example `step-00` or `step-04a`. Any tag name is allowed; letters, digits, `.`, `_`, `/`, `-`, and it must not start with `-` |
-| `components` | Component repositories to load, for example `[monolith]` |
+| `components` | Optional component filter, for example `[monolith]`. Omit it or use `[]` (the committed default) to load every component in the selected stage |
 | `workspace` | Cache folder for the checkout, relative to where the command runs (git-ignored, default `.cache/reference`) |
 | `include` | File extensions (`.java`) and exact file names (`Dockerfile`) to load |
 | `exclude` | Glob patterns on repository-relative paths, `/` separated. `**` crosses folders. Checked before `include` |
@@ -97,25 +67,35 @@ Command-line options:
 | `--config PATH` | Use this config file. Default: the local file if it exists, otherwise `config/reference-source.yaml` |
 | `--stage STAGE` | Override `stage` for this run only |
 | `--components A B ...` | Override `components` for this run only |
-| `--out PATH` | Also write the loaded files as JSONL. Refused inside the source repository or the workspace |
+| `--out PATH` | Also write the loaded files as JSONL to the chosen path |
+| `--output-dir PATH` | Parent directory for pipeline runs; default `.cache/ingestion` in the ingestion subproject |
 | `--verbose` | Show the full traceback on errors |
 
 The config file itself is never changed by these options.
 
+Without `--components`, the YAML filter applies. If that filter is omitted or `[]`,
+the loader reads all entries in the selected stage's `stage.json` under `komponenten`
+and checks out each component at its pinned commit before continuing the pipeline.
+
 ## Usage
 
+Bootstrap checks out and loads the selected source, generates a separate `graph.json`
+and `graph.html` for every component with loaded files, then writes canonical entity
+and relationship JSONL. It does not perform clustering, community labeling, analysis
+or report generation. Loader-only usage is available through Python, not the CLI.
+
 ```powershell
-# Default run: stage and components from the config file
-.\.venv\Scripts\python.exe -m migration_assistant.bootstrap.cli
+# Default run: configured stage, all its components unless filtered in YAML
+uv run --project .. ingest
 
 # Another stage, two components
-.\.venv\Scripts\python.exe -m migration_assistant.bootstrap.cli --stage step-04a --components monolith catalog-service
+uv run --project .. ingest --stage step-04a --components monolith catalog-service
 
 # Also write the files as JSONL
-.\.venv\Scripts\python.exe -m migration_assistant.bootstrap.cli --out .cache/output/step-00.jsonl
+uv run --project .. ingest --out .cache/output/step-00.jsonl
 ```
 
-Example output of the default run (local copy, stage `step-00`):
+Example loader summary from a default pipeline run (local copy, stage `step-00`):
 
 ```text
 config: config/reference-source.local.yaml
@@ -133,11 +113,14 @@ files skipped: 119
   not_included: 33
 ```
 
-Running it again gives the same result. Changing `--stage` in the same workspace is fine.
+The summary is followed by the run folder, component graph progress and canonical
+fact counts. Each invocation creates a new run directory. Changing `--stage` in the
+same workspace is fine. See the [pipeline guide](../../backend/code-ingestion-pipeline/README.md)
+for the output layout and failure diagnostics.
 
 ## Use from Python
 
-The ingestion pipeline can call the loader directly:
+The loader remains independent of Graphify and the rest of the pipeline:
 
 ```python
 from migration_assistant.adapters.outbound.git.local_git import LocalGitAdapter
@@ -153,6 +136,10 @@ for file in result.files:
 ```
 
 After the checkout the code is a normal folder at the pinned commit, so a parser can also run directly on a component folder (`checkout.members[0].local_path`) instead of using the loaded file contents.
+
+The pipeline does exactly this: it combines each member's `local_path` with the
+selected `result.files` paths and passes those original files to Graphify, separately
+for each component. No source reconstruction or JSONL reload is necessary.
 
 ## Output
 
@@ -201,14 +188,15 @@ Errors print one line to stderr, starting with `ERROR:`. Config problems with se
 | `Submodule '<c>' is at <sha>, but stage.json pins <sha>` | Checked-out commit differs from `stage.json` |
 | `The workspace ... was created from a different source` | Cache was made from another `source`; delete the workspace folder |
 | `Component '<c>' has local changes and does not match commit <sha>` | Someone edited files in the cache |
-| `--out must not be inside the source repository` / `...the workspace` | Unsafe output path |
+| `Graph generation failed for component ...` | Graphify dependency, extraction or export failure; partial run is retained |
 | `git <command> failed: <git message>` | Git itself failed (for example no network) |
 
 ## Safety
 
-- The original repository is never modified. All clones, fetches and checkouts happen in the workspace folder, and git is refused if its working directory is inside a local source.
+- Clones, fetches and checkouts happen in the configured workspace. Developers keep this workspace separate from the original source repository.
 - The workspace (`backend/code-ingestion-pipeline/.cache/reference`) is git-ignored and can be deleted at any time.
-- Every git call uses an argument list (never a shell), with `core.hooksPath` pointing at an empty folder (hooks off), `core.fsmonitor=false`, `core.longpaths=true` and no terminal prompts.
+- Directory placement and Git ignore rules are managed by developers. The loader and pipeline do not check whether configured locations are ignored, tracked or inside the source repository. Choose output paths that do not overwrite source files. Temporary directories use Python's standard OS temporary location.
+- Every Git call uses an argument list (never a shell). Checkout and source-status commands use `core.hooksPath` pointing at an empty folder (hooks off), `core.fsmonitor=false`, `core.longpaths=true` and no terminal prompts.
 - Only the selected submodules are initialised, never recursively.
 - An `https://` source uses the https transport only (`protocol.allow=never`, `protocol.https.allow=always`). Other URL types are refused.
 - The loader checks that the cache is clean (`git status --porcelain`) before reading, so files match the pinned commit.
@@ -218,7 +206,7 @@ Errors print one line to stderr, starting with `ERROR:`. Config problems with se
 ## Tests
 
 ```powershell
-python -m pytest tests -v
+uv run --project .. pytest tests -v
 ```
 
 The suite builds a small fake reference setup with real git in a temporary folder
@@ -229,11 +217,11 @@ Optional integration test against your real local copy (skipped when the variabl
 
 ```powershell
 $env:REFERENCE_SOURCE = "D:/path/to/legacy-example-stages"
-python -m pytest tests/test_real_reference_source.py -v
+uv run --project .. pytest tests/test_real_reference_source.py -v
 ```
 
 ```bash
-REFERENCE_SOURCE=/path/to/legacy-example-stages python -m pytest tests/test_real_reference_source.py -v
+REFERENCE_SOURCE=/path/to/legacy-example-stages uv run --project .. pytest tests/test_real_reference_source.py -v
 ```
 
 ## Acceptance criteria
@@ -250,7 +238,5 @@ REFERENCE_SOURCE=/path/to/legacy-example-stages python -m pytest tests/test_real
 
 - A real clone from GitHub has not been tested yet. If the organisation is private, a plain clone needs git credentials already stored on the machine; credentials inside the URL are refused.
 - The relocated suite has been tested on Linux; Windows/macOS execution after the move remains unverified.
-- The exit-code-2 path and `--verbose` are not covered by a test.
 - Read errors on files and folders are tested with simulated errors only.
-- `pyproject.toml` has no build backend, so the package cannot be installed with pip yet.
 - The workspace is tied to one source. Switching `source` needs a new or emptied workspace folder.
