@@ -180,7 +180,7 @@ uv run --locked ruff format --check .
 uv run --locked ty check
 ```
 
-Tests use temporary local Git repositories and need no GitHub connection. Real
-Graphify integration and frozen develop output fixtures check canonical byte
-compatibility. Tests never build or execute downloaded reference source code.
-Windows/macOS execution remains unverified.
+Tests use temporary local Git repositories and need no GitHub connection. They
+cover the loader, pipeline, Graphify adapters, and canonical handoff, including
+real Graphify extraction. Tests never build or execute downloaded reference
+source code. Windows/macOS execution remains unverified.

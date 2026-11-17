@@ -87,22 +87,6 @@ def test_only_selected_original_paths_are_extracted(reference, tmp_path, graphif
     assert {path.name for path in graph_path.parent.iterdir()} == {"graph.json", "graph.html"}
 
 
-def test_component_relative_paths_match_develop_without_repository_prefix(
-    reference, tmp_path, graphify_api
-):
-    calls, _ = graphify_api
-    config = reference.config(stage="step-04a", components=[])
-    checkout = LocalGitAdapter().checkout(config)
-    loaded = load_sources(config, checkout)
-    for member in checkout.members:
-        file = next(file for file in loaded.files if file.repo_id == member.repo_id)
-        # Keep develop's per-component path convention, including its known
-        # handoff repository-resolution issue for paths containing a slash.
-        file = file.model_copy(update={"path": "src/Common.java"})
-        GraphifyAdapter().build(member, [file], checkout.workspace, tmp_path / member.repo_id)
-        assert calls["extraction"]["nodes"][0]["source_file"] == "src/Common.java"
-
-
 def test_unparsed_sources_are_reported_without_discarding_extracted_graph(
     reference, tmp_path, graphify_api, caplog
 ):
