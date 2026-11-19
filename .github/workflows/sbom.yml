@@ -1,7 +1,7 @@
 name: SBOM and legal notices
 on:
   pull_request:
-    branches: [develop]
+    branches: [develop, 112-deliverable-create-mid-project-release-sbom-and-legal-notices]
     paths:
       - 'backend/uv.lock'
       - 'backend/pyproject.toml'
