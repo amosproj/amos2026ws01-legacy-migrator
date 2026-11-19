@@ -18,3 +18,18 @@ browser and receive a streamed LLM answer.
 ## Ingestion Pipeline
 
 Ingestion pipeline (including the reference loader): see the [setup guide](backend/code-ingestion-pipeline/README.md).
+## SBOM and legal notices
+
+The committed SPDX SBOM and frontend Legal Notices are generated from
+`backend/uv.lock` and `frontend/package-lock.json`:
+
+```bash
+scripts/sbom/regenerate_sbom.sh                 # regenerate on the current OS
+scripts/sbom/regenerate_sbom.sh --check          # verify generated files
+scripts/sbom/regenerate_sbom.sh --docker         # regenerate in Linux/amd64, matching CI
+scripts/sbom/regenerate_sbom.sh --docker --check # verify in Linux/amd64, matching CI
+```
+
+Use the Docker mode on macOS or Windows so platform-specific package license
+metadata matches the Linux GitHub Actions runner. The CI job checks the SBOM,
+notices, and dependency license policy on pull requests to `develop`.
