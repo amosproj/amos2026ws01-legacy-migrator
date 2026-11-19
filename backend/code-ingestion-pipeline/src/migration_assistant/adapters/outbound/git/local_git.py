@@ -1,8 +1,8 @@
 """Git adapter: checks out one stage of the reference source (Issue #17).
 
 The source is a local repository path or an https:// URL. Git is run with
-argument lists only, with hooks disabled. Nothing is ever written inside a
-local ``config.source``; all writes go to the workspace copy.
+argument lists only, with hooks disabled. Checkout writes go to the configured
+workspace, which developers should keep separate from the source repository.
 """
 
 import json
@@ -39,11 +39,11 @@ class LocalGitAdapter:
         if shutil.which("git") is None:
             raise GitNotInstalledError("git was not found on PATH")
 
-        workspace = config.workspace.resolve()
+        workspace = config.workspace.expanduser().resolve()
         umbrella = workspace / UMBRELLA_DIR
 
         with tempfile.TemporaryDirectory(prefix="empty-hooks-") as hooks:
-            git = _Git(hooks, source)
+            git = _Git(hooks)
             transport = HTTPS_ONLY if url else ()
 
             if umbrella.exists():
@@ -66,7 +66,8 @@ class LocalGitAdapter:
             git.run("checkout", "--force", "--detach", umbrella_sha, cwd=umbrella)
 
             pinned = _read_stage_components(umbrella, config.stage)
-            for name in config.components:
+            components = config.components or sorted(pinned)
+            for name in components:
                 if name not in pinned:
                     available = ", ".join(sorted(pinned)) or "none"
                     raise ComponentNotInStageError(
@@ -78,7 +79,7 @@ class LocalGitAdapter:
                 self._checkout_component(
                     git, config, source, transport, umbrella, name, pinned[name]
                 )
-                for name in config.components
+                for name in components
             ]
 
         return CheckoutResult(
@@ -152,15 +153,12 @@ class LocalGitAdapter:
 
 
 class _Git:
-    """Runs git with hooks disabled, and never inside the read-only source."""
+    """Runs git with hooks disabled."""
 
-    def __init__(self, hooks_dir: str, source: Path | None) -> None:
+    def __init__(self, hooks_dir: str) -> None:
         self._hooks_dir = hooks_dir
-        self._source = source
 
     def run(self, *args: str, cwd: Path) -> str:
-        if self._source is not None and _is_inside(cwd.resolve(), self._source):
-            raise CheckoutError(f"Refusing to run git inside the source: {cwd}")
         command = [
             "git",
             "-c",
@@ -191,10 +189,6 @@ class _Git:
 
 def _git_env() -> dict:
     return {**os.environ, "GIT_TERMINAL_PROMPT": "0"}
-
-
-def _is_inside(path: Path, parent: Path) -> bool:
-    return path == parent or parent in path.parents
 
 
 def _resolve_source(value: str) -> tuple[Path | None, str | None]:

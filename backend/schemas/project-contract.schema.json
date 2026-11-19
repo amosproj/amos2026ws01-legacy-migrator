@@ -1,0 +1,1855 @@
+{
+  "$defs": {
+    "Chunker": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "version": {
+          "minLength": 1,
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "version"
+      ],
+      "title": "Chunker",
+      "type": "object"
+    },
+    "CodeGraphPayload": {
+      "additionalProperties": false,
+      "description": "Root of the code subgraph extracted from one pinned repository.",
+      "properties": {
+        "repoId": {
+          "minLength": 1,
+          "title": "Repoid",
+          "type": "string"
+        },
+        "commitSha": {
+          "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$",
+          "title": "Commitsha",
+          "type": "string"
+        },
+        "memberObservationIds": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Memberobservationids",
+          "type": "array"
+        },
+        "fileObservationIds": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Fileobservationids",
+          "type": "array"
+        },
+        "extractor": {
+          "$ref": "#/$defs/Extractor"
+        }
+      },
+      "required": [
+        "repoId",
+        "commitSha",
+        "extractor"
+      ],
+      "title": "CodeGraphPayload",
+      "type": "object"
+    },
+    "CodeGraphRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "schemaVersion": {
+          "const": "1.0.0",
+          "title": "Schemaversion",
+          "type": "string"
+        },
+        "recordType": {
+          "const": "CodeGraph",
+          "title": "Recordtype",
+          "type": "string"
+        },
+        "recordId": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Recordid",
+          "type": "string"
+        },
+        "snapshotId": {
+          "minLength": 1,
+          "title": "Snapshotid",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/CodeGraphPayload"
+        },
+        "evidenceReferences": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidencereferences",
+          "type": "array"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "recordType",
+        "recordId",
+        "snapshotId",
+        "payload"
+      ],
+      "title": "CodeGraphRecord",
+      "type": "object"
+    },
+    "CompareRequest": {
+      "additionalProperties": false,
+      "description": "Pinned comparison request shape from the architecture's MCP contract.",
+      "properties": {
+        "projectId": {
+          "minLength": 1,
+          "title": "Projectid",
+          "type": "string"
+        },
+        "stepId": {
+          "minLength": 1,
+          "title": "Stepid",
+          "type": "string"
+        },
+        "old": {
+          "$ref": "#/$defs/SnapshotSelector"
+        },
+        "new": {
+          "$ref": "#/$defs/SnapshotSelector"
+        },
+        "scope": {
+          "additionalProperties": true,
+          "title": "Scope",
+          "type": "object"
+        },
+        "acceptedMappingDigest": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Acceptedmappingdigest"
+        }
+      },
+      "required": [
+        "projectId",
+        "stepId",
+        "old",
+        "new",
+        "scope"
+      ],
+      "title": "CompareRequest",
+      "type": "object"
+    },
+    "ComparisonChange": {
+      "additionalProperties": false,
+      "description": "One evidence-backed change with optional old/new source locations.",
+      "properties": {
+        "changeKind": {
+          "minLength": 1,
+          "title": "Changekind",
+          "type": "string"
+        },
+        "oldSourceSpan": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SourceSpan"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "newSourceSpan": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SourceSpan"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "symbolObservationIds": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Symbolobservationids",
+          "type": "array"
+        },
+        "diffEvidence": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Diffevidence",
+          "type": "array"
+        },
+        "relevantCommits": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Relevantcommits",
+          "type": "array"
+        },
+        "evidenceIds": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidenceids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "changeKind"
+      ],
+      "title": "ComparisonChange",
+      "type": "object"
+    },
+    "ComparisonResult": {
+      "additionalProperties": false,
+      "description": "Ready or pending result for one explicitly selected snapshot pair.",
+      "properties": {
+        "comparisonId": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Comparisonid",
+          "type": "string"
+        },
+        "contractVersion": {
+          "minLength": 1,
+          "title": "Contractversion",
+          "type": "string"
+        },
+        "comparisonPolicyVersion": {
+          "minLength": 1,
+          "title": "Comparisonpolicyversion",
+          "type": "string"
+        },
+        "old": {
+          "$ref": "#/$defs/SnapshotSelector"
+        },
+        "new": {
+          "$ref": "#/$defs/SnapshotSelector"
+        },
+        "lineageMode": {
+          "enum": [
+            "ancestor_range",
+            "divergent",
+            "separate_repositories"
+          ],
+          "title": "Lineagemode",
+          "type": "string"
+        },
+        "changes": {
+          "items": {
+            "$ref": "#/$defs/ComparisonChange"
+          },
+          "title": "Changes",
+          "type": "array"
+        },
+        "commitEvidence": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Commitevidence",
+          "type": "array"
+        },
+        "acceptedMappings": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Acceptedmappings",
+          "type": "array"
+        },
+        "coverage": {
+          "additionalProperties": true,
+          "title": "Coverage",
+          "type": "object"
+        },
+        "limitations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Limitations",
+          "type": "array"
+        },
+        "state": {
+          "enum": [
+            "ready",
+            "queued",
+            "incomplete",
+            "failed"
+          ],
+          "title": "State",
+          "type": "string"
+        }
+      },
+      "required": [
+        "comparisonId",
+        "contractVersion",
+        "comparisonPolicyVersion",
+        "old",
+        "new",
+        "lineageMode",
+        "changes",
+        "coverage",
+        "state"
+      ],
+      "title": "ComparisonResult",
+      "type": "object"
+    },
+    "ComponentMigrationStatus": {
+      "description": "Migration status entry for a system component.",
+      "properties": {
+        "component": {
+          "title": "Component",
+          "type": "string"
+        },
+        "origin": {
+          "enum": [
+            "legacy",
+            "target"
+          ],
+          "title": "Origin",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "active_legacy",
+            "in_development",
+            "live_target",
+            "decommissioned"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "boundedContexts": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Boundedcontexts",
+          "type": "array"
+        },
+        "description": {
+          "title": "Description",
+          "type": "string"
+        },
+        "evidence": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence",
+          "type": "array"
+        }
+      },
+      "required": [
+        "component",
+        "origin",
+        "status",
+        "description"
+      ],
+      "title": "ComponentMigrationStatus",
+      "type": "object"
+    },
+    "CoupledComponent": {
+      "description": "Coupling relationship between two components across migration boundaries.",
+      "properties": {
+        "sourceComponent": {
+          "title": "Sourcecomponent",
+          "type": "string"
+        },
+        "targetComponent": {
+          "title": "Targetcomponent",
+          "type": "string"
+        },
+        "couplingType": {
+          "enum": [
+            "shared_database",
+            "messaging_topic",
+            "direct_http",
+            "shared_schema"
+          ],
+          "title": "Couplingtype",
+          "type": "string"
+        },
+        "resourceName": {
+          "title": "Resourcename",
+          "type": "string"
+        },
+        "description": {
+          "title": "Description",
+          "type": "string"
+        },
+        "evidence": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence",
+          "type": "array"
+        }
+      },
+      "required": [
+        "sourceComponent",
+        "targetComponent",
+        "couplingType",
+        "resourceName",
+        "description"
+      ],
+      "title": "CoupledComponent",
+      "type": "object"
+    },
+    "CouplingResult": {
+      "description": "Structured response for 'What is still coupled to what?'.",
+      "properties": {
+        "stepId": {
+          "title": "Stepid",
+          "type": "string"
+        },
+        "couplings": {
+          "items": {
+            "$ref": "#/$defs/CoupledComponent"
+          },
+          "title": "Couplings",
+          "type": "array"
+        },
+        "summary": {
+          "title": "Summary",
+          "type": "string"
+        }
+      },
+      "required": [
+        "stepId",
+        "couplings",
+        "summary"
+      ],
+      "title": "CouplingResult",
+      "type": "object"
+    },
+    "DecommissionCandidate": {
+      "description": "Candidate entity or module safe for decommissioning.",
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "component",
+            "class",
+            "endpoint",
+            "database_table"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "parentComponent": {
+          "title": "Parentcomponent",
+          "type": "string"
+        },
+        "replacement": {
+          "title": "Replacement",
+          "type": "string"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "riskLevel": {
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ],
+          "title": "Risklevel",
+          "type": "string"
+        },
+        "evidence": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence",
+          "type": "array"
+        }
+      },
+      "required": [
+        "name",
+        "kind",
+        "parentComponent",
+        "replacement",
+        "reason",
+        "riskLevel"
+      ],
+      "title": "DecommissionCandidate",
+      "type": "object"
+    },
+    "DecommissionResult": {
+      "description": "Structured response for 'What can reasonably be decommissioned next?'.",
+      "properties": {
+        "stepId": {
+          "title": "Stepid",
+          "type": "string"
+        },
+        "candidates": {
+          "items": {
+            "$ref": "#/$defs/DecommissionCandidate"
+          },
+          "title": "Candidates",
+          "type": "array"
+        },
+        "summary": {
+          "title": "Summary",
+          "type": "string"
+        }
+      },
+      "required": [
+        "stepId",
+        "candidates",
+        "summary"
+      ],
+      "title": "DecommissionResult",
+      "type": "object"
+    },
+    "Embedding": {
+      "additionalProperties": false,
+      "properties": {
+        "modelId": {
+          "minLength": 1,
+          "title": "Modelid",
+          "type": "string"
+        },
+        "revision": {
+          "minLength": 1,
+          "title": "Revision",
+          "type": "string"
+        },
+        "settings": {
+          "additionalProperties": true,
+          "title": "Settings",
+          "type": "object"
+        },
+        "dimensions": {
+          "minimum": 1,
+          "title": "Dimensions",
+          "type": "integer"
+        },
+        "vector": {
+          "items": {
+            "type": "number"
+          },
+          "minItems": 1,
+          "title": "Vector",
+          "type": "array"
+        }
+      },
+      "required": [
+        "modelId",
+        "revision",
+        "dimensions",
+        "vector"
+      ],
+      "title": "Embedding",
+      "type": "object"
+    },
+    "ExternalSymbolObservationPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "observationId": {
+          "minLength": 1,
+          "title": "Observationid",
+          "type": "string"
+        },
+        "kind": {
+          "const": "external",
+          "title": "Kind",
+          "type": "string"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "qualifiedName": {
+          "minLength": 1,
+          "title": "Qualifiedname",
+          "type": "string"
+        },
+        "extractor": {
+          "$ref": "#/$defs/Extractor"
+        }
+      },
+      "required": [
+        "observationId",
+        "kind",
+        "name",
+        "qualifiedName",
+        "extractor"
+      ],
+      "title": "ExternalSymbolObservationPayload",
+      "type": "object"
+    },
+    "ExternalSymbolObservationRecord": {
+      "additionalProperties": false,
+      "description": "Serialized envelope for an external graph endpoint.",
+      "properties": {
+        "schemaVersion": {
+          "const": "1.0.0",
+          "title": "Schemaversion",
+          "type": "string"
+        },
+        "recordType": {
+          "const": "ExternalSymbolObservation",
+          "title": "Recordtype",
+          "type": "string"
+        },
+        "recordId": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Recordid",
+          "type": "string"
+        },
+        "snapshotId": {
+          "minLength": 1,
+          "title": "Snapshotid",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/ExternalSymbolObservationPayload"
+        },
+        "evidenceReferences": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidencereferences",
+          "type": "array"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "recordType",
+        "recordId",
+        "snapshotId",
+        "payload",
+        "evidenceReferences"
+      ],
+      "title": "ExternalSymbolObservationRecord",
+      "type": "object"
+    },
+    "Extractor": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "version": {
+          "minLength": 1,
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "version"
+      ],
+      "title": "Extractor",
+      "type": "object"
+    },
+    "GraphEdge": {
+      "additionalProperties": false,
+      "description": "Typed edge shape used by graph persistence and query results.",
+      "properties": {
+        "id": {
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "relationshipType": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RelationshipType"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Relationshiptype"
+        },
+        "sourceId": {
+          "minLength": 1,
+          "title": "Sourceid",
+          "type": "string"
+        },
+        "targetId": {
+          "minLength": 1,
+          "title": "Targetid",
+          "type": "string"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": true,
+          "title": "Properties"
+        }
+      },
+      "required": [
+        "id",
+        "relationshipType",
+        "sourceId",
+        "targetId"
+      ],
+      "title": "GraphEdge",
+      "type": "object"
+    },
+    "GraphNode": {
+      "additionalProperties": false,
+      "description": "Serialized graph node envelope shared by persistence and query layers.",
+      "properties": {
+        "id": {
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "$ref": "#/$defs/GraphNodeType"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Name"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": true,
+          "title": "Properties"
+        }
+      },
+      "required": [
+        "id",
+        "label"
+      ],
+      "title": "GraphNode",
+      "type": "object",
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "label": {
+                "enum": [
+                  "Class",
+                  "CodeEntity",
+                  "Enum",
+                  "Field",
+                  "File",
+                  "Function",
+                  "Interface",
+                  "Method",
+                  "SymbolObservation",
+                  "Table"
+                ]
+              }
+            },
+            "required": [
+              "label"
+            ]
+          },
+          "then": {
+            "properties": {
+              "properties": {
+                "required": [
+                  "sourceSpan"
+                ],
+                "properties": {
+                  "sourceSpan": {
+                    "$ref": "#/$defs/SourceSpan"
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "GraphNodeType": {
+      "description": "Node labels used by graph query and persistence DTOs.",
+      "enum": [
+        "Project",
+        "Snapshot",
+        "Component",
+        "ComponentState",
+        "CodeGraph",
+        "File",
+        "Class",
+        "Interface",
+        "Method",
+        "Function",
+        "Field",
+        "Enum",
+        "Table",
+        "CodeEntity",
+        "ExternalSymbol",
+        "Module",
+        "SymbolObservation",
+        "Commit",
+        "Actor",
+        "ExternalSystem",
+        "BoundedContext",
+        "DeploymentNode",
+        "MessagingRoute",
+        "JiraIssue",
+        "ConfluencePage",
+        "MarkdownFile",
+        "DocChunk",
+        "MigrationStatus",
+        "ExtractionRun"
+      ],
+      "title": "GraphNodeType",
+      "type": "string"
+    },
+    "GraphQueryRequest": {
+      "description": "Request model for parameterized graph queries.",
+      "properties": {
+        "queryType": {
+          "enum": [
+            "migration_status",
+            "couplings",
+            "decommission_candidates",
+            "component_symbols"
+          ],
+          "title": "Querytype",
+          "type": "string"
+        },
+        "stepId": {
+          "default": "step-06",
+          "title": "Stepid",
+          "type": "string"
+        },
+        "component": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Component"
+        },
+        "parameters": {
+          "additionalProperties": true,
+          "title": "Parameters",
+          "type": "object"
+        }
+      },
+      "required": [
+        "queryType"
+      ],
+      "title": "GraphQueryRequest",
+      "type": "object"
+    },
+    "MigrationManifest": {
+      "additionalProperties": false,
+      "description": "Project-level input contract from the architecture identity section.",
+      "properties": {
+        "projectId": {
+          "minLength": 1,
+          "title": "Projectid",
+          "type": "string"
+        },
+        "steps": {
+          "items": {
+            "$ref": "#/$defs/MigrationStep"
+          },
+          "minItems": 1,
+          "title": "Steps",
+          "type": "array"
+        }
+      },
+      "required": [
+        "projectId",
+        "steps"
+      ],
+      "title": "MigrationManifest",
+      "type": "object"
+    },
+    "MigrationMember": {
+      "additionalProperties": false,
+      "description": "One pinned repository participating in a project milestone.",
+      "properties": {
+        "repoId": {
+          "minLength": 1,
+          "title": "Repoid",
+          "type": "string"
+        },
+        "origin": {
+          "enum": [
+            "legacy",
+            "target"
+          ],
+          "title": "Origin",
+          "type": "string"
+        },
+        "commitSha": {
+          "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$",
+          "title": "Commitsha",
+          "type": "string"
+        },
+        "ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ref"
+        },
+        "sourceSubdirectory": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sourcesubdirectory"
+        }
+      },
+      "required": [
+        "repoId",
+        "origin",
+        "commitSha"
+      ],
+      "title": "MigrationMember",
+      "type": "object"
+    },
+    "MigrationStatusResult": {
+      "description": "Structured response for 'What parts are legacy/target/switched off?'.",
+      "properties": {
+        "stepId": {
+          "title": "Stepid",
+          "type": "string"
+        },
+        "components": {
+          "items": {
+            "$ref": "#/$defs/ComponentMigrationStatus"
+          },
+          "title": "Components",
+          "type": "array"
+        },
+        "totalActiveLegacy": {
+          "title": "Totalactivelegacy",
+          "type": "integer"
+        },
+        "totalLiveTarget": {
+          "title": "Totallivetarget",
+          "type": "integer"
+        },
+        "totalDecommissioned": {
+          "title": "Totaldecommissioned",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "stepId",
+        "components",
+        "totalActiveLegacy",
+        "totalLiveTarget",
+        "totalDecommissioned"
+      ],
+      "title": "MigrationStatusResult",
+      "type": "object"
+    },
+    "MigrationStep": {
+      "additionalProperties": false,
+      "description": "An explicitly ordered migration milestone, independent of commit time.",
+      "properties": {
+        "stepId": {
+          "minLength": 1,
+          "title": "Stepid",
+          "type": "string"
+        },
+        "ordinal": {
+          "minimum": 1,
+          "title": "Ordinal",
+          "type": "integer"
+        },
+        "members": {
+          "items": {
+            "$ref": "#/$defs/MigrationMember"
+          },
+          "minItems": 1,
+          "title": "Members",
+          "type": "array"
+        }
+      },
+      "required": [
+        "stepId",
+        "ordinal",
+        "members"
+      ],
+      "title": "MigrationStep",
+      "type": "object"
+    },
+    "RelationshipPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "relationshipType": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RelationshipType"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Relationshiptype"
+        },
+        "sourceObservationId": {
+          "minLength": 1,
+          "title": "Sourceobservationid",
+          "type": "string"
+        },
+        "targetObservationId": {
+          "minLength": 1,
+          "title": "Targetobservationid",
+          "type": "string"
+        },
+        "evidenceIds": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidenceids",
+          "type": "array"
+        },
+        "sourceSpan": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SourceSpan"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "extractor": {
+          "$ref": "#/$defs/Extractor"
+        },
+        "sourceEdgeId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sourceedgeid"
+        },
+        "originalRelationshipType": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Originalrelationshiptype"
+        },
+        "originalEdge": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Originaledge"
+        }
+      },
+      "required": [
+        "relationshipType",
+        "sourceObservationId",
+        "targetObservationId",
+        "evidenceIds",
+        "sourceSpan",
+        "extractor"
+      ],
+      "title": "RelationshipPayload",
+      "type": "object"
+    },
+    "RelationshipRecord": {
+      "additionalProperties": false,
+      "description": "Serialized envelope for a canonical graph relationship.",
+      "properties": {
+        "schemaVersion": {
+          "const": "1.0.0",
+          "title": "Schemaversion",
+          "type": "string"
+        },
+        "recordType": {
+          "const": "Relationship",
+          "title": "Recordtype",
+          "type": "string"
+        },
+        "recordId": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Recordid",
+          "type": "string"
+        },
+        "snapshotId": {
+          "minLength": 1,
+          "title": "Snapshotid",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/RelationshipPayload"
+        },
+        "evidenceReferences": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidencereferences",
+          "type": "array"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "recordType",
+        "recordId",
+        "snapshotId",
+        "payload",
+        "evidenceReferences"
+      ],
+      "title": "RelationshipRecord",
+      "type": "object"
+    },
+    "RelationshipType": {
+      "description": "Known relationship names; unrecognized names remain valid raw strings.",
+      "enum": [
+        "HAS_SNAPSHOT",
+        "HAS_BASELINE",
+        "HAS_COMPONENT",
+        "OF_COMPONENT",
+        "HAS_CODE_GRAPH",
+        "HAS_FILE",
+        "RECORDED_BY",
+        "SCOPES",
+        "CHANGED",
+        "SAME_ENTITY_AS",
+        "PROVIDES",
+        "USES",
+        "HOSTS",
+        "STORES",
+        "PUBLISHES",
+        "SUBSCRIBES",
+        "CHILD_OF",
+        "HAS_CHUNK",
+        "EMBEDS_ISSUE",
+        "REFERENCES_ISSUE",
+        "MENTIONS",
+        "DOCUMENTS",
+        "AFFECTS",
+        "STATUS_OF",
+        "DECLARES",
+        "DECLARES_MEMBER",
+        "CONTAINS_TYPE",
+        "CALLS",
+        "EXTENDS",
+        "IMPLEMENTS",
+        "REFERENCES",
+        "IMPORTS",
+        "DERIVED_FROM",
+        "SOURCED_FROM"
+      ],
+      "title": "RelationshipType",
+      "type": "string"
+    },
+    "SnapshotIdentity": {
+      "additionalProperties": false,
+      "description": "The deterministic analysis ID and the inputs that produced it.",
+      "properties": {
+        "sourceMembers": {
+          "items": {
+            "$ref": "#/$defs/SourceRevision"
+          },
+          "minItems": 1,
+          "title": "Sourcemembers",
+          "type": "array"
+        },
+        "sourceSnapshotId": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sourcesnapshotid",
+          "type": "string"
+        },
+        "schemaVersion": {
+          "const": "1.0.0",
+          "title": "Schemaversion",
+          "type": "string"
+        },
+        "extractors": {
+          "items": {
+            "$ref": "#/$defs/Extractor"
+          },
+          "minItems": 1,
+          "title": "Extractors",
+          "type": "array"
+        },
+        "extractorSetDigest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Extractorsetdigest",
+          "type": "string"
+        },
+        "extractionConfig": {
+          "additionalProperties": true,
+          "title": "Extractionconfig",
+          "type": "object"
+        },
+        "extractionConfigDigest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Extractionconfigdigest",
+          "type": "string"
+        },
+        "snapshotId": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Snapshotid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "sourceMembers",
+        "sourceSnapshotId",
+        "schemaVersion",
+        "extractors",
+        "extractorSetDigest",
+        "extractionConfig",
+        "extractionConfigDigest",
+        "snapshotId"
+      ],
+      "title": "SnapshotIdentity",
+      "type": "object"
+    },
+    "SnapshotSelector": {
+      "additionalProperties": false,
+      "description": "One explicit side of a comparison, scoped to a selected origin.",
+      "properties": {
+        "origin": {
+          "enum": [
+            "legacy",
+            "target"
+          ],
+          "title": "Origin",
+          "type": "string"
+        },
+        "snapshotId": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Snapshotid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "origin",
+        "snapshotId"
+      ],
+      "title": "SnapshotSelector",
+      "type": "object"
+    },
+    "SourceRevision": {
+      "additionalProperties": false,
+      "properties": {
+        "repoId": {
+          "minLength": 1,
+          "title": "Repoid",
+          "type": "string"
+        },
+        "commitSha": {
+          "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$",
+          "title": "Commitsha",
+          "type": "string"
+        }
+      },
+      "required": [
+        "repoId",
+        "commitSha"
+      ],
+      "title": "SourceRevision",
+      "type": "object"
+    },
+    "SourceSpan": {
+      "additionalProperties": false,
+      "description": "A repository-relative, commit-pinned source range.\n\nPython callers use snake_case. JSON keeps the established camelCase keys.\nLines are one-based and inclusive; optional columns are zero-based offsets.",
+      "properties": {
+        "repoId": {
+          "minLength": 1,
+          "title": "Repoid",
+          "type": "string"
+        },
+        "path": {
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "commitSha": {
+          "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$",
+          "title": "Commitsha",
+          "type": "string"
+        },
+        "startLine": {
+          "minimum": 1,
+          "title": "Startline",
+          "type": "integer"
+        },
+        "endLine": {
+          "minimum": 1,
+          "title": "Endline",
+          "type": "integer"
+        },
+        "startColumn": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Startcolumn"
+        },
+        "endColumn": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Endcolumn"
+        }
+      },
+      "required": [
+        "repoId",
+        "path",
+        "commitSha",
+        "startLine",
+        "endLine"
+      ],
+      "title": "SourceSpan",
+      "type": "object"
+    },
+    "SymbolObservationPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "observationId": {
+          "minLength": 1,
+          "title": "Observationid",
+          "type": "string"
+        },
+        "kind": {
+          "minLength": 1,
+          "title": "Kind",
+          "type": "string"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "qualifiedName": {
+          "minLength": 1,
+          "title": "Qualifiedname",
+          "type": "string"
+        },
+        "repoId": {
+          "minLength": 1,
+          "title": "Repoid",
+          "type": "string"
+        },
+        "sourceSpan": {
+          "$ref": "#/$defs/SourceSpan"
+        },
+        "extractor": {
+          "$ref": "#/$defs/Extractor"
+        }
+      },
+      "required": [
+        "observationId",
+        "kind",
+        "name",
+        "qualifiedName",
+        "repoId",
+        "sourceSpan",
+        "extractor"
+      ],
+      "title": "SymbolObservationPayload",
+      "type": "object"
+    },
+    "SymbolObservationRecord": {
+      "additionalProperties": false,
+      "description": "Serialized envelope for a source-backed symbol fact.",
+      "properties": {
+        "schemaVersion": {
+          "const": "1.0.0",
+          "title": "Schemaversion",
+          "type": "string"
+        },
+        "recordType": {
+          "const": "SymbolObservation",
+          "title": "Recordtype",
+          "type": "string"
+        },
+        "recordId": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Recordid",
+          "type": "string"
+        },
+        "snapshotId": {
+          "minLength": 1,
+          "title": "Snapshotid",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/SymbolObservationPayload"
+        },
+        "evidenceReferences": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Evidencereferences",
+          "type": "array"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "recordType",
+        "recordId",
+        "snapshotId",
+        "payload",
+        "evidenceReferences"
+      ],
+      "title": "SymbolObservationRecord",
+      "type": "object"
+    },
+    "SymbolQueryResult": {
+      "additionalProperties": false,
+      "description": "Issue #23 query envelope with typed, source-pinned symbol entries.",
+      "properties": {
+        "stepId": {
+          "minLength": 1,
+          "title": "Stepid",
+          "type": "string"
+        },
+        "component": {
+          "minLength": 1,
+          "title": "Component",
+          "type": "string"
+        },
+        "symbols": {
+          "items": {
+            "$ref": "#/$defs/SymbolQuerySymbol"
+          },
+          "title": "Symbols",
+          "type": "array"
+        },
+        "totalSymbols": {
+          "minimum": 0,
+          "title": "Totalsymbols",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "stepId",
+        "component",
+        "symbols",
+        "totalSymbols"
+      ],
+      "title": "SymbolQueryResult",
+      "type": "object"
+    },
+    "SymbolQuerySymbol": {
+      "additionalProperties": false,
+      "description": "One typed query row retaining the canonical observation's evidence.",
+      "properties": {
+        "id": {
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "observationId": {
+          "minLength": 1,
+          "title": "Observationid",
+          "type": "string"
+        },
+        "kind": {
+          "minLength": 1,
+          "title": "Kind",
+          "type": "string"
+        },
+        "qualifiedName": {
+          "minLength": 1,
+          "title": "Qualifiedname",
+          "type": "string"
+        },
+        "repoId": {
+          "minLength": 1,
+          "title": "Repoid",
+          "type": "string"
+        },
+        "sourceSpan": {
+          "$ref": "#/$defs/SourceSpan"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "observationId",
+        "kind",
+        "qualifiedName",
+        "repoId",
+        "sourceSpan"
+      ],
+      "title": "SymbolQuerySymbol",
+      "type": "object"
+    },
+    "UnresolvedSymbolObservationPayload": {
+      "additionalProperties": false,
+      "description": "A graph endpoint with no verified source span.",
+      "properties": {
+        "observationId": {
+          "minLength": 1,
+          "title": "Observationid",
+          "type": "string"
+        },
+        "kind": {
+          "minLength": 1,
+          "title": "Kind",
+          "type": "string"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "qualifiedName": {
+          "minLength": 1,
+          "title": "Qualifiedname",
+          "type": "string"
+        },
+        "repoId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Repoid"
+        },
+        "sourceFile": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sourcefile"
+        },
+        "sourceStatus": {
+          "const": "unresolved",
+          "default": "unresolved",
+          "title": "Sourcestatus",
+          "type": "string"
+        },
+        "extractor": {
+          "$ref": "#/$defs/Extractor"
+        }
+      },
+      "required": [
+        "observationId",
+        "kind",
+        "name",
+        "qualifiedName",
+        "extractor"
+      ],
+      "title": "UnresolvedSymbolObservationPayload",
+      "type": "object"
+    },
+    "UnresolvedSymbolObservationRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "schemaVersion": {
+          "const": "1.0.0",
+          "title": "Schemaversion",
+          "type": "string"
+        },
+        "recordType": {
+          "const": "UnresolvedSymbolObservation",
+          "title": "Recordtype",
+          "type": "string"
+        },
+        "recordId": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Recordid",
+          "type": "string"
+        },
+        "snapshotId": {
+          "minLength": 1,
+          "title": "Snapshotid",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/UnresolvedSymbolObservationPayload"
+        },
+        "evidenceReferences": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidencereferences",
+          "type": "array"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "recordType",
+        "recordId",
+        "snapshotId",
+        "payload"
+      ],
+      "title": "UnresolvedSymbolObservationRecord",
+      "type": "object"
+    },
+    "VectorDocumentPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "text": {
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        },
+        "contentHash": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Contenthash",
+          "type": "string"
+        },
+        "sourceSpan": {
+          "$ref": "#/$defs/SourceSpan"
+        },
+        "language": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Language"
+        },
+        "symbolKind": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Symbolkind"
+        },
+        "qualifiedName": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Qualifiedname"
+        },
+        "chunker": {
+          "$ref": "#/$defs/Chunker"
+        },
+        "embedding": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Embedding"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "text",
+        "contentHash",
+        "sourceSpan",
+        "chunker"
+      ],
+      "title": "VectorDocumentPayload",
+      "type": "object"
+    },
+    "VectorDocumentRecord": {
+      "additionalProperties": false,
+      "description": "Source-grounded chunk to embed or store in a future vector database.",
+      "properties": {
+        "schemaVersion": {
+          "const": "1.0.0",
+          "title": "Schemaversion",
+          "type": "string"
+        },
+        "recordType": {
+          "const": "VectorDocument",
+          "title": "Recordtype",
+          "type": "string"
+        },
+        "recordId": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Recordid",
+          "type": "string"
+        },
+        "snapshotId": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Snapshotid",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/VectorDocumentPayload"
+        },
+        "evidenceReferences": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Evidencereferences",
+          "type": "array"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "recordType",
+        "recordId",
+        "snapshotId",
+        "payload",
+        "evidenceReferences"
+      ],
+      "title": "VectorDocumentRecord",
+      "type": "object"
+    }
+  },
+  "anyOf": [
+    {
+      "$ref": "#/$defs/SnapshotIdentity"
+    },
+    {
+      "$ref": "#/$defs/MigrationManifest"
+    },
+    {
+      "$ref": "#/$defs/SymbolObservationRecord"
+    },
+    {
+      "$ref": "#/$defs/ExternalSymbolObservationRecord"
+    },
+    {
+      "$ref": "#/$defs/UnresolvedSymbolObservationRecord"
+    },
+    {
+      "$ref": "#/$defs/CodeGraphRecord"
+    },
+    {
+      "$ref": "#/$defs/RelationshipRecord"
+    },
+    {
+      "$ref": "#/$defs/GraphNode"
+    },
+    {
+      "$ref": "#/$defs/GraphEdge"
+    },
+    {
+      "$ref": "#/$defs/SymbolQueryResult"
+    },
+    {
+      "$ref": "#/$defs/ComponentMigrationStatus"
+    },
+    {
+      "$ref": "#/$defs/MigrationStatusResult"
+    },
+    {
+      "$ref": "#/$defs/CoupledComponent"
+    },
+    {
+      "$ref": "#/$defs/CouplingResult"
+    },
+    {
+      "$ref": "#/$defs/DecommissionCandidate"
+    },
+    {
+      "$ref": "#/$defs/DecommissionResult"
+    },
+    {
+      "$ref": "#/$defs/GraphQueryRequest"
+    },
+    {
+      "$ref": "#/$defs/VectorDocumentRecord"
+    },
+    {
+      "$ref": "#/$defs/CompareRequest"
+    },
+    {
+      "$ref": "#/$defs/ComparisonResult"
+    }
+  ],
+  "title": "Migration Assistant project contract",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Shared contract for migration inputs, snapshot identities, ingestion records, graph query results, comparisons, and source-grounded vector documents."
+}

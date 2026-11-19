@@ -35,8 +35,19 @@ ollama pull qwen3.5:0.8b
 
 ```bash
 cd backend
-uv sync          # creates .venv and installs pinned dependencies
+uv sync --locked # installs API and ingestion together into backend/.venv
 ```
+
+The ingestion CLI is installed by the same command. To run it with the committed
+reference configuration:
+
+```bash
+cd code-ingestion-pipeline
+uv run --project .. ingest
+```
+
+See [the ingestion guide](code-ingestion-pipeline/README.md) for source configuration.
+Return to `backend/` before starting the API with the scripts below.
 
 Then start everything with one command:
 
@@ -92,8 +103,17 @@ frontend does not display yet.
 | Port 8000 or 3000 already in use | Stop the other process, or set `PORT` |
 | Chat shows an error event instead of an answer | Ollama is not running or the model is missing |
 
-## Tests
+## Tests and quality checks
+
+Run all backend checks from `backend/`:
 
 ```bash
-uv run pytest
+cd backend
+uv sync --locked
+uv run ruff check .
+uv run ruff format --check .
+uv run ty check
+uv run pytest tests -v
+uv run --directory code-ingestion-pipeline --project .. pytest tests -v
+uv run python -m compileall -q app shared_contracts code-ingestion-pipeline/src
 ```

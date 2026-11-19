@@ -21,7 +21,8 @@ SYSTEM_PROMPT = (
 class QueryService(Protocol):
     """Answers one migration-status query for the chat endpoint."""
 
-    name: str
+    @property
+    def name(self) -> str: ...
 
     def sources(self) -> list[str]:
         """Evidence source labels attached to every answer."""

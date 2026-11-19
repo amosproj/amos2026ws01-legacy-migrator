@@ -41,10 +41,21 @@ dependencies = [
     "uvicorn[standard]==0.52.4",
 ]
 
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project.scripts]
+ingest = "migration_assistant.bootstrap.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app", "shared_contracts", "code-ingestion-pipeline/src/migration_assistant"]
+
 [dependency-groups]
 dev = [
     "pytest==9.1.1",
     "ruff==0.16.8",
+    "ty==0.0.104",
 ]
 
 [tool.ruff]
@@ -63,4 +74,20 @@ known-first-party = ["migration_assistant", "app"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = [".", "src"]
+pythonpath = [".", "src", "code-ingestion-pipeline", "code-ingestion-pipeline/src"]
+
+[tool.ty.environment]
+python-version = "3.12"
+extra-paths = [
+    ".",
+    "code-ingestion-pipeline",
+    "code-ingestion-pipeline/src",
+    "code-ingestion-pipeline/tests",
+]
+
+[tool.ty.src]
+include = [
+    "app",
+    "tests",
+    "code-ingestion-pipeline/src",
+]

@@ -3,6 +3,7 @@
 import subprocess
 
 import pytest
+import yaml
 
 from migration_assistant.adapters.outbound.git.local_git import LocalGitAdapter
 from migration_assistant.adapters.outbound.git.source_loader import load_sources
@@ -14,6 +15,8 @@ from migration_assistant.domain.checkout import (
     UnknownStageError,
 )
 from migration_assistant.domain.sources import SourceLoadError
+
+pytestmark = pytest.mark.usefixtures("pipeline_cli")
 
 
 def test_unknown_stage(reference):
@@ -157,25 +160,25 @@ def test_cli_override_stage_04a(reference, capsys):
     assert "stage: step-04a" in capsys.readouterr().out
 
 
-def test_cli_out_inside_workspace_is_refused(reference, capsys):
+def test_cli_output_locations_are_developer_controlled(reference, capsys, monkeypatch):
     out = reference.workspace / "out.jsonl"
+    output = reference.workspace / "runs"
+    real_run = subprocess.run
 
-    code = cli.main(["--config", str(reference.config_path), "--out", str(out)])
+    def without_git_path_checks(command, *args, **kwargs):
+        assert "check-ignore" not in command and "ls-files" not in command
+        return real_run(command, *args, **kwargs)
 
-    lines = capsys.readouterr().err.splitlines()
-    assert code == 1
-    assert len(lines) == 1 and "must not be inside the workspace" in lines[0]
-    assert not out.exists()
+    monkeypatch.setattr(subprocess, "run", without_git_path_checks)
 
+    code = cli.main(
+        ["--config", str(reference.config_path), "--out", str(out), "--output-dir", str(output)]
+    )
 
-def test_cli_out_inside_source_is_refused(reference, capsys):
-    out = reference.source / "out.jsonl"
-
-    code = cli.main(["--config", str(reference.config_path), "--out", str(out)])
-
-    assert code == 1
-    assert "must not be inside the source repository" in capsys.readouterr().err
-    assert not out.exists()
+    assert code == 0, capsys.readouterr().err
+    assert out.is_file()
+    (run,) = output.iterdir()
+    assert (run / "entities.jsonl").is_file()
 
 
 def test_cli_writes_jsonl_with_camel_case(reference, tmp_path, capsys):
@@ -189,3 +192,37 @@ def test_cli_writes_jsonl_with_camel_case(reference, tmp_path, capsys):
     assert code == 0
     assert [row["path"] for row in rows] == ["legacy.sql", "pom.xml", "src/Main.java"]
     assert {"repoId", "commitSha", "contentSha256", "sizeBytes", "githubUrl"} <= set(rows[0])
+
+
+@pytest.mark.parametrize("selection", [None, [], ["monolith"]])
+@pytest.mark.parametrize("override", [False, True])
+def test_cli_component_selection(reference, tmp_path, capsys, selection, override):
+    import json
+
+    data = yaml.safe_load(reference.config_path.read_text(encoding="utf-8"))
+    data["stage"] = "step-04a"
+    if selection is None:
+        data.pop("components")
+    else:
+        data["components"] = selection
+    reference.config_path.write_text(yaml.safe_dump(data), encoding="utf-8")
+    out = tmp_path / "sources.jsonl"
+    args = ["--config", str(reference.config_path), "--out", str(out)]
+    if override:
+        args.extend(["--components", "catalog-service"])
+
+    code = cli.main(args)
+
+    captured = capsys.readouterr()
+    assert code == 0, captured.err
+    expected = {
+        "legacy-example-monolith": reference.origin.sha_step_04a,
+        "legacy-example-catalog-service": reference.origin.sha_catalog_step_04a,
+    }
+    if override:
+        expected.pop("legacy-example-monolith")
+    elif selection:
+        expected.pop("legacy-example-catalog-service")
+    rows = [json.loads(line) for line in out.read_text(encoding="utf-8").splitlines()]
+    assert {row["repoId"]: row["commitSha"] for row in rows} == expected
+    assert all(row["stage"] == "step-04a" for row in rows)

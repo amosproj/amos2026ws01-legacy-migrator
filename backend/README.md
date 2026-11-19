@@ -7,10 +7,10 @@ Python backend of SunsetTracker. It has two parts:
    seam: without configuration a mock provider answers; with configuration any
    OpenAI-compatible endpoint is used (a local Ollama server or a future
    external API provider).
-2. **Reference loader** (ticket #17): checks out one stage of the reference
-   system and loads its source files for analysis. Setup, configuration, usage
-   and tests are described in the
-   [usage guide](../Documentation/ingestion/reference-loader.md).
+2. **Ingestion pipeline**, including the reference loader (ticket #17): checks
+   out a reference stage, loads its files, and generates component graphs and
+   canonical facts. Setup, configuration, usage and tests are described in the
+   [pipeline setup guide](code-ingestion-pipeline/README.md).
 
 Run all commands from this folder.
 
@@ -39,11 +39,31 @@ Start everything with one command:
 Both scripts wire the backend to the local Ollama server automatically; without
 Ollama the backend still runs and answers with a mock provider.
 
-## Tests
+## Tests and CI checks
+
+The GitHub Actions workflow (`.github/workflows/backend-tests.yml`) runs
+automatically on pull requests and pushes to `main` and `develop` when files in
+`backend/` or the workflow file change. It checks formatting, linting, types,
+both unit test suites, bytecode compilation, and API startup.
+
+Run the same checks from `backend/`:
 
 ```bash
 cd backend
-uv run pytest
+uv sync --locked
+uv run ruff check .
+uv run ruff format --check .
+uv run ty check
+uv run pytest tests -v
+uv run --directory code-ingestion-pipeline --project .. pytest tests -v
+uv run python -m compileall -q app shared_contracts code-ingestion-pipeline/src
+uv run python -c "
+from fastapi.testclient import TestClient
+from app.main import app
+with TestClient(app) as client:
+    r = client.get('/api/health')
+    assert r.status_code == 200, r.text
+"
 ```
 
 ## Configuration
@@ -74,9 +94,9 @@ backend/
 │   ├── query_service.py      # QueryService seam (mock + LLM-backed)
 │   ├── llm.py                # LlmProvider seam (mock + OpenAI-compatible)
 │   └── repositories.py       # mock repository list
-├── src/migration_assistant/  # reference loader (ticket #17)
-├── tests/                    # tests for both parts
-├── config/                   # reference loader configuration
+├── code-ingestion-pipeline/  # loader, Graphify adapters, configuration and tests
+├── shared_contracts/         # canonical ingestion and graph/query contracts
+├── tests/                    # query API and graph contract tests
 ├── pyproject.toml
 ├── run.sh                    # one-command start (Linux)
 ├── run.ps1                   # one-command start (Windows Terminal)
@@ -89,18 +109,13 @@ configuration — consuming components never change. The `QueryService` protocol
 in `app/query_service.py` is where the knowledge-graph query logic will be
 plugged in later without changing the API layer.
 
-## Reference loader
+## Ingestion pipeline
 
-The reference loader (ticket #17) checks out a pinned stage of the reference
-repository and loads its relevant source files without modifying the original.
-It ships its own CLI:
-
-```bash
-cd backend
-uv run migration-assistant --help
-```
-
-Details: [reference loader usage guide](../Documentation/ingestion/reference-loader.md).
+The `code-ingestion-pipeline/` directory contains the loader and Graphify
+integration. It shares `backend/.venv`, `pyproject.toml`, and `uv.lock` with the API.
+After `uv sync --locked`, run it from that directory with `uv run --project .. ingest`.
+Follow the [complete setup guide](code-ingestion-pipeline/README.md) for configuration
+and canonical output details.
 
 ## Known limitations / future work
 

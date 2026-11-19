@@ -1,6 +1,8 @@
 """Configuration of the reference source (Issue #17)."""
 
+from collections.abc import Mapping
 from pathlib import Path
+from typing import Any
 
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
@@ -19,7 +21,8 @@ class ReferenceSourceConfig(BaseModel):
     public_url: str
     # Opaque key: only a safety check (not empty, no leading "-", limited characters).
     stage: str = Field(pattern=r"^[A-Za-z0-9._/][A-Za-z0-9._/-]*$")
-    components: list[str] = Field(min_length=1)
+    # An omitted or empty filter selects every component in the stage.
+    components: list[str] = Field(default_factory=list)
     workspace: Path
     include: list[str] = Field(min_length=1)
     exclude: list[str]
@@ -84,7 +87,7 @@ def load_config(path: str | Path) -> ReferenceSourceConfig:
         raise ConfigError("\n".join(problems)) from error
 
 
-def _describe(problem: dict, name: str) -> str:
+def _describe(problem: Mapping[str, Any], name: str) -> str:
     field = ".".join(str(part) for part in problem["loc"])
     if problem["type"] == "missing":
         return f"Missing field '{field}' in {name}"

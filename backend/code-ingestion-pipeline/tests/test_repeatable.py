@@ -44,3 +44,25 @@ def test_going_back_to_earlier_stage_works(reference):
     paths = {file.path for file in result.files}
     assert "src/Extra.java" not in paths
     assert "Dockerfile" not in paths
+
+
+def test_all_components_follow_the_selected_stage_in_the_same_workspace(reference):
+    config = reference.config(components=[], stage="step-04a")
+
+    later = _run(config)
+
+    assert {member.repo_id: member.commit_sha for member in later.checkout.members} == {
+        "legacy-example-monolith": reference.origin.sha_step_04a,
+        "legacy-example-catalog-service": reference.origin.sha_catalog_step_04a,
+    }
+    assert {file.repo_id for file in later.files} == {
+        "legacy-example-monolith",
+        "legacy-example-catalog-service",
+    }
+    assert later == _run(config)
+
+    earlier = _run(reference.config(components=[], stage="step-00"))
+
+    assert [member.repo_id for member in earlier.checkout.members] == ["legacy-example-monolith"]
+    assert earlier.checkout.members[0].commit_sha == reference.origin.sha_step_00
+    assert {file.repo_id for file in earlier.files} == {"legacy-example-monolith"}
