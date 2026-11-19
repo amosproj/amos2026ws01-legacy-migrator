@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Navbar } from './components/Navbar';
+import { LegalNotices } from './components/LegalNotices';
 import { ChatInterface } from './components/chat/ChatInterface';
 import { ViewsInterface } from './components/views/ViewsInterface';
 import { DiffInterface } from './components/diff/DiffInterface';
@@ -7,6 +8,7 @@ import { checkBackendHealth, HealthStatus } from './services/api';
 
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'chat' | 'views' | 'diff'>('chat');
+  const [showLegalNotices, setShowLegalNotices] = useState(false);
   const [selectedStep, setSelectedStep] = useState<string>('step-06');
   const [health, setHealth] = useState<HealthStatus>({
     backendAvailable: false,
@@ -68,7 +70,9 @@ export const App: React.FC = () => {
       <footer className="py-1.5 px-6 border-t border-[#ebebeb] bg-[#ffffff] text-[11px] font-mono text-[#8f8f8f] flex flex-wrap items-center justify-between gap-2 max-w-7xl mx-auto w-full">
         <span>AMOS Winter Semester 2026/27 · Project 1 (iteratec) · SunsetTracker</span>
         <span>Deterministic Code Ingestion · AST Traceability · Neo4j & PostgreSQL 17</span>
+        <button type="button" onClick={() => setShowLegalNotices(true)} className="underline hover:text-[#171717]">Legal Notices</button>
       </footer>
+      {showLegalNotices && <LegalNotices onClose={() => setShowLegalNotices(false)} />}
     </div>
   );
 };
