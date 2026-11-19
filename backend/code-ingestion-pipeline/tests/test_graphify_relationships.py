@@ -329,6 +329,92 @@ def test_component_facts_include_file_spans_and_unresolved_endpoints():
     assert result.facts[0].relationship_type == RelationshipType.USES
 
 
+def test_component_relative_paths_use_manifest_repo_id_and_keep_full_path():
+    revision = "c" * 40
+    entities, result = normalize_graphify_facts(
+        {
+            "nodes": [
+                {
+                    "id": "abstract-customer",
+                    "label": "AbstractCustomer",
+                    "_callable_class": True,
+                    "source_file": (
+                        "CustomerOrderServices/ejbModule/org/pwte/example/domain/"
+                        "AbstractCustomer.java"
+                    ),
+                    "source_location": "L23",
+                },
+                {
+                    "id": "business-customer",
+                    "label": "BusinessCustomer",
+                    "_callable_class": True,
+                    "source_file": (
+                        "CustomerOrderServices/ejbModule/org/pwte/example/domain/"
+                        "BusinessCustomer.java"
+                    ),
+                    "source_location": "L9",
+                },
+            ],
+            "links": [
+                {
+                    "id": "inherits-abstract-customer",
+                    "source": "business-customer",
+                    "target": "abstract-customer",
+                    "relation": "inherits",
+                    "source_file": (
+                        "CustomerOrderServices/ejbModule/org/pwte/example/domain/"
+                        "BusinessCustomer.java"
+                    ),
+                    "source_location": "L9",
+                }
+            ],
+        },
+        snapshot_id="snapshot-component-relative-path",
+        source_revisions={"legacy-example-monolith": revision},
+        default_repo_id="legacy-example-monolith",
+    )
+
+    by_name = {entity.name: entity for entity in entities}
+    expected_path = (
+        "CustomerOrderServices/ejbModule/org/pwte/example/domain/AbstractCustomer.java"
+    )
+    assert by_name["AbstractCustomer"].record_type == "SymbolObservation"
+    assert by_name["AbstractCustomer"].source_span.repo_id == "legacy-example-monolith"
+    assert by_name["AbstractCustomer"].source_span.path == expected_path
+    assert by_name["AbstractCustomer"].source_span.commit_sha == revision
+    assert len(result.facts) == 1
+    assert result.facts[0].source_span.repo_id == "legacy-example-monolith"
+    assert result.facts[0].source_span.path.endswith("BusinessCustomer.java")
+    assert result.facts[0].source_span.commit_sha == revision
+    assert result.issues == []
+
+
+def test_source_less_graphify_nodes_with_same_label_get_distinct_observation_ids():
+    raw_ids = [
+        "customerservicesapp_override",
+        "customerservicestest_override",
+        "productsearchservicetest_override",
+        "lineitemid_override",
+    ]
+    entities, result = normalize_graphify_facts(
+        {
+            "nodes": [{"id": node_id, "label": "Override"} for node_id in raw_ids],
+            "links": [],
+        },
+        snapshot_id="snapshot-override-regression",
+        source_revisions={"monolith": "a" * 40, "catalog-service": "b" * 40},
+    )
+
+    observation_ids = [entity.observation_id for entity in entities]
+    record_ids = [entity.record_id for entity in entities]
+    assert len(entities) == len(raw_ids)
+    assert len(set(observation_ids)) == len(raw_ids)
+    assert len(set(record_ids)) == len(raw_ids)
+    assert all(entity.record_type == "UnresolvedSymbolObservation" for entity in entities)
+    assert result.facts == []
+    assert result.issues == []
+
+
 @pytest.mark.parametrize(
     ("raw_type", "target_kind", "expected"),
     [
