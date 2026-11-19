@@ -375,9 +375,7 @@ def test_component_relative_paths_use_manifest_repo_id_and_keep_full_path():
     )
 
     by_name = {entity.name: entity for entity in entities}
-    expected_path = (
-        "CustomerOrderServices/ejbModule/org/pwte/example/domain/AbstractCustomer.java"
-    )
+    expected_path = "CustomerOrderServices/ejbModule/org/pwte/example/domain/AbstractCustomer.java"
     assert by_name["AbstractCustomer"].record_type == "SymbolObservation"
     assert by_name["AbstractCustomer"].source_span.repo_id == "legacy-example-monolith"
     assert by_name["AbstractCustomer"].source_span.path == expected_path
