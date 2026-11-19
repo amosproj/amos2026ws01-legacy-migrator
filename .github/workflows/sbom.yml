@@ -1,7 +1,26 @@
 name: SBOM and legal notices
 on:
+  push:
+    branches:
+      - 112-deliverable-create-mid-project-release-sbom-and-legal-notices
+      - develop
+      - main
+    paths:
+      - 'backend/uv.lock'
+      - 'backend/pyproject.toml'
+      - 'frontend/package-lock.json'
+      - 'frontend/package.json'
+      - 'LICENSE*'
+      - 'LICENSES/**'
+      - 'scripts/sbom/**'
+      - 'scripts/sbom/registry-license-snapshot.json'
+      - 'sbom.spdx.json'
+      - 'frontend/public/legal/**'
+      - '.github/workflows/sbom.yml'
   pull_request:
-    branches: [develop, 112-deliverable-create-mid-project-release-sbom-and-legal-notices]
+    branches:
+      - 112-deliverable-create-mid-project-release-sbom-and-legal-notices
+      - develop
     paths:
       - 'backend/uv.lock'
       - 'backend/pyproject.toml'
