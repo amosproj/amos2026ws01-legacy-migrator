@@ -1,0 +1,32 @@
+name: SBOM and legal notices
+on:
+  pull_request:
+    branches: [develop]
+    paths:
+      - 'backend/uv.lock'
+      - 'backend/pyproject.toml'
+      - 'frontend/package-lock.json'
+      - 'frontend/package.json'
+      - 'LICENSE*'
+      - 'LICENSES/**'
+      - 'scripts/sbom/**'
+      - 'scripts/sbom/registry-license-snapshot.json'
+      - 'sbom.spdx.json'
+      - 'frontend/public/legal/**'
+      - '.github/workflows/sbom.yml'
+permissions:
+  contents: read
+jobs:
+  sbom:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+      - uses: anchore/sbom-action/download-syft@v0.20.6
+      - name: Check generated SBOM and notices
+        run: scripts/sbom/regenerate_sbom.sh --check
+      - name: Enforce permissive dependency licenses
+        run: python3 scripts/sbom/check_licenses.py sbom.spdx.json
