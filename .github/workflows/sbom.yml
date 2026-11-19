@@ -45,6 +45,8 @@ jobs:
           enable-cache: true
           cache-dependency-glob: backend/uv.lock
       - uses: anchore/sbom-action/download-syft@v0.20.6
+        with:
+          syft-version: v1.57.2
       - name: Check generated SBOM and notices
         run: scripts/sbom/regenerate_sbom.sh --check
       - name: Enforce permissive dependency licenses
