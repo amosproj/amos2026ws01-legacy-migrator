@@ -11,7 +11,7 @@ ALLOWED = {
     "MIT", "MIT-0", "ISC", "BSD-2-Clause", "BSD-3-Clause", "0BSD",
     "Apache-2.0", "Zlib", "BSL-1.0", "Unlicense", "CC0-1.0",
     "AFL-3.0", "Artistic-2.0", "BlueOak-1.0.0", "PostgreSQL",
-    "Python-2.0", "PSF-2.0", "WTFPL", "UPL-1.0", "MIT-CMU",
+    "Python-2.0", "PSF-2.0", "EPL-2.0", "WTFPL", "UPL-1.0", "MIT-CMU",
 }
 ALIASES = {"MIT License":"MIT","BSD License":"BSD-3-Clause","BSD":"BSD-3-Clause","Apache License 2.0":"Apache-2.0"}
 TOKEN = re.compile(r"\(|\)|\bAND\b|\bOR\b|\bWITH\b|[A-Za-z0-9][A-Za-z0-9.+-]*")
