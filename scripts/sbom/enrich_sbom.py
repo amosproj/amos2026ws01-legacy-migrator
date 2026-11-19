@@ -3,7 +3,7 @@
 import concurrent.futures
 import datetime as dt
 import hashlib
-import json, re, sys, subprocess, urllib.error, urllib.parse, urllib.request
+import json, os, re, sys, subprocess, urllib.error, urllib.parse, urllib.request
 from pathlib import Path
 bom_path, py_meta_path, root, notices_path = map(Path, sys.argv[1:])
 bom=json.loads(bom_path.read_text())
@@ -30,7 +30,7 @@ lock=json.loads((root/"frontend/package-lock.json").read_text())
 for path,meta in lock.get("packages",{}).items():
     if not path.startswith("node_modules/"): continue
     name=meta.get("name") or path.rsplit("/",1)[-1]
-    lic=meta.get("license"); pkg=root/"frontend"/path/"package.json"; texts={}
+    lic=meta.get("license"); pkg=Path(os.environ.get("SBOM_FRONTEND_NODE_MODULES", str(root/"frontend/node_modules")))/path.removeprefix("node_modules/")/"package.json"; texts={}
     if pkg.exists():
         try:
             md=json.loads(pkg.read_text()); lic=md.get("license",lic)
