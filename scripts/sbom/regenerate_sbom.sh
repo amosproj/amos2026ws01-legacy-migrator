@@ -2,13 +2,16 @@
 set -euo pipefail
 MODE=write
 USE_DOCKER=false
+REFRESH_REGISTRY=false
 for arg in "$@"; do
   case "$arg" in
     --check) MODE=check ;;
     --docker) USE_DOCKER=true ;;
+    --refresh-registry-snapshot) REFRESH_REGISTRY=true ;;
     *) echo "unknown argument: $arg" >&2; exit 2 ;;
   esac
 done
+if [[ "$MODE" == check && "$REFRESH_REGISTRY" == true ]]; then echo "cannot refresh registry snapshot in --check mode" >&2; exit 2; fi
 ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 cd "$ROOT"
 if [[ "$USE_DOCKER" == true && "${SBOM_DOCKER_INNER:-}" != 1 ]]; then
@@ -21,11 +24,12 @@ if [[ "$USE_DOCKER" == true && "${SBOM_DOCKER_INNER:-}" != 1 ]]; then
       -e SBOM_DOCKER_INNER=1 sunsettracker-sbom:local \
       bash scripts/sbom/regenerate_sbom.sh --check
   else
+    if [[ "$REFRESH_REGISTRY" == true ]]; then EXTRA_ARG=--refresh-registry-snapshot; else EXTRA_ARG=; fi
     docker run --rm --platform linux/amd64 -v "$ROOT:/work" \
       -v sunsettracker-sbom-uv-cache:/root/.cache/uv \
       -v sunsettracker-sbom-npm-cache:/root/.npm -w /work \
       -e SBOM_DOCKER_INNER=1 sunsettracker-sbom:local \
-      bash scripts/sbom/regenerate_sbom.sh
+      bash scripts/sbom/regenerate_sbom.sh ${EXTRA_ARG:+"$EXTRA_ARG"}
   fi
   exit $?
 fi
@@ -40,6 +44,7 @@ cp frontend/package.json frontend/package-lock.json "$NPM_ROOT/"
 npm ci --prefix "$NPM_ROOT" --ignore-scripts --no-audit --no-fund --quiet
 export SBOM_FRONTEND_NODE_MODULES="$NPM_ROOT/node_modules"
 syft scan dir:. --source-name SunsetTracker --source-version 0.1.0 --exclude './.git/**' --exclude './.venv/**' --exclude './.github/**' --exclude '**/.github/**' --exclude './Documentation/**' --exclude './frontend/node_modules/**' --exclude './backend/.venv/**' --exclude './backend/ba/**' --exclude './backend/code-ingestion-pipeline/.cache/**' --exclude './.venv/lib/python3.15/site-packages/pip/_vendor/distlib/w64.exe' --exclude './backend/.venv/**/pip/_vendor/distlib/w64.exe' --output "spdx-json=$OUT/sbom.spdx.json"
+if [[ "$REFRESH_REGISTRY" == true ]]; then python3 scripts/sbom/refresh_registry_snapshot.py "$OUT/sbom.spdx.json" "$OUT/python-dists.json"; fi
 python3 scripts/sbom/enrich_sbom.py "$OUT/sbom.spdx.json" "$OUT/python-dists.json" "$ROOT" "$OUT/THIRD_PARTY_NOTICES.md"
 if [[ "$MODE" == check ]]; then
   python3 scripts/sbom/compare_sbom.py sbom.spdx.json "$OUT/sbom.spdx.json"

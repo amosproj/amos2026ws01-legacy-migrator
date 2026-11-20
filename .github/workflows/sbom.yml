@@ -57,5 +57,7 @@ jobs:
           syft-version: v1.57.2
       - name: Check generated SBOM and notices
         run: scripts/sbom/regenerate_sbom.sh --check
+      - name: Check SBOM completeness
+        run: python3 scripts/sbom/check_completeness.py sbom.spdx.json
       - name: Enforce permissive dependency licenses
         run: python3 scripts/sbom/check_licenses.py sbom.spdx.json
