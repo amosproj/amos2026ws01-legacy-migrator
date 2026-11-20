@@ -12,9 +12,9 @@ public_url: "https://github.com/legacy-modernization-example"
 # Stage tag to analyse (step-00 ... step-10).
 stage: step-00
 
-# Component repositories to include.
-components:
-  - monolith
+# Component filter: omit or use [] to load all components in the selected stage.
+# Set a list (e.g. [monolith]) to restrict it; --components overrides it for one run.
+components: []
 
 # Local working directory for checkouts. Ignored by Git (.cache/ in .gitignore).
 workspace: .cache/reference

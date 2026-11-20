@@ -1,9 +1,9 @@
 """Acceptance criterion 1: the reference source can be configured as an input source."""
 
+from pathlib import Path
+
 import pytest
 import yaml
-
-from pathlib import Path
 
 from migration_assistant.domain.reference_source import (
     ConfigError,
@@ -35,8 +35,23 @@ def test_real_project_config_loads():
     config = load_config("config/reference-source.yaml")
 
     assert config.source == "https://github.com/legacy-modernization-example/legacy-example-stages"
-
+    assert config.components == []
     assert config.max_file_size_kb == 1024
+
+
+@pytest.mark.parametrize("components", [None, []])
+def test_components_filter_can_be_omitted_or_empty(reference, components):
+    _rewrite(reference, components=components)
+
+    assert load_config(reference.config_path).components == []
+
+
+@pytest.mark.parametrize("components", [[""], ["   "], "monolith"])
+def test_invalid_components_filter_is_rejected(reference, components):
+    _rewrite(reference, components=components)
+
+    with pytest.raises(ConfigError, match="Invalid value for field 'components"):
+        load_config(reference.config_path)
 
 
 def test_local_override_is_preferred_when_it_exists(tmp_path, monkeypatch):
@@ -44,7 +59,9 @@ def test_local_override_is_preferred_when_it_exists(tmp_path, monkeypatch):
     assert default_config_path() == Path("config/reference-source.yaml")
 
     (tmp_path / "config").mkdir()
-    (tmp_path / "config" / "reference-source.local.yaml").write_text("source: x\n", encoding="utf-8")
+    (tmp_path / "config" / "reference-source.local.yaml").write_text(
+        "source: x\n", encoding="utf-8"
+    )
 
     assert default_config_path() == Path("config/reference-source.local.yaml")
 
@@ -52,7 +69,7 @@ def test_local_override_is_preferred_when_it_exists(tmp_path, monkeypatch):
 def test_missing_field_is_reported_by_name(reference):
     _rewrite(reference, stage=None)
 
-    with pytest.raises(ConfigError, match="Missing field 'stage' in .*reference-source.yaml"):
+    with pytest.raises(ConfigError, match=r"Missing field 'stage' in .*reference-source\.yaml"):
         load_config(reference.config_path)
 
 
@@ -72,5 +89,5 @@ def test_stage_is_an_opaque_key(reference, stage):
 
 
 def test_missing_file_is_reported(tmp_path):
-    with pytest.raises(ConfigError, match="Config file not found: .*does-not-exist.yaml"):
+    with pytest.raises(ConfigError, match=r"Config file not found: .*does-not-exist\.yaml"):
         load_config(tmp_path / "does-not-exist.yaml")

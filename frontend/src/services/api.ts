@@ -1,7 +1,11 @@
 import { QueryRequest, QueryResponse, SourceEvidence } from '../types/chat';
 import { MOCK_EVIDENCES, INITIAL_SUGGESTIONS } from './mockData';
 
-const API_BASE_URL = '/api';
+// Decoupled architecture: the browser calls the backend origin directly.
+// Vite bakes VITE_BACKEND_URL (origin only, no path) into the build
+// (Dockerfile ARG); in dev it is unset, so requests stay relative and the
+// Vite dev/preview proxy forwards them to the backend on 127.0.0.1:8000.
+const API_BASE_URL = `${import.meta.env.VITE_BACKEND_URL ?? ''}/api`;
 
 export interface HealthStatus {
   backendAvailable: boolean;

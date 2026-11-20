@@ -1,15 +1,27 @@
 """Shared fixtures: a tiny fake reference setup built with real git."""
 
+from __future__ import annotations
+
 import hashlib
+import json
 import os
 import subprocess
+import sys
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 import yaml
 
-from migration_assistant.domain.reference_source import ReferenceSourceConfig, load_config
+PIPELINE_DIR = Path(__file__).resolve().parents[1]
+BACKEND_DIR = PIPELINE_DIR.parent
+for import_path in (BACKEND_DIR, PIPELINE_DIR / "src"):
+    if str(import_path) not in sys.path:
+        sys.path.insert(0, str(import_path))
+
+if TYPE_CHECKING:
+    from migration_assistant.domain.reference_source import ReferenceSourceConfig
 
 PUBLIC_URL = "https://example.test/org"
 INCLUDE = [".java", ".xml", ".properties", ".sql", ".conf", ".yaml", ".yml", ".sh", "Dockerfile"]
@@ -21,7 +33,11 @@ LATIN1_SQL = "-- Größe\nSELECT 'ä';\n".encode("latin-1")
 
 def git(cwd: Path, *args: str) -> str:
     completed = subprocess.run(
-        ["git", "-c", "core.longpaths=true", *args], cwd=cwd, capture_output=True, text=True, encoding="utf-8"
+        ["git", "-c", "core.longpaths=true", *args],
+        cwd=cwd,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
     )
     if completed.returncode != 0:
         raise RuntimeError(f"git {' '.join(args)} failed in {cwd}: {completed.stderr.strip()}")
@@ -50,7 +66,9 @@ def tree_hashes(root: Path) -> dict[str, str]:
             if name == ".git":
                 continue
             path = Path(directory) / name
-            hashes[path.relative_to(extended(root)).as_posix()] = hashlib.sha256(path.read_bytes()).hexdigest()
+            hashes[path.relative_to(extended(root)).as_posix()] = hashlib.sha256(
+                path.read_bytes()
+            ).hexdigest()
     return hashes
 
 
@@ -62,6 +80,7 @@ class Origin:
     component: Path
     sha_step_00: str
     sha_step_04a: str
+    sha_catalog_step_04a: str
 
 
 @dataclass(frozen=True)
@@ -75,6 +94,8 @@ class Reference:
         return self.origin.umbrella
 
     def config(self, **overrides) -> ReferenceSourceConfig:
+        from migration_assistant.domain.reference_source import ReferenceSourceConfig, load_config
+
         base = load_config(self.config_path)
         return ReferenceSourceConfig.model_validate({**base.model_dump(), **overrides})
 
@@ -94,8 +115,8 @@ def _commit(repo: Path, message: str, tag: str) -> str:
 
 def _stage_json(stage: str, sha: str) -> str:
     return (
-        '{\n  "id": "%s",\n  "komponenten": {\n    "monolith": {\n'
-        '      "tag": "%s",\n      "sha": "%s"\n    }\n  }\n}\n' % (stage, stage, sha)
+        f'{{\n  "id": "{stage}",\n  "komponenten": {{\n    "monolith": {{\n'
+        f'      "tag": "{stage}",\n      "sha": "{sha}"\n    }}\n  }}\n}}\n'
     )
 
 
@@ -140,7 +161,11 @@ def origin(tmp_path_factory, git_environment) -> Origin:
     _write(component, "notes.txt", "just notes\n")
     sha_00 = _commit(component, "step-00", "step-00")
 
-    _write(component, "src/Main.java", "class Main { int version = 4; }\n")
+    _write(
+        component,
+        "src/Main.java",
+        "class Main { int version = 4; void run() { helper(); } void helper() {} }\n",
+    )
     _write(component, "src/Extra.java", "class Extra {}\n")
     _write(component, "Dockerfile", "FROM scratch\n")
     _write(component, DEEP_FILE, "class Deep {}\n")
@@ -150,21 +175,66 @@ def origin(tmp_path_factory, git_environment) -> Origin:
     umbrella.mkdir()
     git(umbrella, "init", "-q", "-b", "main")
     git(
-        umbrella, "-c", "protocol.file.allow=always",
-        "submodule", "add", "-q", str(component), "components/monolith",
+        umbrella,
+        "-c",
+        "protocol.file.allow=always",
+        "submodule",
+        "add",
+        "-q",
+        str(component),
+        "components/monolith",
     )
-    git(umbrella, "config", "-f", ".gitmodules",
-        "submodule.components/monolith.url", "../legacy-example-monolith")
+    git(
+        umbrella,
+        "config",
+        "-f",
+        ".gitmodules",
+        "submodule.components/monolith.url",
+        "../legacy-example-monolith",
+    )
 
     git(umbrella / "components" / "monolith", "checkout", "-q", sha_00)
     _write(umbrella, "stage.json", _stage_json("step-00", sha_00))
     _commit(umbrella, "step-00", "step-00")
 
     git(umbrella / "components" / "monolith", "checkout", "-q", sha_04a)
-    _write(umbrella, "stage.json", _stage_json("step-04a", sha_04a))
+    catalog = org / "legacy-example-catalog-service"
+    catalog.mkdir()
+    git(catalog, "init", "-q", "-b", "main")
+    _write(
+        catalog, "src/Main.java", "class Catalog { void run() { helper(); } void helper() {} }\n"
+    )
+    catalog_sha = _commit(catalog, "step-04a", "step-04a")
+    git(
+        umbrella,
+        "-c",
+        "protocol.file.allow=always",
+        "submodule",
+        "add",
+        "-q",
+        str(catalog),
+        "components/catalog-service",
+    )
+    git(
+        umbrella,
+        "config",
+        "-f",
+        ".gitmodules",
+        "submodule.components/catalog-service.url",
+        "../legacy-example-catalog-service",
+    )
+    stage = json.loads(_stage_json("step-04a", sha_04a))
+    stage["komponenten"]["catalog-service"] = {"tag": "step-04a", "sha": catalog_sha}
+    _write(umbrella, "stage.json", json.dumps(stage))
     _commit(umbrella, "step-04a", "step-04a")
 
-    return Origin(umbrella=umbrella, component=component, sha_step_00=sha_00, sha_step_04a=sha_04a)
+    return Origin(
+        umbrella=umbrella,
+        component=component,
+        sha_step_00=sha_00,
+        sha_step_04a=sha_04a,
+        sha_catalog_step_04a=catalog_sha,
+    )
 
 
 @pytest.fixture
@@ -187,3 +257,28 @@ def reference(origin, tmp_path) -> Reference:
         encoding="utf-8",
     )
     return Reference(origin=origin, config_path=config_path, workspace=workspace)
+
+
+@pytest.fixture
+def pipeline_cli(monkeypatch, tmp_path):
+    """Exercise bootstrap and the real loader without requiring Graphify."""
+    from migration_assistant.adapters.outbound.graphify import GraphifyAdapter
+    from migration_assistant.bootstrap import cli
+
+    calls = []
+
+    def build(self, member, files, root, output):
+        calls.append((member, files, root, output))
+        artifacts = output / "graphify-out"
+        artifacts.mkdir(parents=True)
+        graph = artifacts / "graph.json"
+        graph.write_text(
+            json.dumps({"graph": {"graphify_version": "0.9.100"}, "nodes": [], "links": []}),
+            encoding="utf-8",
+        )
+        (artifacts / "graph.html").write_text("<html>test graph</html>", encoding="utf-8")
+        return graph
+
+    monkeypatch.setattr(cli, "DEFAULT_OUTPUT_DIR", tmp_path / "runs")
+    monkeypatch.setattr(GraphifyAdapter, "build", build)
+    return calls

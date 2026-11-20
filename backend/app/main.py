@@ -18,7 +18,7 @@ any OpenAI-compatible endpoint (local Ollama or a future external API).
 import json
 import logging
 import os
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator, AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
@@ -53,7 +53,7 @@ CORS_ORIGINS = [
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     provider = create_llm_provider()
     app.state.llm_provider = provider
     app.state.query_service = create_query_service(provider)

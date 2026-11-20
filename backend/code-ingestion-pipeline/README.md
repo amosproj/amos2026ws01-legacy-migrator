@@ -1,133 +1,186 @@
-# Reference source to graph prototype
+# Reference source to graph pipeline
 
-This is an independent subproject inside the backend. It contains the reference
-loader, Graphify integration, configuration, dependencies, tests and local outputs.
-It does not use the web application's `app/`, `tests/` or Python environment.
+The ingestion pipeline shares the backend's uv environment, dependencies, and
+lockfile. The CLI loads a pinned reference stage and extracts a separate graph
+for each selected component. It reads selected files directly from checkout;
+it does not reconstruct source copies, run clustering, or generate graph reports.
+
+## Setup and run
+
+Install uv, Python 3.12, and Git. From the repository root:
+
+```bash
+cd backend
+uv sync --locked
+cd code-ingestion-pipeline
+uv run --project .. ingest
+```
+
+The commands are the same in Linux/macOS terminals and Windows PowerShell.
+`uv sync --locked` installs the API, loader, Graphify, CLI, and development tools
+into `backend/.venv`. No separate ingestion environment, pip setup script, or
+`PYTHONPATH` configuration is needed. The module entry point remains available:
+
+```bash
+uv run --project .. python -m migration_assistant.bootstrap.cli
+```
+
+Runs do not invoke package installers. Use `uv sync --locked` after dependency
+changes. Normal uv commands may synchronize the environment before invoking the
+CLI; use `uv run --locked --no-sync --project .. ingest` after setup when an
+explicitly preinstalled environment is required.
+
+No API key is needed for local AST extraction. Fetching an HTTPS reference source
+uses Git and any existing Git credentials.
+
+## Configuration
+
+Run the commands below from `backend/code-ingestion-pipeline/`. The default
+configuration is `config/reference-source.yaml`. A Git-ignored
+`config/reference-source.local.yaml`, if present, replaces it completely.
+Alternatively, pass `--config PATH`.
+
+To configure a local source, copy the default configuration and edit `source`:
+
+```bash
+cp config/reference-source.yaml config/reference-source.local.yaml
+```
+
+In PowerShell, use `Copy-Item` instead of `cp`. Example source paths:
+
+```yaml
+# Linux/macOS
+source: /home/developer/reference/legacy-example-stages
+# Windows: forward slashes avoid YAML escape sequences
+# source: D:/reference/legacy-example-stages
+```
+
+The local umbrella repository must have its selected component submodules initialized.
+
+| Setting | Meaning |
+|---|---|
+| `stage` | Stage tag, such as `step-00` or `step-04a` |
+| `components` | Omit or use `[]` to select every component in that stage; a list restricts selection |
+| `source` | HTTPS URL or local umbrella repository path |
+| `workspace` | Checkout cache, default `.cache/reference` |
+| `public_url` | Base URL used for revision-pinned source links |
+| `include`, `exclude` | File selection rules |
+| `max_file_size_kb` | Maximum loaded file size |
+
+Each component is checked out at the commit pinned by the selected stage.
+Components are processed sequentially; selecting all components does not enable
+parallel downloads. Relative configuration paths are resolved from the current
+working directory.
+
+CLI overrides:
+
+```bash
+uv run --project .. ingest --stage step-04a
+uv run --project .. ingest --components monolith catalog-service
+uv run --project .. ingest --config config/reference-source.local.yaml
+uv run --project .. ingest --output-dir .cache/ingestion --verbose
+uv run --project .. ingest --out .cache/export/sources.jsonl
+```
+
+`--out` writes an additional source export. Every run saves its own `sources.jsonl`
+regardless of that option. There is no graph-mode option: extraction always runs
+separately for each component with loaded files. An entirely empty selection fails
+before extraction.
+
+Developers control output and checkout locations and their Git ignore rules. The
+pipeline does not enforce output placement or refuse Git commands based on the
+original source directory. Keep the configured workspace separate from that source
+and choose output paths that do not overwrite source files. Default `.cache/`
+locations are Git-ignored.
+
+## Pipeline and artifacts
 
 ```text
-backend/code-ingestion-pipeline/
-  pyproject.toml             reference-loader dependencies and test configuration
-  requirements-graphify.txt  Graphify requirements
-  setup.py                  add Graphify after reference-loader setup
-  run_pipeline.py           full pipeline command
-  src/migration_assistant/  reference-loader implementation
-  config/                   reference-source configuration
-  tests/                    loader and pipeline tests
-  .venv/                    one local environment for this subproject (ignored)
-  .cache/                   checkouts and graph outputs (ignored)
+CLI -> pinned checkout -> selected source files -> sources.jsonl
+    -> Graphify per component -> graph.json + graph.html
+    -> canonical handoff + snapshot identity
 ```
 
-The flow remains:
+Dependencies are checked before graph extraction. Graphify receives the selected
+original checkout paths and uses each component as its extraction root. This
+preserves develop's per-component relative paths and node IDs. Graphify may parse
+only a subset of selected formats; unparsed files are logged while the extracted
+portion is retained. No clustering, community labeling, analysis, LLM calls, or
+reports are generated.
 
-```text
-reference repository → bootstrap → sources.jsonl → analysis copies → Graphify
-```
-
-## Setup on each developer's machine
-
-First complete the **Setup** section of the
-[reference loader guide](../../Documentation/ingestion/reference-loader.md).
-Create `.venv` inside this subproject and install the loader's dependencies there.
-Keep that environment active, then add Graphify:
-
-```bash
-# Working directory: backend/code-ingestion-pipeline/
-python setup.py
-```
-
-When opening a new terminal, start from the repository root:
-
-```bash
-cd backend/code-ingestion-pipeline
-source .venv/bin/activate
-```
-
-PowerShell equivalent:
-
-```powershell
-cd backend/code-ingestion-pipeline
-.\.venv\Scripts\Activate.ps1
-```
-
-`setup.py` installs only Graphify's requirements, into the already active environment.
-It does not create environments or install loader/test dependencies. It downloads
-packages but does not fetch reference code or generate graphs. Graphify also uses
-PyYAML, so its pinned requirements may select a version of that shared package.
-Every colleague follows the same order. Rerun setup when Graphify requirements change.
-Recreate environments in the new location; do not move an old environment directory.
-
-## Run
-
-With the ingestion environment activated, from this subproject:
-
-```bash
-# One graph containing all configured components
-python run_pipeline.py
-
-# A separate graph for each component
-python run_pipeline.py --graph-mode per-component
-
-# Select a stage and its components
-python run_pipeline.py --stage step-04a --components monolith catalog-service
-
-# Use a local reference source configuration
-python run_pipeline.py --config config/reference-source.local.yaml
-```
-
-Runs never install packages. Bootstrap may fetch reference code from GitHub using
-existing Git credentials. Its configuration controls the source, stage, components,
-filters and checkout workspace. It prefers `config/reference-source.local.yaml`
-if present, otherwise `config/reference-source.yaml`. Source and workspace paths
-inside configuration files are relative to this subproject's working directory.
-If reusing a local configuration from before the move, adjust relative source paths.
-The standalone bootstrap CLI remains `python -m migration_assistant.bootstrap.cli`
-with `PYTHONPATH=src`, as described in the reference-loader guide.
-
-The pipeline reads bootstrap's JSONL, including complete selected file contents,
-and reconstructs those files for Graphify. This extra source copy remains intentional
-for the prototype. Graphify runs locally with `--code-only` and `GRAPHIFY_BACKEND=none`.
-It may parse only a subset of selected formats; optional SQL grammars are not installed.
-No manifests or separate Graphify runner are used.
-
-## Results
-
-The default checkout workspace is `.cache/reference/`; the pipeline prints its new
-run folder on each invocation:
+Each successful source load creates a unique run directory:
 
 ```text
 .cache/ingestion/<UTC-time>-<unique-suffix>/
   sources.jsonl
   bootstrap.log
-  sources/<repoId>/<original-path>
-  graphs/combined/                     # or graphs/<repoId>/
+  snapshot-identity.json
+  code-graphs.jsonl
+  entities.jsonl
+  relationships.jsonl
+  relationship-issues.jsonl       # only when normalization reports issues
+  graphs/<repoId>/
     extract.log
-    cluster.log
     graphify-out/
       graph.json
       graph.html
-      GRAPH_REPORT.md
+      cache/
 ```
 
-Open `graph.html` in a browser. Each run gets a new folder. On failure, inspect the
-printed log path; partial output remains for diagnosis. Use `--verbose` for tracebacks.
-`--output-dir PATH` overrides the parent folder for runs. Explicit config and output
-paths are relative to the terminal's current directory. Output inside this repository
-must be Git-ignored. Graphify does not modify reference checkouts.
+`bootstrap.log` records loading diagnostics. Each `extract.log` captures Python
+extraction output, logging, and failure tracebacks in place of the former subprocess
+log. There is no `cluster.log`. Extraction and handoff failures retain partial
+outputs and report their location. Use `--verbose` for a terminal traceback. If HTML
+export fails, any already-generated JSON remains available.
 
-Old environments and cached outputs elsewhere in the repository have not been moved
-or deleted; new runs use the subproject's own `.cache/`.
+## Canonical handoff
+
+The relationship adapter preserves develop's canonical handoff behavior in
+per-component mode, including its existing path-resolution behavior. Its outputs are:
+
+- `entities.jsonl`: source-backed, external, and unresolved observations.
+- `relationships.jsonl`: canonical relationships and original edge provenance.
+- `code-graphs.jsonl`: repository roots with member and file observation IDs.
+- `snapshot-identity.json`: source revisions, extractor versions, extraction
+  configuration, and the deterministic snapshot ID shared by all facts.
+- `relationship-issues.jsonl`: diagnostics with raw edge data, when present.
+
+The normalizer and serialization use `../shared_contracts/`; the generated schema
+is `../schemas/project-contract.schema.json`. Regenerate it from `backend/` with:
+
+```bash
+uv run python -m shared_contracts.schema
+```
+
+Snapshot configuration records `graphMode: per-component` even though the CLI no
+longer exposes a mode switch. Only repositories represented by selected source
+files contribute source revisions, matching develop. Known relationship labels use
+the shared dictionary; unknown labels and original edge data are retained. Missing
+locations become unresolved observations, and unresolvable edges are diagnosed.
+
+Compatibility intentionally retains a known develop issue: for a component-relative
+path such as `src/Main.java`, normalization can interpret `src` as the repository ID.
+This can produce unresolved observations, missing relationship evidence, and empty
+repository membership. Fixing it requires a separate output-contract change.
 
 ## Tests
 
-Install the loader's test dependencies, activate this project's environment, and run:
+From `backend/code-ingestion-pipeline/`:
 
 ```bash
-# Working directory: backend/code-ingestion-pipeline/
-python -m pytest tests -q
+uv run --locked --project .. pytest tests -q
 ```
 
-The subproject's `pyproject.toml` supplies the source import path and test configuration.
-Tests cover the reference loader using temporary local Git fixtures and need no GitHub
-connection. They do not build or execute downloaded source code. The backend web
-application should run its own tests separately rather than collect the entire backend.
-Windows/macOS execution remains unverified. SBOM work remains deferred.
+From `backend/`, run API tests separately:
+
+```bash
+uv run --locked pytest tests -q
+uv run --locked ruff check .
+uv run --locked ruff format --check .
+uv run --locked ty check
+```
+
+Tests use temporary local Git repositories and need no GitHub connection. They
+cover the loader, pipeline, Graphify adapters, and canonical handoff, including
+real Graphify extraction. Tests never build or execute downloaded reference
+source code. Windows/macOS execution remains unverified.
