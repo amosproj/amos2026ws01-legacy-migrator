@@ -20,8 +20,10 @@ import logging
 import os
 from collections.abc import AsyncGenerator, AsyncIterator
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
+from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 
@@ -35,6 +37,7 @@ from .source_fragments import (
     SourceFragmentError,
     resolve_fragment,
 )
+from .source_loader_adapter import LoaderFragmentFetcher
 
 SERVICE_NAME = "sunsettracker-backend"
 VERSION = "0.2.0"
@@ -57,30 +60,18 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     provider = create_llm_provider()
     app.state.llm_provider = provider
     app.state.query_service = create_query_service(provider)
-    # Wire the #17-backed fragment fetcher when the loader outputs exist.
-    # Absence is fine: /api/source-fragment reports a structured error then.
-    app.state.fragment_fetcher = _create_fragment_fetcher()
+    app.state.fragment_fetcher = await run_in_threadpool(_create_fragment_fetcher)
     yield
     await provider.aclose()
 
 
-def _create_fragment_fetcher() -> object | None:
-    """Build the #17-backed fetcher from a loader dump, if one is configured.
-
-    The loader runs offline (ingestion is not part of request handling), so the
-    API reads the last produced load-result JSON instead of checking out again.
-    """
+def _create_fragment_fetcher() -> LoaderFragmentFetcher | None:
     path = os.environ.get("SOURCE_LOAD_RESULT", "").strip()
     if not path:
         return None
     try:
-        import json
-
-        from .source_loader_adapter import LoaderFragmentFetcher
-
-        with open(path, encoding="utf-8") as handle:
-            return LoaderFragmentFetcher.from_load_result_json(json.load(handle))
-    except (OSError, ValueError, KeyError) as exc:
+        return LoaderFragmentFetcher.from_export(Path(path))
+    except (OSError, ValueError) as exc:
         logger.warning("fragment fetcher disabled: %s", exc)
         return None
 
@@ -134,23 +125,15 @@ async def chat(request: ChatRequest) -> StreamingResponse:
     return StreamingResponse(events(), media_type="application/x-ndjson")
 
 
-@app.post("/api/source-fragment", response_model=SourceFragment)
+@app.post("/api/source-fragment", response_model=SourceFragment, response_model_exclude_none=True)
 def source_fragment(position: FragmentPosition) -> SourceFragment:
-    """Resolve one graph-node position into the concrete source fragment.
-
-    The position comes from graph nodes (#19 ``SourceSpan``): repository,
-    stage, path, pinned commit and line range. The fragment is served from the
-    reference checkout loaded by the #17 loader — no indexing of the source
-    itself (#67 scope revision). Unresolvable positions fail with a structured
-    error instead of returning empty content.
-    """
-    fetcher = getattr(app.state, "fragment_fetcher", None)
+    """Return the pinned lines and source link for a stage and source span."""
+    fetcher: LoaderFragmentFetcher | None = getattr(app.state, "fragment_fetcher", None)
     try:
         if fetcher is None:
             raise SourceFragmentError(
                 "fetcher_unavailable",
-                "no reference source is loaded; start the backend with the "
-                "reference loader configured (ticket #17)",
+                "no reference source is loaded. Set SOURCE_LOAD_RESULT to a sources.jsonl export",
             )
         return resolve_fragment(position, fetcher)
     except SourceFragmentError as exc:

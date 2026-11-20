@@ -1,195 +1,157 @@
-"""Pytest coverage for the source fragment lookup (Issue #67)."""
+"""Tests for the source fragment lookup and its offline export."""
+
+import hashlib
+import json
+from collections.abc import Iterator
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
-from app.source_fragments import (
-    FragmentPosition,
-    SourceFragmentError,
-    extract_fragment,
-)
-from app.source_loader_adapter import LoaderFragmentFetcher
+from app.source_fragments import FragmentPosition, extract_fragment
+from migration_assistant.adapters.outbound.pipeline_storage import LocalPipelineStorage
+from shared_contracts.source_file import SourceFile
+from shared_contracts.source_span import SourceSpan
 
 _SHA = "a" * 40
-_OTHER_SHA = "b" * 40
+_PREVIOUS_SHA = "b" * 40
+_PATH = "src/main/java/com/example/CatalogService.java"
+_PUBLIC_URL = "https://github.com/example/catalog-service"
 
 
-def _load_result(content: str = "line1\nline2\nline3\n") -> dict:
-    """A LoadResult shaped like the #17 loader's JSON output (camelCase)."""
-    return {
-        "checkout": {
-            "stage": "step-06",
-            "umbrellaRef": "step-06",
-            "umbrellaCommitSha": _SHA,
-            "workspace": "/tmp/unused-in-tests",
-            "members": [
-                {
-                    "repoId": "catalog-service",
-                    "origin": "legacy",
-                    "ref": "step-06",
-                    "commitSha": _SHA,
-                    "localPath": "/tmp/unused-in-tests",
-                    "publicUrl": "https://github.com/example/catalog-service",
-                }
-            ],
-        },
-        "files": [
-            {
-                "repoId": "catalog-service",
-                "origin": "legacy",
-                "stage": "step-06",
-                "commitSha": _SHA,
-                "publicUrl": "https://github.com/example/catalog-service",
-                "path": "src/main/java/com/example/CatalogService.java",
-                "language": "java",
-                "sizeBytes": len(content),
-                "contentSha256": "0" * 64,
-                "encoding": "utf-8",
-                "content": content,
-            }
-        ],
-        "skipped": [],
-        "counts": {"loaded": 1, "skipped": 0},
-    }
-
-
-def _position(**overrides) -> FragmentPosition:
-    defaults = {
-        "repoId": "catalog-service",
-        "stage": "step-06",
-        "path": "src/main/java/com/example/CatalogService.java",
-        "commitSha": _SHA,
-        "startLine": 2,
-        "endLine": 3,
-    }
-    defaults.update(overrides)
-    return FragmentPosition(**defaults)
-
-
-def test_extract_fragment_slices_requested_lines() -> None:
-    fragment = extract_fragment(
-        _position(), "line1\nline2\nline3\n", "java", "https://github.com/example/catalog-service"
+@pytest.fixture
+def sources() -> list[SourceFile]:
+    content = "line1\nline2\nline3\n"
+    current = SourceFile(
+        repo_id="catalog-service",
+        origin="legacy",
+        stage="step-06",
+        commit_sha=_SHA,
+        public_url=_PUBLIC_URL,
+        path=_PATH,
+        language="java",
+        size_bytes=len(content.encode("utf-8")),
+        content_sha256=hashlib.sha256(content.encode("utf-8")).hexdigest(),
+        encoding="utf-8",
+        content=content,
     )
-
-    assert fragment.fragment == "line2\nline3"
-    assert fragment.total_lines == 3
-    assert fragment.github_url.endswith("#L2-L3")
-    assert fragment.position.repo_id == "catalog-service"
-
-
-def test_extract_fragment_reports_line_range_out_of_bounds() -> None:
-    with pytest.raises(SourceFragmentError) as excinfo:
-        extract_fragment(_position(startLine=1, endLine=9), "one line\n", "java", "url")
-
-    assert excinfo.value.code == "line_range_out_of_bounds"
+    return [
+        current,
+        current.model_copy(
+            update={"stage": "step-05", "commit_sha": _PREVIOUS_SHA, "content": "previous\n"}
+        ),
+    ]
 
 
-def test_loader_fetcher_serves_loaded_file() -> None:
-    fetcher = LoaderFragmentFetcher.from_load_result_json(_load_result())
-
-    content, language, public_url, _size = fetcher.fetch(_position())
-
-    assert content == "line1\nline2\nline3\n"
-    assert language == "java"
-    assert public_url.endswith("catalog-service")
-
-
-def test_loader_fetcher_rejects_unknown_path() -> None:
-    fetcher = LoaderFragmentFetcher.from_load_result_json(_load_result())
-
-    with pytest.raises(SourceFragmentError) as excinfo:
-        fetcher.fetch(_position(path="does/not/exist.java"))
-
-    assert excinfo.value.code == "path_not_loaded"
-
-
-def test_loader_fetcher_rejects_sha_mismatch() -> None:
-    fetcher = LoaderFragmentFetcher.from_load_result_json(_load_result())
-
-    with pytest.raises(SourceFragmentError) as excinfo:
-        fetcher.fetch(_position(commitSha=_OTHER_SHA))
-
-    assert excinfo.value.code == "commit_sha_mismatch"
-
-
-def test_api_returns_requested_fragment() -> None:
+@pytest.fixture
+def client(
+    sources: list[SourceFile], tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> Iterator[TestClient]:
+    export = tmp_path / "sources.jsonl"
+    LocalPipelineStorage().write_sources(export, sources)
+    monkeypatch.setenv("SOURCE_LOAD_RESULT", str(export))
     with TestClient(app) as client:
-        app.state.fragment_fetcher = LoaderFragmentFetcher.from_load_result_json(_load_result())
-        try:
-            response = client.post(
-                "/api/source-fragment",
-                json={
-                    "repoId": "catalog-service",
-                    "stage": "step-06",
-                    "path": "src/main/java/com/example/CatalogService.java",
-                    "commitSha": _SHA,
-                    "startLine": 2,
-                    "endLine": 2,
-                },
-            )
-        finally:
-            app.state.fragment_fetcher = None
+        yield client
+
+
+def _position(**overrides: str | int) -> FragmentPosition:
+    span = SourceSpan(
+        repo_id="catalog-service", path=_PATH, commit_sha=_SHA, start_line=2, end_line=3
+    )
+    return FragmentPosition.model_validate({**span.model_dump(), "stage": "step-06", **overrides})
+
+
+def test_extract_fragment_escapes_path_and_keeps_line_boundaries() -> None:
+    position = _position(path="src/A #1.java", start_column=1, end_column=3)
+    fragment = extract_fragment(position, "one\n  two\nthree\n", "java", _PUBLIC_URL)
+
+    assert fragment.fragment == "  two\nthree"
+    assert fragment.total_lines == 3
+    assert fragment.github_url == f"{_PUBLIC_URL}/blob/{_SHA}/src/A%20%231.java#L2-L3"
+    assert fragment.position == position
+
+
+def test_api_resolves_shared_span_from_ingestion_export(client: TestClient) -> None:
+    position = _position(end_line=2)
+    response = client.post("/api/source-fragment", json=position.model_dump(by_alias=True))
 
     assert response.status_code == 200
     body = response.json()
     assert body["fragment"] == "line2"
-    assert body["githubUrl"].endswith("#L2-L2")
+    assert body["fragmentSha256"] == hashlib.sha256(b"line2").hexdigest()
+    assert body["githubUrl"] == f"{_PUBLIC_URL}/blob/{_SHA}/{_PATH}#L2-L2"
+    assert body["position"] == position.model_dump(by_alias=True, exclude_none=True)
 
 
-def test_api_reports_structured_error_for_unknown_path() -> None:
-    with TestClient(app) as client:
-        app.state.fragment_fetcher = LoaderFragmentFetcher.from_load_result_json(_load_result())
-        try:
-            response = client.post(
-                "/api/source-fragment",
-                json={
-                    "repoId": "catalog-service",
-                    "stage": "step-06",
-                    "path": "missing.java",
-                    "commitSha": _SHA,
-                    "startLine": 1,
-                    "endLine": 1,
-                },
-            )
-        finally:
-            app.state.fragment_fetcher = None
+def test_api_selects_source_by_stage(client: TestClient) -> None:
+    position = _position(stage="step-05", commit_sha=_PREVIOUS_SHA, start_line=1, end_line=1)
+    response = client.post("/api/source-fragment", json=position.model_dump(by_alias=True))
+
+    assert response.status_code == 200
+    assert response.json()["fragment"] == "previous"
+    assert response.json()["githubUrl"] == f"{_PUBLIC_URL}/blob/{_PREVIOUS_SHA}/{_PATH}#L1-L1"
+
+
+@pytest.mark.parametrize(
+    ("overrides", "code"),
+    [
+        ({"path": "missing.java"}, "path_not_loaded"),
+        ({"repo_id": "unknown-repository"}, "path_not_loaded"),
+        ({"stage": "step-04a"}, "path_not_loaded"),
+        ({"commit_sha": _PREVIOUS_SHA}, "commit_sha_mismatch"),
+        ({"end_line": 4}, "line_range_out_of_bounds"),
+    ],
+)
+def test_api_reports_unresolvable_positions(
+    client: TestClient, overrides: dict[str, str | int], code: str
+) -> None:
+    response = client.post(
+        "/api/source-fragment", json=_position(**overrides).model_dump(by_alias=True)
+    )
 
     assert response.status_code == 404
-    assert response.json()["detail"]["code"] == "path_not_loaded"
+    assert response.json()["detail"]["code"] == code
 
 
-def test_api_rejects_inverted_line_range() -> None:
+@pytest.mark.parametrize("overrides", [{"endLine": 1}, {"path": "../outside.java"}])
+def test_api_rejects_invalid_span(client: TestClient, overrides: dict[str, int | str]) -> None:
+    payload = {**_position().model_dump(by_alias=True), **overrides}
+
+    assert client.post("/api/source-fragment", json=payload).status_code == 422
+
+
+def test_api_accepts_legacy_loader_export(
+    sources: list[SourceFile], tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    export = tmp_path / "load-result.json"
+    export.write_text(
+        json.dumps(
+            {"checkout": {"stage": "step-06"}, "files": [sources[0].model_dump(by_alias=True)]}
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("SOURCE_LOAD_RESULT", str(export))
     with TestClient(app) as client:
-        response = client.post(
-            "/api/source-fragment",
-            json={
-                "repoId": "catalog-service",
-                "stage": "step-06",
-                "path": "x.java",
-                "commitSha": _SHA,
-                "startLine": 5,
-                "endLine": 2,
-            },
-        )
+        response = client.post("/api/source-fragment", json=_position().model_dump(by_alias=True))
 
-    assert response.status_code == 422
+    assert response.status_code == 200
+    assert response.json()["fragment"] == "line2\nline3"
 
 
-def test_api_reports_missing_fetcher_structurally() -> None:
-    app.state.fragment_fetcher = None
+@pytest.mark.parametrize("export_content", [None, "", "invalid JSON\n"])
+def test_api_reports_unavailable_export(
+    export_content: str | None, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.delenv("SOURCE_LOAD_RESULT", raising=False)
+    if export_content is not None:
+        export = tmp_path / "sources.jsonl"
+        export.write_text(export_content, encoding="utf-8")
+        monkeypatch.setenv("SOURCE_LOAD_RESULT", str(export))
+
     with TestClient(app) as client:
-        response = client.post(
-            "/api/source-fragment",
-            json={
-                "repoId": "catalog-service",
-                "stage": "step-06",
-                "path": "x.java",
-                "commitSha": _SHA,
-                "startLine": 1,
-                "endLine": 1,
-            },
-        )
+        assert client.get("/api/health").status_code == 200
+        response = client.post("/api/source-fragment", json=_position().model_dump(by_alias=True))
 
     assert response.status_code == 404
     assert response.json()["detail"]["code"] == "fetcher_unavailable"

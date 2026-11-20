@@ -1,27 +1,14 @@
-"""Source fragment lookup (Issue #67).
-
-Bridges the code graph and the source text: given the position metadata of a
-graph node (repository, path, lines, commit), returns the concrete source
-fragment from the reference checkout loaded by the #17 loader. This is a pure
-lookup — there is deliberately no full-text/vector index over the source code
-(#67 scope revision after the industry-partner alignment).
-
-The fetching seam (``FragmentFetcher``) keeps this module independent of how a
-checkout is loaded; the #17-backed adapter lives in ``main.py`` wiring.
-"""
+"""Revision-pinned lookup of source fragments for graph positions."""
 
 import hashlib
-import re
-from typing import Literal, Protocol
+from typing import Protocol
+from urllib.parse import quote
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
-COMMIT_SHA_PATTERN = r"^[0-9a-f]{40}([0-9a-f]{24})?$"
-
-# 上选择浏览 Mirrors migration_assistant.domain.checkout; duplicated as a literal
-# because app must not import the pipeline package (comes via the wiring only).
-_SHA_RE = re.compile(COMMIT_SHA_PATTERN)
+from shared_contracts.source_file import SourceFile
+from shared_contracts.source_span import SourceSpan
 
 
 class SourceFragmentError(Exception):
@@ -32,41 +19,16 @@ class SourceFragmentError(Exception):
         self.code = code
 
 
-class FragmentPosition(BaseModel):
-    """Where a fragment lives, as carried by graph nodes (#19 SourceSpan).
+class FragmentPosition(SourceSpan):
+    """A shared source span and the migration stage that selected it."""
 
-    ``commit_sha`` is the pinning revision of the snapshot the node belongs to,
-    matching ``SourceFile.commit_sha`` of the #17 loader.
-    """
-
-    model_config = ConfigDict(
-        frozen=True, alias_generator=to_camel, populate_by_name=True
-    )
-
-    repo_id: str
-    stage: str
-    path: str
-    commit_sha: str = Field(pattern=COMMIT_SHA_PATTERN)
-    start_line: int = Field(ge=1)
-    end_line: int = Field(ge=1)
-
-    @field_validator("end_line")
-    @classmethod
-    def _end_after_start(cls, end: int, info) -> int:
-        # Field validation order is declaration order, so start_line is present
-        # under its attribute name regardless of the alias used for input.
-        start = info.data.get("start_line")
-        if start is not None and end < start:
-            raise ValueError("end_line must be >= start_line")
-        return end
+    stage: str = Field(min_length=1)
 
 
 class SourceFragment(BaseModel):
     """The resolved fragment plus everything needed for verifiable evidence."""
 
-    model_config = ConfigDict(
-        frozen=True, alias_generator=to_camel, populate_by_name=True
-    )
+    model_config = ConfigDict(frozen=True, alias_generator=to_camel, populate_by_name=True)
 
     position: FragmentPosition
     language: str
@@ -76,21 +38,10 @@ class SourceFragment(BaseModel):
     github_url: str
 
 
-FetcherKind = Literal["local_checkout"]
-
-
 class FragmentFetcher(Protocol):
-    """Reads one file's text at a pinned revision (implemented by #17 wiring)."""
+    """Reads one file's text at a pinned revision."""
 
-    def fetch(
-        self, position: FragmentPosition
-    ) -> tuple[str, str, str, int]:
-        """Return (content, language, public_url, total_lines) for the position.
-
-        Raises ``SourceFragmentError`` with a stable code when the position
-        cannot be resolved.
-        """
-        ...
+    def fetch(self, position: FragmentPosition) -> SourceFile: ...
 
 
 def extract_fragment(
@@ -114,7 +65,7 @@ def extract_fragment(
         fragment=fragment,
         fragment_sha256=hashlib.sha256(fragment.encode("utf-8")).hexdigest(),
         total_lines=len(lines),
-        github_url=f"{public_url}/blob/{position.commit_sha}/{position.path}"
+        github_url=f"{public_url.rstrip('/')}/blob/{position.commit_sha}/{quote(position.path)}"
         f"#L{position.start_line}-L{position.end_line}",
     )
 
@@ -124,5 +75,5 @@ def resolve_fragment(
     fetcher: FragmentFetcher,
 ) -> SourceFragment:
     """Resolve one position through the fetcher seam."""
-    content, language, public_url, _total = fetcher.fetch(position)
-    return extract_fragment(position, content, language, public_url)
+    file = fetcher.fetch(position)
+    return extract_fragment(position, file.content, file.language, file.public_url)

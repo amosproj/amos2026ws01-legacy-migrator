@@ -1,55 +1,64 @@
-"""#17-backed fetcher for the source fragment service (Issue #67).
+"""Read source files from an offline ingestion export."""
 
-Maps fragment positions onto the files the reference loader (#17) produces.
-The loader writes its results as canonical JSON (see the reference-loader
-usage guide), so the wiring in ``main.py`` reads that output directly — this
-module stays independent of the pipeline package and works with plain dicts
-shaped like ``SourceFile``/``ComponentCheckout`` records (camelCase aliases).
+from collections.abc import Iterable
+from pathlib import Path
+from typing import Self
 
-The position's ``commit_sha`` must match the pinned commit of the checkout,
-and the file must have been loaded for that stage. Files the loader skipped
-(size, encoding, exclusions) are reported as ``path_not_loaded``.
-"""
+from pydantic import BaseModel, ValidationError
 
-from typing import Any
+from shared_contracts.source_file import SourceFile
 
 from .source_fragments import FragmentPosition, SourceFragmentError
 
 
-class LoaderFragmentFetcher:
-    """Serves fragment positions from one loaded-stage record (#17 output)."""
+class _LegacyLoadResult(BaseModel):
+    files: list[SourceFile]
 
-    def __init__(self, checkout: dict[str, Any], files: list[dict[str, Any]]) -> None:
-        self._stage = str(checkout["stage"])
-        self._members = {str(m["repoId"]): m for m in checkout["members"]}
-        self._files = {(str(f["repoId"]), str(f["path"])): f for f in files}
+
+class LoaderFragmentFetcher:
+    """Look up files by stage, repository and path and check the pinned commit."""
+
+    def __init__(self, files: Iterable[SourceFile]) -> None:
+        self._files: dict[tuple[str, str, str], SourceFile] = {}
+        for file in files:
+            key = (file.stage, file.repo_id, file.path)
+            if key in self._files:
+                raise ValueError(
+                    f"duplicate source file in {file.stage}: {file.repo_id}/{file.path}"
+                )
+            self._files[key] = file
+        if not self._files:
+            raise ValueError("source export contains no files")
 
     @classmethod
-    def from_load_result_json(cls, data: dict[str, Any]) -> "LoaderFragmentFetcher":
-        """Build from the #17 loader's serialised ``LoadResult`` (camelCase)."""
-        return cls(checkout=data["checkout"], files=data["files"])
+    def from_export(cls, path: Path) -> Self:
+        with path.open(encoding="utf-8") as source:
+            if path.suffix.lower() != ".jsonl":
+                try:
+                    return cls(_LegacyLoadResult.model_validate_json(source.read()).files)
+                except ValidationError as exc:
+                    raise ValueError(f"invalid loader export in {path}") from exc
 
-    def fetch(
-        self, position: FragmentPosition
-    ) -> tuple[str, str, str, int]:
-        file = self._files.get((position.repo_id, position.path))
+            files = []
+            for line_number, line in enumerate(source, start=1):
+                try:
+                    files.append(SourceFile.model_validate_json(line))
+                except ValidationError as exc:
+                    raise ValueError(f"invalid source record at {path}:{line_number}") from exc
+        return cls(files)
+
+    def fetch(self, position: FragmentPosition) -> SourceFile:
+        file = self._files.get((position.stage, position.repo_id, position.path))
         if file is None:
             raise SourceFragmentError(
                 "path_not_loaded",
                 f"file '{position.path}' was not loaded for "
-                f"'{position.repo_id}' (stage {position.stage}); "
-                "it may be excluded or skipped by the loader",
+                f"'{position.repo_id}' (stage {position.stage})",
             )
-        if file["commitSha"] != position.commit_sha:
+        if file.commit_sha != position.commit_sha:
             raise SourceFragmentError(
                 "commit_sha_mismatch",
-                f"file '{position.path}' is pinned at commit {file['commitSha']}, "
-                f"but the position references {position.commit_sha} "
-                "(stale graph node?)",
+                f"file '{position.path}' is pinned at commit {file.commit_sha}, "
+                f"but the position references {position.commit_sha}",
             )
-        return (
-            str(file["content"]),
-            str(file["language"]),
-            str(file["publicUrl"]),
-            int(file["sizeBytes"]),
-        )
+        return file
