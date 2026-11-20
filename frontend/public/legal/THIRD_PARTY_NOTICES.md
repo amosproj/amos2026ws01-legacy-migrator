@@ -6,193 +6,186 @@ Generated from sbom.spdx.json and package metadata. Review license terms before 
 
 | Package | Version | License | Evidence |
 |---|---:|---|---|
-| @antfu/install-pkg | 2.1.0 | MIT | npm registry — https://www.npmjs.com/package/@antfu/install-pkg/v/2.1.0 |
-| @braintree/sanitize-url | 7.1.2 | MIT | npm registry — https://www.npmjs.com/package/@braintree/sanitize-url/v/7.1.2 |
-| @chevrotain/cst-dts-gen | 13.2.0 | Apache-2.0 | npm registry — https://www.npmjs.com/package/@chevrotain/cst-dts-gen/v/13.2.0 |
-| @chevrotain/gast | 13.2.0 | Apache-2.0 | npm registry — https://www.npmjs.com/package/@chevrotain/gast/v/13.2.0 |
-| @chevrotain/regexp-to-ast | 13.2.0 | Apache-2.0 | npm registry — https://www.npmjs.com/package/@chevrotain/regexp-to-ast/v/13.2.0 |
-| @chevrotain/types | 13.2.0 | Apache-2.0 | npm registry — https://www.npmjs.com/package/@chevrotain/types/v/13.2.0 |
-| @chevrotain/utils | 13.2.0 | Apache-2.0 | npm registry — https://www.npmjs.com/package/@chevrotain/utils/v/13.2.0 |
-| @iconify/types | 2.0.0 | MIT | npm registry — https://www.npmjs.com/package/@iconify/types/v/2.0.0 |
-| @iconify/utils | 3.1.7 | MIT | npm registry — https://www.npmjs.com/package/@iconify/utils/v/3.1.7 |
-| @mermaid-js/parser | 2.0.1 | MIT | npm registry — https://www.npmjs.com/package/@mermaid-js/parser/v/2.0.1 |
-| @types/d3 | 7.4.3 | MIT | npm registry — https://www.npmjs.com/package/@types/d3/v/7.4.3 |
-| @types/d3-array | 3.2.2 | MIT | npm registry — https://www.npmjs.com/package/@types/d3-array/v/3.2.2 |
-| @types/d3-axis | 3.0.6 | MIT | npm registry — https://www.npmjs.com/package/@types/d3-axis/v/3.0.6 |
-| @types/d3-brush | 3.0.6 | MIT | npm registry — https://www.npmjs.com/package/@types/d3-brush/v/3.0.6 |
-| @types/d3-chord | 3.0.6 | MIT | npm registry — https://www.npmjs.com/package/@types/d3-chord/v/3.0.6 |
-| @types/d3-color | 3.1.3 | MIT | npm registry — https://www.npmjs.com/package/@types/d3-color/v/3.1.3 |
-| @types/d3-contour | 3.0.6 | MIT | npm registry — https://www.npmjs.com/package/@types/d3-contour/v/3.0.6 |
-| @types/d3-delaunay | 6.0.4 | MIT | npm registry — https://www.npmjs.com/package/@types/d3-delaunay/v/6.0.4 |
-| @types/d3-dispatch | 3.0.7 | MIT | npm registry — https://www.npmjs.com/package/@types/d3-dispatch/v/3.0.7 |
-| @types/d3-drag | 3.0.7 | MIT | npm registry — https://www.npmjs.com/package/@types/d3-drag/v/3.0.7 |
-| @types/d3-dsv | 3.0.7 | MIT | npm registry — https://www.npmjs.com/package/@types/d3-dsv/v/3.0.7 |
-| @types/d3-ease | 3.0.2 | MIT | npm registry — https://www.npmjs.com/package/@types/d3-ease/v/3.0.2 |
-| @types/d3-fetch | 3.0.7 | MIT | npm registry — https://www.npmjs.com/package/@types/d3-fetch/v/3.0.7 |
-| @types/d3-force | 3.0.10 | MIT | npm registry — https://www.npmjs.com/package/@types/d3-force/v/3.0.10 |
-| @types/d3-format | 3.0.4 | MIT | npm registry — https://www.npmjs.com/package/@types/d3-format/v/3.0.4 |
-| @types/d3-geo | 3.1.1 | MIT | npm registry — https://www.npmjs.com/package/@types/d3-geo/v/3.1.1 |
-| @types/d3-hierarchy | 3.1.7 | MIT | npm registry — https://www.npmjs.com/package/@types/d3-hierarchy/v/3.1.7 |
-| @types/d3-interpolate | 3.0.4 | MIT | npm registry — https://www.npmjs.com/package/@types/d3-interpolate/v/3.0.4 |
-| @types/d3-path | 3.1.1 | MIT | npm registry — https://www.npmjs.com/package/@types/d3-path/v/3.1.1 |
-| @types/d3-polygon | 3.0.2 | MIT | npm registry — https://www.npmjs.com/package/@types/d3-polygon/v/3.0.2 |
-| @types/d3-quadtree | 3.0.6 | MIT | npm registry — https://www.npmjs.com/package/@types/d3-quadtree/v/3.0.6 |
-| @types/d3-random | 3.0.4 | MIT | npm registry — https://www.npmjs.com/package/@types/d3-random/v/3.0.4 |
-| @types/d3-scale | 4.0.9 | MIT | npm registry — https://www.npmjs.com/package/@types/d3-scale/v/4.0.9 |
-| @types/d3-scale-chromatic | 3.1.0 | MIT | npm registry — https://www.npmjs.com/package/@types/d3-scale-chromatic/v/3.1.0 |
-| @types/d3-selection | 3.0.12 | MIT | npm registry — https://www.npmjs.com/package/@types/d3-selection/v/3.0.12 |
-| @types/d3-shape | 3.2.0 | MIT | npm registry — https://www.npmjs.com/package/@types/d3-shape/v/3.2.0 |
-| @types/d3-time | 3.0.4 | MIT | npm registry — https://www.npmjs.com/package/@types/d3-time/v/3.0.4 |
-| @types/d3-time-format | 4.0.3 | MIT | npm registry — https://www.npmjs.com/package/@types/d3-time-format/v/4.0.3 |
-| @types/d3-timer | 3.0.2 | MIT | npm registry — https://www.npmjs.com/package/@types/d3-timer/v/3.0.2 |
-| @types/d3-transition | 3.0.9 | MIT | npm registry — https://www.npmjs.com/package/@types/d3-transition/v/3.0.9 |
-| @types/d3-zoom | 3.0.9 | MIT | npm registry — https://www.npmjs.com/package/@types/d3-zoom/v/3.0.9 |
-| @types/geojson | 7946.0.16 | MIT | npm registry — https://www.npmjs.com/package/@types/geojson/v/7946.0.16 |
-| @types/react | 19.3.0 | MIT | npm registry — https://www.npmjs.com/package/@types/react/v/19.3.0 |
-| @types/trusted-types | 2.0.7 | MIT | npm registry — https://www.npmjs.com/package/@types/trusted-types/v/2.0.7 |
-| @upsetjs/venn.js | 2.0.0 | MIT | npm registry — https://www.npmjs.com/package/@upsetjs/venn.js/v/2.0.0 |
+| @antfu/install-pkg | 2.1.0 | MIT | No registry/package license metadata found |
+| @braintree/sanitize-url | 7.1.2 | MIT | No registry/package license metadata found |
+| @chevrotain/cst-dts-gen | 13.2.0 | Apache-2.0 | No registry/package license metadata found |
+| @chevrotain/gast | 13.2.0 | Apache-2.0 | No registry/package license metadata found |
+| @chevrotain/regexp-to-ast | 13.2.0 | Apache-2.0 | No registry/package license metadata found |
+| @chevrotain/types | 13.2.0 | Apache-2.0 | No registry/package license metadata found |
+| @chevrotain/utils | 13.2.0 | Apache-2.0 | No registry/package license metadata found |
+| @iconify/types | 2.0.0 | MIT | No registry/package license metadata found |
+| @iconify/utils | 3.1.7 | MIT | No registry/package license metadata found |
+| @mermaid-js/parser | 2.0.1 | MIT | No registry/package license metadata found |
+| @types/d3 | 7.4.3 | MIT | No registry/package license metadata found |
+| @types/d3-array | 3.2.2 | MIT | No registry/package license metadata found |
+| @types/d3-axis | 3.0.6 | MIT | No registry/package license metadata found |
+| @types/d3-brush | 3.0.6 | MIT | No registry/package license metadata found |
+| @types/d3-chord | 3.0.6 | MIT | No registry/package license metadata found |
+| @types/d3-color | 3.1.3 | MIT | No registry/package license metadata found |
+| @types/d3-contour | 3.0.6 | MIT | No registry/package license metadata found |
+| @types/d3-delaunay | 6.0.4 | MIT | No registry/package license metadata found |
+| @types/d3-dispatch | 3.0.7 | MIT | No registry/package license metadata found |
+| @types/d3-drag | 3.0.7 | MIT | No registry/package license metadata found |
+| @types/d3-dsv | 3.0.7 | MIT | No registry/package license metadata found |
+| @types/d3-ease | 3.0.2 | MIT | No registry/package license metadata found |
+| @types/d3-fetch | 3.0.7 | MIT | No registry/package license metadata found |
+| @types/d3-force | 3.0.10 | MIT | No registry/package license metadata found |
+| @types/d3-format | 3.0.4 | MIT | No registry/package license metadata found |
+| @types/d3-geo | 3.1.1 | MIT | No registry/package license metadata found |
+| @types/d3-hierarchy | 3.1.7 | MIT | No registry/package license metadata found |
+| @types/d3-interpolate | 3.0.4 | MIT | No registry/package license metadata found |
+| @types/d3-path | 3.1.1 | MIT | No registry/package license metadata found |
+| @types/d3-polygon | 3.0.2 | MIT | No registry/package license metadata found |
+| @types/d3-quadtree | 3.0.6 | MIT | No registry/package license metadata found |
+| @types/d3-random | 3.0.4 | MIT | No registry/package license metadata found |
+| @types/d3-scale | 4.0.9 | MIT | No registry/package license metadata found |
+| @types/d3-scale-chromatic | 3.1.0 | MIT | No registry/package license metadata found |
+| @types/d3-selection | 3.0.12 | MIT | No registry/package license metadata found |
+| @types/d3-shape | 3.2.0 | MIT | No registry/package license metadata found |
+| @types/d3-time | 3.0.4 | MIT | No registry/package license metadata found |
+| @types/d3-time-format | 4.0.3 | MIT | No registry/package license metadata found |
+| @types/d3-timer | 3.0.2 | MIT | No registry/package license metadata found |
+| @types/d3-transition | 3.0.9 | MIT | No registry/package license metadata found |
+| @types/d3-zoom | 3.0.9 | MIT | No registry/package license metadata found |
+| @types/geojson | 7946.0.16 | MIT | No registry/package license metadata found |
+| @types/react | 19.3.0 | MIT | No registry/package license metadata found |
+| @types/trusted-types | 2.0.7 | MIT | No registry/package license metadata found |
+| @upsetjs/venn.js | 2.0.0 | MIT | No registry/package license metadata found |
 | amos-sunset-tracker-frontend | 0.1.0 | MIT | No registry/package license metadata found |
-| annotated-doc | 0.0.5 | MIT | PyPI license_expression — https://pypi.org/pypi/annotated-doc/0.0.5/json |
-| annotated-types | 0.8.0 | MIT | PyPI license_expression — https://pypi.org/pypi/annotated-types/0.8.0/json |
-| anyio | 4.16.0 | MIT | PyPI license_expression — https://pypi.org/pypi/anyio/4.16.0/json |
-| chevrotain | 13.2.0 | Apache-2.0 | npm registry — https://www.npmjs.com/package/chevrotain/v/13.2.0 |
-| click | 8.5.0 | BSD-3-Clause | PyPI license_expression — https://pypi.org/pypi/click/8.5.0/json |
-| colorama | 0.4.6 | BSD-3-Clause | PyPI OSI license classifier — https://pypi.org/pypi/colorama/0.4.6/json |
-| commander | 15.0.0 | MIT | npm registry — https://www.npmjs.com/package/commander/v/7.2.0 |
-| commander | 7.2.0 | MIT | npm registry — https://www.npmjs.com/package/commander/v/7.2.0 |
-| cose-base | 1.0.3 | MIT | npm registry — https://www.npmjs.com/package/cose-base/v/2.2.0 |
-| cose-base | 2.2.0 | MIT | npm registry — https://www.npmjs.com/package/cose-base/v/2.2.0 |
-| csstype | 3.2.3 | MIT | npm registry — https://www.npmjs.com/package/csstype/v/3.2.3 |
-| cytoscape | 3.34.4 | MIT | npm registry — https://www.npmjs.com/package/cytoscape/v/3.34.4 |
-| cytoscape-cose-bilkent | 4.1.0 | MIT | npm registry — https://www.npmjs.com/package/cytoscape-cose-bilkent/v/4.1.0 |
-| cytoscape-fcose | 2.2.0 | MIT | npm registry — https://www.npmjs.com/package/cytoscape-fcose/v/2.2.0 |
-| d3 | 7.9.0 | ISC | npm registry — https://www.npmjs.com/package/d3/v/7.9.0 |
-| d3-array | 2.12.1 | ISC | npm registry — https://www.npmjs.com/package/d3-array/v/3.2.4 |
-| d3-array | 3.2.4 | ISC | npm registry — https://www.npmjs.com/package/d3-array/v/3.2.4 |
-| d3-axis | 3.0.0 | ISC | npm registry — https://www.npmjs.com/package/d3-axis/v/3.0.0 |
-| d3-brush | 3.0.0 | ISC | npm registry — https://www.npmjs.com/package/d3-brush/v/3.0.0 |
-| d3-chord | 3.0.1 | ISC | npm registry — https://www.npmjs.com/package/d3-chord/v/3.0.1 |
-| d3-color | 3.1.0 | ISC | npm registry — https://www.npmjs.com/package/d3-color/v/3.1.0 |
-| d3-contour | 4.0.2 | ISC | npm registry — https://www.npmjs.com/package/d3-contour/v/4.0.2 |
-| d3-delaunay | 6.0.4 | ISC | npm registry — https://www.npmjs.com/package/d3-delaunay/v/6.0.4 |
-| d3-dispatch | 3.0.1 | ISC | npm registry — https://www.npmjs.com/package/d3-dispatch/v/3.0.1 |
-| d3-drag | 3.0.0 | ISC | npm registry — https://www.npmjs.com/package/d3-drag/v/3.0.0 |
-| d3-dsv | 3.0.1 | ISC | npm registry — https://www.npmjs.com/package/d3-dsv/v/3.0.1 |
-| d3-ease | 3.0.1 | BSD-3-Clause | npm registry — https://www.npmjs.com/package/d3-ease/v/3.0.1 |
-| d3-fetch | 3.0.1 | ISC | npm registry — https://www.npmjs.com/package/d3-fetch/v/3.0.1 |
-| d3-force | 3.0.0 | ISC | npm registry — https://www.npmjs.com/package/d3-force/v/3.0.0 |
-| d3-format | 3.1.2 | ISC | npm registry — https://www.npmjs.com/package/d3-format/v/3.1.2 |
-| d3-geo | 3.1.1 | ISC | npm registry — https://www.npmjs.com/package/d3-geo/v/3.1.1 |
-| d3-hierarchy | 3.1.2 | ISC | npm registry — https://www.npmjs.com/package/d3-hierarchy/v/3.1.2 |
-| d3-interpolate | 3.0.1 | ISC | npm registry — https://www.npmjs.com/package/d3-interpolate/v/3.0.1 |
-| d3-path | 1.0.9 | ISC | npm registry — https://www.npmjs.com/package/d3-path/v/3.1.0 |
-| d3-path | 3.1.0 | ISC | npm registry — https://www.npmjs.com/package/d3-path/v/3.1.0 |
-| d3-polygon | 3.0.1 | ISC | npm registry — https://www.npmjs.com/package/d3-polygon/v/3.0.1 |
-| d3-quadtree | 3.0.1 | ISC | npm registry — https://www.npmjs.com/package/d3-quadtree/v/3.0.1 |
-| d3-random | 3.0.1 | ISC | npm registry — https://www.npmjs.com/package/d3-random/v/3.0.1 |
-| d3-sankey | 0.12.3 | BSD-3-Clause | npm registry — https://www.npmjs.com/package/d3-sankey/v/0.12.3 |
-| d3-scale | 4.0.2 | ISC | npm registry — https://www.npmjs.com/package/d3-scale/v/4.0.2 |
-| d3-scale-chromatic | 3.1.0 | ISC | npm registry — https://www.npmjs.com/package/d3-scale-chromatic/v/3.1.0 |
-| d3-selection | 3.0.0 | ISC | npm registry — https://www.npmjs.com/package/d3-selection/v/3.0.0 |
-| d3-shape | 1.3.7 | ISC | npm registry — https://www.npmjs.com/package/d3-shape/v/3.2.0 |
-| d3-shape | 3.2.0 | ISC | npm registry — https://www.npmjs.com/package/d3-shape/v/3.2.0 |
-| d3-time | 3.1.0 | ISC | npm registry — https://www.npmjs.com/package/d3-time/v/3.1.0 |
-| d3-time-format | 4.1.0 | ISC | npm registry — https://www.npmjs.com/package/d3-time-format/v/4.1.0 |
-| d3-timer | 3.0.1 | ISC | npm registry — https://www.npmjs.com/package/d3-timer/v/3.0.1 |
-| d3-transition | 3.0.1 | ISC | npm registry — https://www.npmjs.com/package/d3-transition/v/3.0.1 |
-| d3-zoom | 3.0.0 | ISC | npm registry — https://www.npmjs.com/package/d3-zoom/v/3.0.0 |
-| dagre-d3-es | 7.0.14 | MIT | npm registry — https://www.npmjs.com/package/dagre-d3-es/v/7.0.14 |
-| dayjs | 1.11.23 | MIT | npm registry — https://www.npmjs.com/package/dayjs/v/1.11.23 |
-| delaunator | 5.1.0 | ISC | npm registry — https://www.npmjs.com/package/delaunator/v/5.1.0 |
-| dompurify | 3.4.17 | (MPL-2.0 OR Apache-2.0) | npm registry — https://www.npmjs.com/package/dompurify/v/3.4.17 |
-| elkjs | 0.9.3 | EPL-2.0 | npm registry — https://www.npmjs.com/package/elkjs/v/0.9.3 |
-| es-toolkit | 1.53.1 | MIT | npm registry — https://www.npmjs.com/package/es-toolkit/v/1.53.1 |
-| fastapi | 0.141.1 | MIT | PyPI license_expression — https://pypi.org/pypi/fastapi/0.141.1/json |
-| graphifyy | 0.9.100 | Apache-2.0 | PyPI license_expression — https://pypi.org/pypi/graphifyy/0.9.100/json |
-| h11 | 0.16.0 | MIT | PyPI OSI license classifier — https://pypi.org/pypi/h11/0.16.0/json |
-| hachure-fill | 0.5.2 | MIT | npm registry — https://www.npmjs.com/package/hachure-fill/v/0.5.2 |
-| httpcore2 | 2.16.0 | BSD-3-Clause | PyPI license_expression — https://pypi.org/pypi/httpcore2/2.16.0/json |
-| httptools | 0.9.0 | MIT | PyPI license_expression — https://pypi.org/pypi/httptools/0.9.0/json |
-| httpx2 | 2.16.0 | BSD-3-Clause | PyPI license_expression — https://pypi.org/pypi/httpx2/2.16.0/json |
-| httpx2-jsfetch | 1.0 | BSD-3-Clause | PyPI license_expression — https://pypi.org/pypi/httpx2-jsfetch/1.0/json |
-| iconv-lite | 0.6.3 | MIT | npm registry — https://www.npmjs.com/package/iconv-lite/v/0.6.3 |
-| idna | 3.20 | BSD-3-Clause | PyPI license_expression — https://pypi.org/pypi/idna/3.20/json |
-| import-meta-resolve | 4.2.0 | MIT | npm registry — https://www.npmjs.com/package/import-meta-resolve/v/4.2.0 |
-| iniconfig | 2.3.1 | MIT | PyPI license_expression — https://pypi.org/pypi/iniconfig/2.3.1/json |
-| internmap | 1.0.1 | ISC | npm registry — https://www.npmjs.com/package/internmap/v/2.0.3 |
-| internmap | 2.0.3 | ISC | npm registry — https://www.npmjs.com/package/internmap/v/2.0.3 |
-| katex | 0.18.10 | MIT | npm registry — https://www.npmjs.com/package/katex/v/0.18.10 |
-| khroma | 2.1.0 | MIT | upstream GitHub license API — https://github.com/fabiospampinato/khroma/license |
-| layout-base | 1.0.2 | MIT | npm registry — https://www.npmjs.com/package/layout-base/v/2.0.1 |
-| layout-base | 2.0.1 | MIT | npm registry — https://www.npmjs.com/package/layout-base/v/2.0.1 |
-| lodash-es | 4.18.1 | MIT | npm registry — https://www.npmjs.com/package/lodash-es/v/4.18.1 |
-| lucide-react | 1.66.0 | ISC | npm registry — https://www.npmjs.com/package/lucide-react/v/1.66.0 |
-| marked | 16.4.2 | MIT | npm registry — https://www.npmjs.com/package/marked/v/16.4.2 |
-| mermaid | 12.2.0 | MIT | npm registry — https://www.npmjs.com/package/mermaid/v/12.2.0 |
-| networkx | 3.7 | BSD-3-Clause | PyPI license_expression — https://pypi.org/pypi/networkx/3.7/json |
-| numpy | 2.5.4 | BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0 | PyPI license_expression — https://pypi.org/pypi/numpy/2.5.4/json |
-| package-manager-detector | 1.9.0 | MIT | npm registry — https://www.npmjs.com/package/package-manager-detector/v/1.9.0 |
-| packaging | 26.3 | Apache-2.0 OR BSD-2-Clause | PyPI license_expression — https://pypi.org/pypi/packaging/26.3/json |
-| path-data-parser | 0.1.0 | MIT | npm registry — https://www.npmjs.com/package/path-data-parser/v/0.1.0 |
-| pluggy | 1.7.0 | MIT | PyPI OSI license classifier — https://pypi.org/pypi/pluggy/1.7.0/json |
-| points-on-curve | 0.2.0 | MIT | npm registry — https://www.npmjs.com/package/points-on-curve/v/0.2.0 |
-| points-on-path | 0.2.1 | MIT | npm registry — https://www.npmjs.com/package/points-on-path/v/0.2.1 |
-| pydantic | 2.14.2 | MIT | PyPI license_expression — https://pypi.org/pypi/pydantic/2.14.2/json |
-| pydantic-core | 2.50.2 | MIT | PyPI license_expression — https://pypi.org/pypi/pydantic-core/2.50.2/json |
-| pygments | 2.21.0 | BSD-2-Clause | PyPI license_expression — https://pypi.org/pypi/pygments/2.21.0/json |
-| pytest | 9.1.1 | MIT | PyPI license_expression — https://pypi.org/pypi/pytest/9.1.1/json |
-| python-dotenv | 1.2.4 | BSD-3-Clause | PyPI license field (review identifier) — https://pypi.org/pypi/python-dotenv/1.2.4/json |
-| pyyaml | 6.0.3 | MIT | PyPI OSI license classifier — https://pypi.org/pypi/pyyaml/6.0.3/json |
-| rapidfuzz | 3.14.6 | MIT | PyPI license_expression — https://pypi.org/pypi/rapidfuzz/3.14.6/json |
-| react | 19.3.1 | MIT | npm registry — https://www.npmjs.com/package/react/v/19.3.1 |
-| react-dom | 19.3.1 | MIT | npm registry — https://www.npmjs.com/package/react-dom/v/19.3.1 |
-| robust-predicates | 3.0.3 | Unlicense | npm registry — https://www.npmjs.com/package/robust-predicates/v/3.0.3 |
-| roughjs | 4.6.6 | MIT | npm registry — https://www.npmjs.com/package/roughjs/v/4.6.6 |
-| ruff | 0.16.8 | MIT | PyPI license_expression — https://pypi.org/pypi/ruff/0.16.8/json |
-| rw | 1.3.3 | BSD-3-Clause | npm registry — https://www.npmjs.com/package/rw/v/1.3.3 |
-| safer-buffer | 2.1.2 | MIT | npm registry — https://www.npmjs.com/package/safer-buffer/v/2.1.2 |
-| scheduler | 0.28.0 | MIT | npm registry — https://www.npmjs.com/package/scheduler/v/0.28.0 |
-| starlette | 1.10.0 | BSD-3-Clause | PyPI license_expression — https://pypi.org/pypi/starlette/1.10.0/json |
-| stylis | 4.4.0 | MIT | npm registry — https://www.npmjs.com/package/stylis/v/4.4.0 |
+| annotated-doc | 0.0.5 | MIT | installed package metadata |
+| annotated-types | 0.8.0 | MIT | installed package metadata |
+| anyio | 4.16.0 | MIT | installed package metadata |
+| chevrotain | 13.2.0 | Apache-2.0 | installed package metadata |
+| click | 8.5.0 | BSD-3-Clause | installed package metadata |
+| commander | 15.0.0 | MIT | installed package metadata |
+| commander | 7.2.0 | MIT | installed package metadata |
+| cose-base | 1.0.3 | MIT | installed package metadata |
+| cose-base | 2.2.0 | MIT | installed package metadata |
+| csstype | 3.2.3 | MIT | installed package metadata |
+| cytoscape | 3.34.4 | MIT | installed package metadata |
+| cytoscape-cose-bilkent | 4.1.0 | MIT | installed package metadata |
+| cytoscape-fcose | 2.2.0 | MIT | installed package metadata |
+| d3 | 7.9.0 | ISC | installed package metadata |
+| d3-array | 2.12.1 | BSD-3-Clause | installed package metadata |
+| d3-array | 3.2.4 | BSD-3-Clause | installed package metadata |
+| d3-axis | 3.0.0 | ISC | installed package metadata |
+| d3-brush | 3.0.0 | ISC | installed package metadata |
+| d3-chord | 3.0.1 | ISC | installed package metadata |
+| d3-color | 3.1.0 | ISC | installed package metadata |
+| d3-contour | 4.0.2 | ISC | installed package metadata |
+| d3-delaunay | 6.0.4 | ISC | installed package metadata |
+| d3-dispatch | 3.0.1 | ISC | installed package metadata |
+| d3-drag | 3.0.0 | ISC | installed package metadata |
+| d3-dsv | 3.0.1 | ISC | installed package metadata |
+| d3-ease | 3.0.1 | BSD-3-Clause | installed package metadata |
+| d3-fetch | 3.0.1 | ISC | installed package metadata |
+| d3-force | 3.0.0 | ISC | installed package metadata |
+| d3-format | 3.1.2 | ISC | installed package metadata |
+| d3-geo | 3.1.1 | ISC | installed package metadata |
+| d3-hierarchy | 3.1.2 | ISC | installed package metadata |
+| d3-interpolate | 3.0.1 | ISC | installed package metadata |
+| d3-path | 1.0.9 | BSD-3-Clause | installed package metadata |
+| d3-path | 3.1.0 | BSD-3-Clause | installed package metadata |
+| d3-polygon | 3.0.1 | ISC | installed package metadata |
+| d3-quadtree | 3.0.1 | ISC | installed package metadata |
+| d3-random | 3.0.1 | ISC | installed package metadata |
+| d3-sankey | 0.12.3 | BSD-3-Clause | installed package metadata |
+| d3-scale | 4.0.2 | ISC | installed package metadata |
+| d3-scale-chromatic | 3.1.0 | ISC | installed package metadata |
+| d3-selection | 3.0.0 | ISC | installed package metadata |
+| d3-shape | 1.3.7 | ISC | installed package metadata |
+| d3-shape | 3.2.0 | ISC | installed package metadata |
+| d3-time | 3.1.0 | ISC | installed package metadata |
+| d3-time-format | 4.1.0 | ISC | installed package metadata |
+| d3-timer | 3.0.1 | ISC | installed package metadata |
+| d3-transition | 3.0.1 | ISC | installed package metadata |
+| d3-zoom | 3.0.0 | ISC | installed package metadata |
+| dagre-d3-es | 7.0.14 | MIT | installed package metadata |
+| dayjs | 1.11.23 | MIT | installed package metadata |
+| delaunator | 5.1.0 | ISC | installed package metadata |
+| Docker CLI | 26.0.0 | Apache-2.0 | Manual inventory (scripts/sbom/manual-components.json); scope=build; kind=tool; evidence=https://github.com/docker/cli/blob/v26.0.0/LICENSE |
+| Docker Engine (Moby) | 24.0.6 | Apache-2.0 | Manual inventory (scripts/sbom/manual-components.json); scope=build; kind=tool; evidence=https://github.com/moby/moby/blob/v24.0.6/LICENSE |
+| dompurify | 3.4.17 | (MPL-2.0 OR Apache-2.0) | installed package metadata |
+| elkjs | 0.9.3 | EPL-2.0 | installed package metadata |
+| es-toolkit | 1.53.1 | MIT | installed package metadata |
+| fastapi | 0.141.1 | MIT | installed package metadata |
+| graphifyy | 0.9.100 | Apache-2.0 | installed package metadata |
+| h11 | 0.16.0 | MIT | installed package metadata |
+| hachure-fill | 0.5.2 | MIT | installed package metadata |
+| httpcore2 | 2.16.0 | BSD-3-Clause | installed package metadata |
+| httptools | 0.9.0 | MIT | installed package metadata |
+| httpx2 | 2.16.0 | BSD-3-Clause | installed package metadata |
+| iconv-lite | 0.6.3 | MIT | installed package metadata |
+| idna | 3.20 | BSD-3-Clause | installed package metadata |
+| import-meta-resolve | 4.2.0 | MIT | installed package metadata |
+| internmap | 1.0.1 | ISC | installed package metadata |
+| internmap | 2.0.3 | ISC | installed package metadata |
+| katex | 0.18.10 | MIT | installed package metadata |
+| layout-base | 1.0.2 | MIT | installed package metadata |
+| layout-base | 2.0.1 | MIT | installed package metadata |
+| lodash-es | 4.18.1 | MIT | installed package metadata |
+| lucide-react | 1.66.0 | ISC | installed package metadata |
+| marked | 16.4.2 | MIT | installed package metadata |
+| mermaid | 12.2.0 | MIT | installed package metadata |
+| networkx | 3.7 | BSD-3-Clause | installed package metadata |
+| numpy | 2.5.4 | BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0 | installed package metadata |
+| package-manager-detector | 1.9.0 | MIT | installed package metadata |
+| path-data-parser | 0.1.0 | MIT | installed package metadata |
+| points-on-curve | 0.2.0 | MIT | installed package metadata |
+| points-on-path | 0.2.1 | MIT | installed package metadata |
+| pydantic | 2.14.2 | MIT | installed package metadata |
+| pydantic-core | 2.50.2 | MIT | installed package metadata |
+| python-dotenv | 1.2.4 | BSD-3-Clause | installed package metadata |
+| pyyaml | 6.0.3 | MIT | installed package metadata |
+| rapidfuzz | 3.14.6 | MIT | installed package metadata |
+| react | 19.3.1 | MIT | installed package metadata |
+| react-dom | 19.3.1 | MIT | installed package metadata |
+| robust-predicates | 3.0.3 | Unlicense | installed package metadata |
+| roughjs | 4.6.6 | MIT | installed package metadata |
+| rw | 1.3.3 | BSD-3-Clause | installed package metadata |
+| safer-buffer | 2.1.2 | MIT | installed package metadata |
+| scheduler | 0.28.0 | MIT | installed package metadata |
+| starlette | 1.10.0 | BSD-3-Clause | installed package metadata |
+| stylis | 4.4.0 | MIT | installed package metadata |
 | SunsetTracker | 0.1.0 | MIT | repository LICENSE |
 | sunsettracker-backend | 0.1.0 | MIT | repository LICENSE |
-| tinyexec | 1.3.1 | MIT | npm registry — https://www.npmjs.com/package/tinyexec/v/1.3.1 |
-| tree-sitter | 0.25.2 | MIT | PyPI OSI license classifier — https://pypi.org/pypi/tree-sitter/0.25.2/json |
-| tree-sitter-bash | 0.25.1 | MIT | PyPI OSI license classifier — https://pypi.org/pypi/tree-sitter-bash/0.25.1/json |
-| tree-sitter-c | 0.24.2 | MIT | PyPI OSI license classifier — https://pypi.org/pypi/tree-sitter-c/0.24.2/json |
-| tree-sitter-c-sharp | 0.23.5 | MIT | PyPI OSI license classifier — https://pypi.org/pypi/tree-sitter-c-sharp/0.23.5/json |
-| tree-sitter-cpp | 0.23.4 | MIT | PyPI OSI license classifier — https://pypi.org/pypi/tree-sitter-cpp/0.23.4/json |
-| tree-sitter-elixir | 0.3.5 | MIT | PyPI OSI license classifier — https://pypi.org/pypi/tree-sitter-elixir/0.3.5/json |
-| tree-sitter-fortran | 0.6.0 | MIT | PyPI OSI license classifier — https://pypi.org/pypi/tree-sitter-fortran/0.6.0/json |
-| tree-sitter-go | 0.25.0 | MIT | PyPI license field (review identifier) — https://pypi.org/pypi/tree-sitter-go/0.25.0/json |
-| tree-sitter-groovy | 0.1.2 | MIT | PyPI license field (review identifier) — https://pypi.org/pypi/tree-sitter-groovy/0.1.2/json |
-| tree-sitter-java | 0.23.5 | MIT | PyPI OSI license classifier — https://pypi.org/pypi/tree-sitter-java/0.23.5/json |
-| tree-sitter-javascript | 0.25.0 | MIT | PyPI license field (review identifier) — https://pypi.org/pypi/tree-sitter-javascript/0.25.0/json |
-| tree-sitter-json | 0.24.8 | MIT | PyPI OSI license classifier — https://pypi.org/pypi/tree-sitter-json/0.24.8/json |
-| tree-sitter-julia | 0.23.1 | MIT | PyPI OSI license classifier — https://pypi.org/pypi/tree-sitter-julia/0.23.1/json |
-| tree-sitter-kotlin | 1.1.0 | MIT | PyPI OSI license classifier — https://pypi.org/pypi/tree-sitter-kotlin/1.1.0/json |
-| tree-sitter-lua | 0.5.0 | MIT | PyPI license field (review identifier) — https://pypi.org/pypi/tree-sitter-lua/0.5.0/json |
-| tree-sitter-objc | 3.0.2 | MIT | PyPI license field (review identifier) — https://pypi.org/pypi/tree-sitter-objc/3.0.2/json |
-| tree-sitter-php | 0.24.1 | MIT | PyPI license_expression — https://pypi.org/pypi/tree-sitter-php/0.24.1/json |
-| tree-sitter-powershell | 0.26.4 | MIT | PyPI license field (review identifier) — https://pypi.org/pypi/tree-sitter-powershell/0.26.4/json |
-| tree-sitter-python | 0.25.0 | MIT | PyPI license field (review identifier) — https://pypi.org/pypi/tree-sitter-python/0.25.0/json |
-| tree-sitter-ruby | 0.23.1 | MIT | PyPI OSI license classifier — https://pypi.org/pypi/tree-sitter-ruby/0.23.1/json |
-| tree-sitter-rust | 0.24.2 | MIT | PyPI OSI license classifier — https://pypi.org/pypi/tree-sitter-rust/0.24.2/json |
-| tree-sitter-scala | 0.26.4 | MIT | PyPI OSI license classifier — https://pypi.org/pypi/tree-sitter-scala/0.26.4/json |
-| tree-sitter-swift | 0.7.4 | MIT | PyPI OSI license classifier — https://pypi.org/pypi/tree-sitter-swift/0.7.4/json |
-| tree-sitter-typescript | 0.23.2 | MIT | PyPI OSI license classifier — https://pypi.org/pypi/tree-sitter-typescript/0.23.2/json |
-| tree-sitter-verilog | 1.0.3 | MIT | PyPI OSI license classifier — https://pypi.org/pypi/tree-sitter-verilog/1.0.3/json |
-| tree-sitter-zig | 1.1.2 | MIT | PyPI license field (review identifier) — https://pypi.org/pypi/tree-sitter-zig/1.1.2/json |
-| truststore | 0.10.5 | MIT | PyPI license_expression — https://pypi.org/pypi/truststore/0.10.5/json |
-| ts-dedent | 2.3.0 | MIT | npm registry — https://www.npmjs.com/package/ts-dedent/v/2.3.0 |
-| ty | 0.0.104 | MIT | PyPI OSI license classifier — https://pypi.org/pypi/ty/0.0.104/json |
-| typing-extensions | 4.16.0 | PSF-2.0 | PyPI license_expression — https://pypi.org/pypi/typing-extensions/4.16.0/json |
-| typing-inspection | 0.4.4 | MIT | PyPI license_expression — https://pypi.org/pypi/typing-inspection/0.4.4/json |
-| uuid | 14.0.3 | MIT | npm registry — https://www.npmjs.com/package/uuid/v/14.0.3 |
-| uvicorn | 0.52.4 | BSD-3-Clause | PyPI license_expression — https://pypi.org/pypi/uvicorn/0.52.4/json |
-| uvloop | 0.23.0 | Apache-2.0 | PyPI OSI license classifier — https://pypi.org/pypi/uvloop/0.23.0/json |
-| watchfiles | 1.3.0 | MIT | PyPI OSI license classifier — https://pypi.org/pypi/watchfiles/1.3.0/json |
-| websockets | 17.4 | BSD-3-Clause | PyPI license_expression — https://pypi.org/pypi/websockets/17.4/json |
+| Syft | 1.57.2 | Apache-2.0 | Manual inventory (scripts/sbom/manual-components.json); scope=build; kind=tool; evidence=https://github.com/anchore/syft/blob/v1.57.2/LICENSE |
+| tinyexec | 1.3.1 | MIT | installed package metadata |
+| tree-sitter | 0.25.2 | MIT License | installed package metadata |
+| tree-sitter-bash | 0.25.1 | MIT | installed package metadata |
+| tree-sitter-c | 0.24.2 | MIT | installed package metadata |
+| tree-sitter-c-sharp | 0.23.5 | MIT | installed package metadata |
+| tree-sitter-cpp | 0.23.4 | MIT | installed package metadata |
+| tree-sitter-elixir | 0.3.5 | Apache-2.0 | installed package metadata |
+| tree-sitter-fortran | 0.6.0 | MIT | installed package metadata |
+| tree-sitter-go | 0.25.0 | MIT | installed package metadata |
+| tree-sitter-groovy | 0.1.2 | MIT | installed package metadata |
+| tree-sitter-java | 0.23.5 | MIT | installed package metadata |
+| tree-sitter-javascript | 0.25.0 | MIT | installed package metadata |
+| tree-sitter-json | 0.24.8 | MIT | installed package metadata |
+| tree-sitter-julia | 0.23.1 | MIT | installed package metadata |
+| tree-sitter-kotlin | 1.1.0 | MIT | installed package metadata |
+| tree-sitter-lua | 0.5.0 | MIT | installed package metadata |
+| tree-sitter-objc | 3.0.2 | MIT | installed package metadata |
+| tree-sitter-php | 0.24.1 | MIT | installed package metadata |
+| tree-sitter-powershell | 0.26.4 | MIT | installed package metadata |
+| tree-sitter-python | 0.25.0 | MIT | installed package metadata |
+| tree-sitter-ruby | 0.23.1 | MIT | installed package metadata |
+| tree-sitter-rust | 0.24.2 | MIT | installed package metadata |
+| tree-sitter-scala | 0.26.4 | MIT | installed package metadata |
+| tree-sitter-swift | 0.7.4 | MIT | installed package metadata |
+| tree-sitter-typescript | 0.23.2 | MIT | installed package metadata |
+| tree-sitter-verilog | 1.0.3 | MIT | installed package metadata |
+| tree-sitter-zig | 1.1.2 | MIT | installed package metadata |
+| truststore | 0.10.5 | MIT | installed package metadata |
+| ts-dedent | 2.3.0 | MIT | installed package metadata |
+| typing-extensions | 4.16.0 | PSF-2.0 | installed package metadata |
+| typing-inspection | 0.4.4 | MIT | installed package metadata |
+| uuid | 14.0.3 | MIT | installed package metadata |
+| uvicorn | 0.52.4 | BSD-3-Clause | installed package metadata |
+| uvloop | 0.23.0 | MIT License | installed package metadata |
+| watchfiles | 1.3.0 | MIT | installed package metadata |
+| websockets | 17.4 | BSD-3-Clause | installed package metadata |
 
 ## Included license and notice texts
 
@@ -2099,6 +2092,85 @@ NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
+### import-meta-resolve 4.2.0 — LICENSE
+
+```text
+(The MIT License)
+
+Copyright (c) Titus Wormer <mailto:tituswormer@gmail.com>
+
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+'Software'), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+---
+
+This is a derivative work based on:
+<https://github.com/nodejs/node>.
+Which is licensed:
+
+"""
+Copyright Node.js contributors. All rights reserved.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to
+deal in the Software without restriction, including without limitation the
+rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+sell copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+IN THE SOFTWARE.
+"""
+
+This license applies to parts of Node.js originating from the
+https://github.com/joyent/node repository:
+
+"""
+Copyright Joyent, Inc. and other Node contributors. All rights reserved.
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to
+deal in the Software without restriction, including without limitation the
+rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+sell copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+IN THE SOFTWARE.
+"""
+```
+
 ### internmap 1.0.1 — LICENSE
 
 ```text
@@ -2424,7 +2496,7 @@ This binary distribution of NumPy also bundles the following software:
 
 
 Name: OpenBLAS
-Files: numpy.libs/libscipy_openblas*.so
+Files: numpy/.dylibs/libscipy_openblas*.so
 Description: bundled as a dynamically linked library
 Availability: https://github.com/OpenMathLib/OpenBLAS/
 License: BSD-3-Clause
@@ -2460,7 +2532,7 @@ License: BSD-3-Clause
 
 
 Name: LAPACK
-Files: numpy.libs/libscipy_openblas*.so
+Files: numpy/.dylibs/libscipy_openblas*.so
 Description: bundled in OpenBLAS
 Availability: https://github.com/OpenMathLib/OpenBLAS/
 License: BSD-3-Clause-Open-MPI
@@ -2515,7 +2587,7 @@ License: BSD-3-Clause-Open-MPI
 
 
 Name: GCC runtime library
-Files: numpy.libs/libgfortran*.so
+Files: numpy/.dylibs/libgfortran*, numpy/.dylibs/libgcc*
 Description: dynamically linked to files compiled with gcc
 Availability: https://gcc.gnu.org/git/?p=gcc.git;a=tree;f=libgfortran
 License: GPL-3.0-or-later WITH GCC-exception-3.1
@@ -3299,7 +3371,7 @@ Public License instead of this License.  But first, please read
 <https://www.gnu.org/licenses/why-not-lgpl.html>.
 
 Name: libquadmath
-Files: numpy.libs/libquadmath*.so
+Files: numpy/.dylibs/libquadmath*.so
 Description: dynamically linked to files compiled with gcc
 Availability: https://gcc.gnu.org/git/?p=gcc.git;a=tree;f=libquadmath
 License: LGPL-2.1-or-later
