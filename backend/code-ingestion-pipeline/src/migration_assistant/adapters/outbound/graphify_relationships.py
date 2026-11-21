@@ -228,6 +228,8 @@ def write_relationship_handoff(
         entity_count=len(all_entities),
         relationship_count=len(all_relationships),
         snapshot_id=snapshot_id,
+        all_entities=all_entities,
+        all_relationships=all_relationships,
     )
 
 

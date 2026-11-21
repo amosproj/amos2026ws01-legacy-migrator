@@ -9,11 +9,14 @@ import traceback
 from pathlib import Path
 
 from pydantic import ValidationError
+import os
+from neo4j import GraphDatabase
 
 from migration_assistant.adapters.outbound.git.local_git import LocalGitAdapter
 from migration_assistant.adapters.outbound.git.source_loader import load_sources
 from migration_assistant.adapters.outbound.graphify import GraphifyAdapter
 from migration_assistant.adapters.outbound.graphify_relationships import write_relationship_handoff
+from migration_assistant.adapters.outbound.neo4j import Neo4jPersistenceWriter
 from migration_assistant.adapters.outbound.pipeline_storage import LocalPipelineStorage
 from migration_assistant.application.pipeline import PipelineService
 from migration_assistant.domain.checkout import CheckoutError
@@ -76,31 +79,40 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
 def _run(args: argparse.Namespace) -> None:
     config_path = args.config or default_config_path()
     config = _with_overrides(load_config(config_path), args)
-    service = PipelineService(
-        git_repo=LocalGitAdapter(),
-        source_loader=load_sources,
-        graph_builder=GraphifyAdapter(),
-        handoff_writer=write_relationship_handoff,
-        storage=LocalPipelineStorage(),
-    )
 
-    def on_loaded(loaded: LoadResult) -> None:
-        print(f"config: {Path(config_path).as_posix()}")
-        _print_loaded(loaded)
+    uri = os.getenv("NEO4J_URI", "bolt://localhost:7687")
 
-    result = service.run(
-        config,
-        args.output_dir,
-        source_export=args.out,
-        on_loaded=on_loaded,
-        progress=lambda message: print(message, flush=True),
-    )
-    if args.out is not None:
-        print(f"output: {args.out}")
-    print(
-        f"Graph handoff: {result.entity_count} entities, {result.relationship_count} relationships"
-    )
-    print(f"Success. Graphs: {result.run_directory / 'graphs'}")
+    with GraphDatabase.driver(uri, auth=("neo4j", "change-this")) as driver:
+        driver.verify_connectivity()
+        writer = Neo4jPersistenceWriter(driver)
+    
+
+        service = PipelineService(
+            git_repo=LocalGitAdapter(),
+            source_loader=load_sources,
+            graph_builder=GraphifyAdapter(),
+            handoff_writer=write_relationship_handoff,
+            storage=LocalPipelineStorage(),
+            persistence_writer=writer,
+        )
+
+        def on_loaded(loaded: LoadResult) -> None:
+            print(f"config: {Path(config_path).as_posix()}")
+            _print_loaded(loaded)
+
+        result = service.run(
+            config,
+            args.output_dir,
+            source_export=args.out,
+            on_loaded=on_loaded,
+            progress=lambda message: print(message, flush=True),
+        )
+        if args.out is not None:
+            print(f"output: {args.out}")
+        print(
+            f"Graph handoff: {result.entity_count} entities, {result.relationship_count} relationships"
+        )
+        print(f"Success. Graphs: {result.run_directory / 'graphs'}")
 
 
 def _print_loaded(result: LoadResult) -> None:

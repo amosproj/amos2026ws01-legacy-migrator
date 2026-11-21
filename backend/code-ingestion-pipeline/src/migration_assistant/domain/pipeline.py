@@ -4,6 +4,13 @@ from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
 
+from shared_contracts.records import (
+    ExternalSymbolObservationFact,
+    RelationshipFact,
+    SymbolObservationFact,
+    UnresolvedSymbolObservationFact,
+)
+
 from migration_assistant.domain.sources import LoadResult
 
 
@@ -13,11 +20,15 @@ class PipelineError(Exception):
 
 @dataclass(frozen=True)
 class RelationshipHandoffResult:
-    """Counts and the deterministic snapshot identity produced by the handoff."""
+    """Facts, counts, and the deterministic snapshot identity produced by the handoff."""
 
     entity_count: int
     relationship_count: int
     snapshot_id: str
+    all_entities: dict[
+        str, SymbolObservationFact | ExternalSymbolObservationFact | UnresolvedSymbolObservationFact
+    ]
+    all_relationships: dict[str, RelationshipFact]
 
     def __iter__(self) -> Iterator[int]:
         """Keep existing two-value count unpacking working for the CLI."""

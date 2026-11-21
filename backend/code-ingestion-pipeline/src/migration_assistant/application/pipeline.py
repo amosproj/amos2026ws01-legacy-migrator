@@ -12,6 +12,7 @@ from migration_assistant.application.ports.pipeline import (
     HandoffWriter,
     PipelineStorage,
     SourceLoader,
+    PersistenceWriter
 )
 from migration_assistant.domain.pipeline import PipelineError, PipelineResult
 from migration_assistant.domain.reference_source import ReferenceSourceConfig
@@ -27,12 +28,14 @@ class PipelineService:
         graph_builder: GraphBuilder,
         handoff_writer: HandoffWriter,
         storage: PipelineStorage,
+        persistence_writer: PersistenceWriter
     ) -> None:
         self.git_repo = git_repo
         self.source_loader = source_loader
         self.graph_builder = graph_builder
         self.handoff_writer = handoff_writer
         self.storage = storage
+        self.persistence_writer = persistence_writer
 
     def run(
         self,
@@ -94,6 +97,13 @@ class PipelineService:
                 )
             except (OSError, ValueError, RuntimeError) as error:
                 raise PipelineError(f"Canonical handoff failed: {error}") from error
+
+            try:
+                self.persistence_writer.persist_handoff(handoff)
+            #TODO handle errors more gracefully here. This does not catch neo4j errors
+            except (OSError, ValueError, RuntimeError) as error:
+                raise PipelineError(f"Persistng code graph to neo4j failed: {error}") from error
+
         except (PipelineError, OSError, ValueError) as error:
             raise PipelineError(f"{error}; partial outputs: {run}") from error
         return PipelineResult(
