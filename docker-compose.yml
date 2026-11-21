@@ -28,6 +28,8 @@ services:
 
   neo4j:
     image: neo4j:2026.10.2
+    ports:
+      - "${NEO4J_PORT:-7687}:7687"
     volumes:
       - neo4j-data:/data
     environment:
