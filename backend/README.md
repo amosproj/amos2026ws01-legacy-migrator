@@ -66,6 +66,15 @@ with TestClient(app) as client:
 "
 ```
 
+The symbol-query tests use the Catalog exports in `tests/fixtures/` from PR #125.
+To run the same checks against a fresh export of the full `step-06` stage, point
+`REFERENCE_SOURCE` at your local reference checkout with its submodules initialized.
+The test writes its checkout and exports to pytest's temporary directory.
+
+```bash
+REFERENCE_SOURCE=/path/to/legacy-example-stages uv run --locked pytest tests/test_symbol_query.py -q
+```
+
 ## Configuration
 
 | Variable | Default | Purpose |

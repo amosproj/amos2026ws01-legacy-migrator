@@ -58,11 +58,11 @@ def query_component_symbols(
     step_id: str,
     component: str,
 ) -> SymbolQueryResult:
-    """Return the symbols of ``component`` as a ``SymbolQueryResult`` for ``step_id``.
+    """Build a ``SymbolQueryResult`` from records already selected for ``step_id``.
 
     ``component`` is the repository ID used in the facts, for example
-    ``legacy-example-catalog-service``. Symbols are sorted by file and line so
-    repeated queries over the same facts return the same result.
+    ``legacy-example-catalog-service``. The caller selects the snapshot for the
+    stage before calling this function. Symbols are sorted by file and line.
     """
     symbols = [to_query_symbol(record) for record in records if record.payload.repo_id == component]
     symbols.sort(
