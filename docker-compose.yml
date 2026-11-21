@@ -25,3 +25,17 @@ services:
     ports:
       - "${FRONTEND_PORT:-3000}:80"
     restart: unless-stopped
+
+  neo4j:
+    image: neo4j:2026.10.2
+    volumes:
+      - neo4j-data:/data
+    environment:
+      # Hard coded password "change-this" for now
+      # Done this way to keep build process simple for mid-project release
+      # Will have to be changed to .env or something later
+      NEO4J_AUTH: "neo4j/change-this"
+    restart: unless-stopped
+
+volumes:
+  neo4j-data:
