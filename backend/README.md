@@ -75,6 +75,25 @@ The test writes its checkout and exports to pytest's temporary directory.
 REFERENCE_SOURCE=/path/to/legacy-example-stages uv run --locked pytest tests/test_symbol_query.py -q
 ```
 
+### Compare Catalog queries with Neo4j
+
+Run this opt-in test on a local test merge with #94. Sync the merged lockfile
+with `uv sync --locked` and start a disposable Neo4j instance with the ingestion
+login described in the [pipeline guide](code-ingestion-pipeline/README.md#neo4j-connection).
+From `backend/` in Bash, point the test at that database and your local reference
+checkout.
+
+```bash
+REFERENCE_SOURCE=/path/to/legacy-example-stages \
+  NEO4J_QUERY_TEST_URI=bolt://127.0.0.1:17687 \
+  uv run --locked pytest tests/test_symbol_query.py -k matches_neo4j -q
+```
+
+The test runs the full `step-06` ingestion into the test database, reads the
+`snapshotId` from that run, and compares the typed Catalog result from Neo4j
+with the JSONL result. It also checks that every returned span resolves against
+`sources.jsonl` from the same run.
+
 ## Configuration
 
 | Variable | Default | Purpose |
