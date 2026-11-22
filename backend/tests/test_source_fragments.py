@@ -11,6 +11,7 @@ from fastapi.testclient import TestClient
 from app.main import app
 from app.source_fragments import FragmentPosition, extract_fragment
 from migration_assistant.adapters.outbound.pipeline_storage import LocalPipelineStorage
+from shared_contracts.records import SymbolObservationRecord
 from shared_contracts.source_file import SourceFile
 from shared_contracts.source_span import SourceSpan
 
@@ -82,6 +83,42 @@ def test_api_resolves_shared_span_from_ingestion_export(client: TestClient) -> N
     assert body["fragmentSha256"] == hashlib.sha256(b"line2").hexdigest()
     assert body["githubUrl"] == f"{_PUBLIC_URL}/blob/{_SHA}/{_PATH}#L2-L2"
     assert body["position"] == position.model_dump(by_alias=True, exclude_none=True)
+
+
+@pytest.mark.parametrize(("resource", "line_number"), [("Product", 28), ("Category", 17)])
+def test_api_resolves_catalog_demo_route(
+    monkeypatch: pytest.MonkeyPatch, resource: str, line_number: int
+) -> None:
+    fixtures = Path(__file__).parent / "fixtures"
+    entities = fixtures / "catalog-service-step-06-entities.jsonl"
+    sources = fixtures / "catalog-service-step-06-sources.jsonl"
+    monkeypatch.setenv("SOURCE_LOAD_RESULT", str(sources))
+    rows = map(json.loads, entities.read_text(encoding="utf-8").splitlines())
+    record = next(
+        SymbolObservationRecord.model_validate(row)
+        for row in rows
+        if row["recordType"] == "SymbolObservation"
+        and row["payload"]["kind"] == "class"
+        and row["payload"]["name"] == f"{resource}Resource"
+    )
+    span = record.payload.source_span
+    position = {"stage": "step-06", **span.model_dump(by_alias=True, exclude_none=True)}
+    commit = "474422cf156eb9bcce4267578b089a15edcc3733"
+    path = f"src/main/java/com/ibm/catalog/{resource}Resource.java"
+    with TestClient(app) as client:
+        response = client.post("/api/source-fragment", json=position)
+        stale = client.post("/api/source-fragment", json={**position, "commitSha": "0" * 40})
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["position"] == position
+    assert body["fragment"] == f'@Path("/CustomerOrderServicesWeb/jaxrs/{resource}")'
+    assert body["githubUrl"] == (
+        "https://github.com/legacy-modernization-example/legacy-example-catalog-service"
+        f"/blob/{commit}/{path}#L{line_number}-L{line_number}"
+    )
+    assert stale.status_code == 404
+    assert stale.json()["detail"]["code"] == "commit_sha_mismatch"
 
 
 def test_api_selects_source_by_stage(client: TestClient) -> None:
