@@ -43,13 +43,20 @@ mkdir -p "$NPM_ROOT"
 cp frontend/package.json frontend/package-lock.json "$NPM_ROOT/"
 npm ci --prefix "$NPM_ROOT" --ignore-scripts --no-audit --no-fund --quiet
 export SBOM_FRONTEND_NODE_MODULES="$NPM_ROOT/node_modules"
-syft scan dir:. --source-name SunsetTracker --source-version 0.1.0 --exclude './.git/**' --exclude './.venv/**' --exclude './.github/**' --exclude '**/.github/**' --exclude './Documentation/**' --exclude './frontend/node_modules/**' --exclude './backend/.venv/**' --exclude './backend/ba/**' --exclude './backend/code-ingestion-pipeline/.cache/**' --exclude './.venv/lib/python3.15/site-packages/pip/_vendor/distlib/w64.exe' --exclude './backend/.venv/**/pip/_vendor/distlib/w64.exe' --output "spdx-json=$OUT/sbom.spdx.json"
+syft scan dir:. --source-name SunsetTracker --source-version 0.1.0 --exclude './.git/**' --exclude './.venv/**' --exclude './.github/**' --exclude '**/.github/**' --exclude './Documentation/**' --exclude './frontend/node_modules/**' --exclude './backend/.venv/**' --exclude './backend/ba/**' --exclude './backend/code-ingestion-pipeline/.cache/**' --exclude './.venv/lib/python3.15/site-packages/pip/_vendor/distlib/w64.exe' --exclude './backend/.venv/**/pip/_vendor/distlib/w64.exe' --output "spdx-json@3.0=$OUT/sbom.spdx.json"
 if [[ "$REFRESH_REGISTRY" == true ]]; then python3 scripts/sbom/refresh_registry_snapshot.py "$OUT/sbom.spdx.json" "$OUT/python-dists.json"; fi
 python3 scripts/sbom/enrich_sbom.py "$OUT/sbom.spdx.json" "$OUT/python-dists.json" "$ROOT" "$OUT/THIRD_PARTY_NOTICES.md"
+python3 scripts/sbom/check_completeness.py "$OUT/sbom.spdx.json"
+uv tool run --from 'ntia-conformance-checker==6.0.0' sbomcheck -s spdx3 -c bsi "$OUT/sbom.spdx.json"
+python3 scripts/sbom/check_licenses.py "$OUT/sbom.spdx.json"
 if [[ "$MODE" == check ]]; then
   python3 scripts/sbom/compare_sbom.py sbom.spdx.json "$OUT/sbom.spdx.json"
+  if [[ -f Deliverables/sprint-06/sbom.spdx.json ]]; then
+    python3 scripts/sbom/compare_sbom.py Deliverables/sprint-06/sbom.spdx.json "$OUT/sbom.spdx.json"
+  fi
   diff -u frontend/public/legal/THIRD_PARTY_NOTICES.md "$OUT/THIRD_PARTY_NOTICES.md"
 else
   cp "$OUT/sbom.spdx.json" sbom.spdx.json
+  if [[ -d Deliverables/sprint-06 ]]; then cp "$OUT/sbom.spdx.json" Deliverables/sprint-06/sbom.spdx.json; fi
   cp "$OUT/THIRD_PARTY_NOTICES.md" frontend/public/legal/THIRD_PARTY_NOTICES.md
 fi

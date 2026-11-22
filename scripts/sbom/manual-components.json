@@ -1,35 +1,4 @@
 {
   "schemaVersion": 1,
-  "components": [
-    {
-      "name": "Syft",
-      "version": "1.57.2",
-      "kind": "tool",
-      "scope": "build",
-      "purl": "pkg:github/anchore/syft@v1.57.2",
-      "license": "Apache-2.0",
-      "evidenceUrl": "https://github.com/anchore/syft/blob/v1.57.2/LICENSE",
-      "notes": "SBOM generator used by the release workflow; also recorded in SPDX creation metadata."
-    },
-    {
-      "name": "Docker CLI",
-      "version": "26.0.0",
-      "kind": "tool",
-      "scope": "build",
-      "purl": "pkg:github/docker/cli@v26.0.0",
-      "license": "Apache-2.0",
-      "evidenceUrl": "https://github.com/docker/cli/blob/v26.0.0/LICENSE",
-      "notes": "Docker client version observed in the current SBOM-generation environment."
-    },
-    {
-      "name": "Docker Engine (Moby)",
-      "version": "24.0.6",
-      "kind": "tool",
-      "scope": "build",
-      "purl": "pkg:github/moby/moby@v24.0.6",
-      "license": "Apache-2.0",
-      "evidenceUrl": "https://github.com/moby/moby/blob/v24.0.6/LICENSE",
-      "notes": "Docker Engine server version observed in the current SBOM-generation environment."
-    }
-  ]
+  "components": []
 }

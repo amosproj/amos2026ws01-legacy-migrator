@@ -4,7 +4,7 @@
 # To use a real LLM, set LLM_BASE_URL and LLM_NAME via docker compose .env or
 # `docker run -e`. host.docker.internal needs the host-gateway mapping on Linux
 # (docker-compose.yml includes it; docker run needs --add-host).
-FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim
+FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim@sha256:e5b65587bce7de595f299855d7385fe7fca39b8a74baa261ba1b7147afa78e58
 
 WORKDIR /app
 

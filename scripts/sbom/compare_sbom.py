@@ -9,7 +9,12 @@ left_path, right_path = map(Path, sys.argv[1:3])
 left = json.loads(left_path.read_text())
 right = json.loads(right_path.read_text())
 for doc in (left, right):
-    doc.get("creationInfo", {}).pop("created", None)
+    if isinstance(doc.get("@graph"), list):
+        for element in doc["@graph"]:
+            if element.get("type") == "CreationInfo":
+                element.pop("created", None)
+    else:
+        doc.get("creationInfo", {}).pop("created", None)
 if left == right:
     print("SBOM matches (ignoring creationInfo.created).")
     raise SystemExit(0)
