@@ -7,19 +7,25 @@ it does not reconstruct source copies, run clustering, or generate graph reports
 
 ## Setup and run
 
-Install uv, Python 3.12, and Git. From the repository root:
+Install uv, Python 3.12, Git, and Docker with Compose. From the repository root:
 
 ```bash
+docker compose up -d neo4j
+docker compose exec -T neo4j cypher-shell -u neo4j -p change-this "RETURN 1;"
 cd backend
 uv sync --locked
 cd code-ingestion-pipeline
-uv run --project .. ingest
+uv run --project .. ingest --stage step-06
 ```
 
+Run the connectivity check once Neo4j has started. Use `docker compose logs -f
+neo4j` from the repository root to check startup if the connection fails.
+
 The commands are the same in Linux/macOS terminals and Windows PowerShell.
-`uv sync --locked` installs the API, loader, Graphify, CLI, and development tools
-into `backend/.venv`. No separate ingestion environment, pip setup script, or
-`PYTHONPATH` configuration is needed. The module entry point remains available:
+`uv sync --locked` installs the API, loader, Graphify, Neo4j driver, CLI, and
+development tools into `backend/.venv`. No separate ingestion environment, pip
+setup script, or `PYTHONPATH` configuration is needed. The module entry point
+remains available:
 
 ```bash
 uv run --project .. python -m migration_assistant.bootstrap.cli
@@ -32,6 +38,42 @@ explicitly preinstalled environment is required.
 
 No API key is needed for local AST extraction. Fetching an HTTPS reference source
 uses Git and any existing Git credentials.
+
+### Neo4j connection
+
+| Setting | Default | Used by |
+| --- | --- | --- |
+| `NEO4J_PORT` | `7687` | Docker Compose host port. Set it in the repository root `.env` or in the shell that starts Compose. |
+| `NEO4J_URI` | `bolt://localhost:7687` | Ingestion CLI. Export it in the shell that runs ingestion when the Bolt address differs. |
+| Username and password | `neo4j` / `change-this` | Fixed development login in Compose and the CLI on this branch. |
+
+For example, if Compose publishes port `17687`, run the following from
+`backend/code-ingestion-pipeline/` in Bash.
+
+```bash
+NEO4J_URI=bolt://localhost:17687 uv run --project .. ingest --stage step-06
+```
+
+In PowerShell, set `$env:NEO4J_URI = 'bolt://localhost:17687'` before running
+`uv run --project .. ingest --stage step-06`. The Compose `.env` sets the Compose
+port. The CLI reads `NEO4J_URI` from its process environment.
+
+The CLI checks connectivity before extraction. It writes the canonical files and
+then stores the observations and relationships in Neo4j. Re-running the same
+snapshot replaces its records. Compose keeps the data in the `neo4j-data` volume
+when you run `docker compose stop neo4j`.
+
+To inspect a run, copy `snapshotId` from its `snapshot-identity.json` and open
+`docker compose exec neo4j cypher-shell -u neo4j -p change-this` from the root.
+Set the parameter and check the Catalog observations for that exact snapshot.
+
+```cypher
+:param snapshot => 'paste-snapshotId-here';
+MATCH (n:SymbolObservation {
+  snapshot_id: $snapshot, repo_id: 'legacy-example-catalog-service'
+})
+RETURN count(n) AS catalog_symbols;
+```
 
 ## Configuration
 
@@ -184,3 +226,22 @@ Tests use temporary local Git repositories and need no GitHub connection. They
 cover the loader, pipeline, Graphify adapters, and canonical handoff, including
 real Graphify extraction. Tests never build or execute downloaded reference
 source code. Windows/macOS execution remains unverified.
+
+The CLI and pipeline unit tests run without a live Neo4j connection. The
+persistence integration tests use a separate disposable Neo4j instance. Start
+one from the repository root.
+
+```bash
+docker run --rm -d --name amos-neo4j-persistence-test \
+  -p 127.0.0.1:17687:7687 --tmpfs /data \
+  -e NEO4J_AUTH=neo4j/test-only-password neo4j:2026.10.2
+```
+
+Once it is ready, run from `backend/code-ingestion-pipeline/` in Bash.
+
+```bash
+NEO4J_TEST_URI=bolt://localhost:17687 uv run --locked --project .. pytest tests -q
+```
+
+In PowerShell, set `$env:NEO4J_TEST_URI` before invoking pytest. Stop the test
+server with `docker stop amos-neo4j-persistence-test` when done.

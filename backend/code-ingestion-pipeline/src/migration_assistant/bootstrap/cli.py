@@ -4,13 +4,13 @@ Run from code-ingestion-pipeline/ with: uv run --project .. ingest
 """
 
 import argparse
+import os
 import sys
 import traceback
 from pathlib import Path
 
-from pydantic import ValidationError
-import os
 from neo4j import GraphDatabase
+from pydantic import ValidationError
 
 from migration_assistant.adapters.outbound.git.local_git import LocalGitAdapter
 from migration_assistant.adapters.outbound.git.source_loader import load_sources
@@ -85,7 +85,6 @@ def _run(args: argparse.Namespace) -> None:
     with GraphDatabase.driver(uri, auth=("neo4j", "change-this")) as driver:
         driver.verify_connectivity()
         writer = Neo4jPersistenceWriter(driver)
-    
 
         service = PipelineService(
             git_repo=LocalGitAdapter(),
@@ -110,7 +109,8 @@ def _run(args: argparse.Namespace) -> None:
         if args.out is not None:
             print(f"output: {args.out}")
         print(
-            f"Graph handoff: {result.entity_count} entities, {result.relationship_count} relationships"
+            f"Graph handoff: {result.entity_count} entities, "
+            f"{result.relationship_count} relationships"
         )
         print(f"Success. Graphs: {result.run_directory / 'graphs'}")
 

@@ -35,5 +35,6 @@ class PipelineStorage(Protocol):
 
     def write_sources(self, out: Path, files: list[SourceFile]) -> None: ...
 
+
 class PersistenceWriter(Protocol):
     def persist_handoff(self, handoff: RelationshipHandoffResult) -> None: ...

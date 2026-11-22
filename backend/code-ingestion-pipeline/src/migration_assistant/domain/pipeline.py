@@ -4,14 +4,13 @@ from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
 
+from migration_assistant.domain.sources import LoadResult
 from shared_contracts.records import (
     ExternalSymbolObservationFact,
     RelationshipFact,
     SymbolObservationFact,
     UnresolvedSymbolObservationFact,
 )
-
-from migration_assistant.domain.sources import LoadResult
 
 
 class PipelineError(Exception):

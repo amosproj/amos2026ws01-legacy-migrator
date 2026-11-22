@@ -10,9 +10,9 @@ from migration_assistant.application.ports.git_repo import GitRepo
 from migration_assistant.application.ports.pipeline import (
     GraphBuilder,
     HandoffWriter,
+    PersistenceWriter,
     PipelineStorage,
     SourceLoader,
-    PersistenceWriter
 )
 from migration_assistant.domain.pipeline import PipelineError, PipelineResult
 from migration_assistant.domain.reference_source import ReferenceSourceConfig
@@ -28,7 +28,7 @@ class PipelineService:
         graph_builder: GraphBuilder,
         handoff_writer: HandoffWriter,
         storage: PipelineStorage,
-        persistence_writer: PersistenceWriter
+        persistence_writer: PersistenceWriter,
     ) -> None:
         self.git_repo = git_repo
         self.source_loader = source_loader
@@ -100,7 +100,7 @@ class PipelineService:
 
             try:
                 self.persistence_writer.persist_handoff(handoff)
-            #TODO handle errors more gracefully here. This does not catch neo4j errors
+            # TODO handle errors more gracefully here. This does not catch neo4j errors
             except (OSError, ValueError, RuntimeError) as error:
                 raise PipelineError(f"Persistng code graph to neo4j failed: {error}") from error
 
