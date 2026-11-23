@@ -33,7 +33,7 @@ def service(
 def test_cli_builds_separate_graphs_without_source_copies(
     reference, pipeline_cli, tmp_path, persistence_writer
 ):
-    code = cli.main(
+    code = cli.run_full_ingestion(
         [
             "--config",
             str(reference.config_path),
@@ -96,7 +96,7 @@ def test_component_without_loaded_files_is_skipped(
 
 def test_cli_rejects_graph_mode():
     with pytest.raises(SystemExit) as error:
-        cli.main(["--graph-mode", "per-component"])
+        cli.run_full_ingestion(["--graph-mode", "per-component"])
     assert error.value.code == 2
 
 
@@ -126,9 +126,9 @@ def test_cli_unexpected_error_and_verbose_traceback(reference, pipeline_cli, mon
         raise KeyError("unexpected test failure")
 
     monkeypatch.setattr(cli, "load_sources", broken)
-    assert cli.main(["--config", str(reference.config_path)]) == 2
+    assert cli.run_full_ingestion(["--config", str(reference.config_path)]) == 2
     assert "unexpected failure, rerun with --verbose" in capsys.readouterr().err
-    assert cli.main(["--config", str(reference.config_path), "--verbose"]) == 2
+    assert cli.run_full_ingestion(["--config", str(reference.config_path), "--verbose"]) == 2
     assert "KeyError" in capsys.readouterr().err
 
 

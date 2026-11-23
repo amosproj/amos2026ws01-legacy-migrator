@@ -129,6 +129,17 @@ regardless of that option. There is no graph-mode option: extraction always runs
 separately for each component with loaded files. An entirely empty selection fails
 before extraction.
 
+To persist an already-written handoff without repeating checkout or extraction:
+
+```bash
+uv run --project .. persist-handoff --handoff-dir .cache/ingestion/<existing-run>
+```
+
+This reads `snapshot-identity.json`, `entities.jsonl`, and `relationships.jsonl`
+from the run folder and uses the same Neo4j connection settings as `ingest`.
+It replaces the observations and relationships for that snapshot. Add `--verbose`
+to show a traceback on failure.
+
 Developers control output and checkout locations and their Git ignore rules. The
 pipeline does not enforce output placement or refuse Git commands based on the
 original source directory. Keep the configured workspace separate from that source

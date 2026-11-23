@@ -119,7 +119,7 @@ def test_html_limit_failure_preserves_json(
         raise ValueError("Graph too large for HTML viz")
 
     modules["graphify.export"].to_html = too_large
-    code = cli.main(
+    code = cli.run_full_ingestion(
         ["--config", str(reference.config_path), "--output-dir", str(tmp_path / "runs")]
     )
     assert code == 1
