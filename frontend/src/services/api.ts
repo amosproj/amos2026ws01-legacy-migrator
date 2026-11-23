@@ -102,7 +102,7 @@ export async function submitMigrationQuery(
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         query: req.query,
-        conversation_id: req.stepId || 'step-06',
+        step_id: req.stepId || 'step-06',
       }),
       signal,
     });

@@ -1,10 +1,9 @@
 import { Arc42ViewMetadata } from '../types/arc42';
 
 export const INITIAL_SUGGESTIONS: string[] = [
-  "Which parts of the legacy system have already been decommissioned in Step-06?",
-  "What is currently implemented in Catalog Service (Step-06 vs Step-05)?",
-  "Which legacy and target components still share database tables or routes?",
-  "What are the top candidates for the next decommissioning step?"
+  "Where are the Product and Category endpoints implemented in the Catalog service?",
+  "Where is ProductResource defined?",
+  "Where is CategoryResource defined?"
 ];
 
 export const MOCK_ARC42_VIEWS: Arc42ViewMetadata[] = [

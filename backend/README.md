@@ -18,7 +18,7 @@ Run all commands from this folder.
 
 | Endpoint | Method | Purpose |
 |---|---|---|
-| `/api/chat` | POST | Submit a query: `{"query": "...", "conversation_id"?: "..."}` → NDJSON stream: `sources` event, then `content` text deltas, or an `error` event |
+| `/api/chat` | POST | Submit `query` and optional `step_id`. The NDJSON stream carries model labels, source evidence when configured, and streamed answer text or an error. |
 | `/api/health` | GET | Liveness check (`{"status": "ok", ..., "model": "..."}`) |
 | `/api/repositories` | GET | Mock repository list for the frontend picker (real loading is ticket #17) |
 | `/api/source-fragment` | POST | Resolve a stage and `SourceSpan` to full source lines and a commit-pinned GitHub link |
@@ -78,6 +78,7 @@ with TestClient(app) as client:
 | `LLM_TIMEOUT_SECONDS` | `600` | Request timeout for LLM calls (local CPU inference can be slow) |
 | `LLM_EXTRA_BODY` | *(empty)* | JSON object merged into every completion request for server/model-specific fields, e.g. `{"think": false}` to disable reasoning on thinking models |
 | `SOURCE_LOAD_RESULT` | *(unset)* | Path to the `sources.jsonl` from an ingestion run, loaded at API startup |
+| `GRAPH_RUN_DIR` | *(unset)* | Imported ingestion run containing `snapshot-identity.json` and `sources.jsonl`. Enables chat evidence and takes precedence over `SOURCE_LOAD_RESULT`. |
 
 Example — run against a local Ollama server (thinking disabled for speed):
 
@@ -107,9 +108,8 @@ backend/
 
 The `LlmProvider` protocol in `app/llm.py` is the seam for ticket #25: adding a
 new provider (e.g. an external API) only requires a new implementation plus
-configuration — consuming components never change. The `QueryService` protocol
-in `app/query_service.py` is where the knowledge-graph query logic will be
-plugged in later without changing the API layer.
+configuration — consuming components never change. `QueryService` receives the
+resolved excerpts from the chat route and passes them to the model.
 
 ## Ingestion pipeline
 
@@ -155,9 +155,46 @@ The lookup returns inclusive line ranges, with the requested position preserved.
 Changing the commit to another valid SHA returns HTTP 404 with the
 `commit_sha_mismatch` error code.
 
-## Known limitations / future work
+## Catalog chat demo with Neo4j
 
-- **No knowledge-graph context yet.** Answers come from the LLM alone; the
-  deterministic ingestion and graph query logic (ticket #52 and follow-ups)
-  will feed evidence into the prompt later.
+From the repo root, start Neo4j and run the pipeline with the local reference
+source configured. The ingest command prints the run folder.
+
+```bash
+docker compose up -d neo4j
+(cd backend/code-ingestion-pipeline && uv run --project .. ingest --stage step-06)
+```
+
+Set `GRAPH_RUN_DIR` to that run folder and start the app with the tested local
+Ollama model:
+
+```bash
+export GRAPH_RUN_DIR="$(realpath 'backend/code-ingestion-pipeline/.cache/ingestion/<run-id>')"
+LLM_NAME=qwen3.5:2b LLM_EXTRA_BODY='{"reasoning_effort":"none","think":false,"temperature":0}' \
+  ./backend/run.sh
+```
+
+Alternatively, build and start the containers with the same run mounted
+read-only. Configure a model URL reachable from the backend container as
+described in [the container guide](../Documentation/containers.md).
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.graph.yml up --build
+```
+
+Choose `step-06` and ask **Where are the Product and Category endpoints
+implemented in the Catalog service?** Both excerpts go into the model request
+and appear below the answer with links to `ProductResource.java:28` and
+`CategoryResource.java:17` at the imported commit.
+
+This lookup covers named Catalog symbols and route questions for the configured
+run. A missing stage, missing hit or mismatched revision produces a visible
+chat error. With no graph run configured, the chat uses the model alone.
+
+To automate the example against a disposable Neo4j, run from `backend/`:
+
+```bash
+REFERENCE_SOURCE=/path/to/legacy-example-stages NEO4J_QUERY_TEST_URI=bolt://127.0.0.1:17687 \
+  uv run --locked pytest tests/test_graph_fragments.py -k persisted_catalog -q
+```
 
