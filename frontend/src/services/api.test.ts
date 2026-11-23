@@ -12,7 +12,7 @@ function ndjsonBody(lines: string[]): ReadableStream<Uint8Array> {
   });
 }
 
-const noopCallbacks = { onSources: () => {}, onThinking: () => {}, onDelta: () => {} };
+const noopCallbacks = { onThinking: () => {}, onDelta: () => {} };
 
 describe('Frontend API Service', () => {
   beforeEach(() => {
@@ -47,7 +47,7 @@ describe('Frontend API Service', () => {
   });
 
   describe('submitMigrationQuery', () => {
-    it('streams content deltas and assembles the answer', async () => {
+    it('streams the answer without creating evidence from legacy model labels', async () => {
       globalThis.fetch = vi.fn().mockResolvedValue({
         ok: true,
         body: ndjsonBody([
@@ -60,13 +60,13 @@ describe('Frontend API Service', () => {
       const deltas: string[] = [];
       const res = await submitMigrationQuery(
         { query: 'Tell me about catalog', stepId: 'step-06' },
-        { onSources: () => {}, onThinking: () => {}, onDelta: (t) => deltas.push(t) },
+        { ...noopCallbacks, onDelta: (t) => deltas.push(t) },
       );
 
       expect(res.answer).toBe('Catalog service was migrated.');
       expect(deltas).toEqual(['Catalog service ', 'was migrated.']);
       expect(res.stepId).toBe('step-06');
-      expect(res.evidence.length).toBeGreaterThan(0);
+      expect(res.evidence).toEqual([]);
     });
 
     it('streams thinking deltas and reports them in the response', async () => {
@@ -86,7 +86,7 @@ describe('Frontend API Service', () => {
       const onDelta = (t: string) => deltas.push(t);
       const res = await submitMigrationQuery(
         { query: 'anything', stepId: 'step-06' },
-        { onSources: () => {}, onThinking, onDelta },
+        { onThinking, onDelta },
       );
 
       expect(thinking).toEqual(['Let me', ' check']);
