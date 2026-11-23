@@ -20,8 +20,10 @@ import logging
 import os
 from collections.abc import AsyncGenerator, AsyncIterator
 from contextlib import asynccontextmanager
+from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
+from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 
@@ -29,6 +31,13 @@ from .llm import LlmError, create_llm_provider
 from .query_service import QueryService, create_query_service
 from .repositories import list_repositories
 from .schemas import ChatRequest, DiffFile, DiffRequest, DiffResponse, HealthResponse
+from .source_fragments import (
+    FragmentPosition,
+    SourceFragment,
+    SourceFragmentError,
+    resolve_fragment,
+)
+from .source_loader_adapter import LoaderFragmentFetcher
 
 SERVICE_NAME = "sunsettracker-backend"
 VERSION = "0.2.0"
@@ -51,8 +60,20 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     provider = create_llm_provider()
     app.state.llm_provider = provider
     app.state.query_service = create_query_service(provider)
+    app.state.fragment_fetcher = await run_in_threadpool(_create_fragment_fetcher)
     yield
     await provider.aclose()
+
+
+def _create_fragment_fetcher() -> LoaderFragmentFetcher | None:
+    path = os.environ.get("SOURCE_LOAD_RESULT", "").strip()
+    if not path:
+        return None
+    try:
+        return LoaderFragmentFetcher.from_export(Path(path))
+    except (OSError, ValueError) as exc:
+        logger.warning("fragment fetcher disabled: %s", exc)
+        return None
 
 
 app = FastAPI(title="SunsetTracker backend query API", version=VERSION, lifespan=lifespan)
@@ -102,6 +123,23 @@ async def chat(request: ChatRequest) -> StreamingResponse:
             yield _event("error", str(exc))
 
     return StreamingResponse(events(), media_type="application/x-ndjson")
+
+
+@app.post("/api/source-fragment", response_model=SourceFragment, response_model_exclude_none=True)
+def source_fragment(position: FragmentPosition) -> SourceFragment:
+    """Return the pinned lines and source link for a stage and source span."""
+    fetcher: LoaderFragmentFetcher | None = getattr(app.state, "fragment_fetcher", None)
+    try:
+        if fetcher is None:
+            raise SourceFragmentError(
+                "fetcher_unavailable",
+                "no reference source is loaded. Set SOURCE_LOAD_RESULT to a sources.jsonl export",
+            )
+        return resolve_fragment(position, fetcher)
+    except SourceFragmentError as exc:
+        raise HTTPException(
+            status_code=404, detail={"code": exc.code, "message": str(exc)}
+        ) from exc
 
 
 @app.get("/api/repositories")
