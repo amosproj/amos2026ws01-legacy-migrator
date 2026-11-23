@@ -15,6 +15,8 @@ RUN uv sync --frozen --no-dev --no-install-project
 COPY app/ app/
 COPY shared_contracts/ shared_contracts/
 COPY schemas/ schemas/
+COPY code-ingestion-pipeline/src/migration_assistant/ code-ingestion-pipeline/src/migration_assistant/
+RUN uv sync --frozen --no-dev --no-editable
 
 ENV PATH="/app/.venv/bin:$PATH"
 

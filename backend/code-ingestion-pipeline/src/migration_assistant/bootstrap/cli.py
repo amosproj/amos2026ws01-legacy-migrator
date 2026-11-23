@@ -1,9 +1,11 @@
 """Command line: load a reference stage and extract graphs and canonical facts per component."""
 
 import argparse
+import json
 import sys
 import traceback
 from collections.abc import Callable
+from dataclasses import asdict
 from pathlib import Path
 
 from neo4j.exceptions import DriverError, Neo4jError
@@ -11,7 +13,11 @@ from pydantic import ValidationError
 
 from migration_assistant.api import ingest_step, persist_handoff
 from migration_assistant.domain.checkout import CheckoutError
-from migration_assistant.domain.pipeline import PipelineError
+from migration_assistant.domain.pipeline import (
+    HandoffImportError,
+    HandoffImportIssue,
+    PipelineError,
+)
 from migration_assistant.domain.reference_source import (
     ConfigError,
     ReferenceSourceConfig,
@@ -28,6 +34,9 @@ DEFAULT_OUTPUT_DIR = Path(__file__).resolve().parents[3] / ".cache" / "ingestion
 def run_full_ingestion(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
     return _execute(args, _run_full_ingestion)
+
+
+main = run_full_ingestion
 
 
 def run_persistence_from_handoff(argv: list[str] | None = None) -> int:
@@ -67,11 +76,21 @@ def _execute(args: argparse.Namespace, action: Callable[[argparse.Namespace], No
 
 
 def _persist_from_handoff(args: argparse.Namespace) -> None:
-    handoff = persist_handoff(args.handoff_dir)
+    try:
+        handoff = persist_handoff(args.handoff_dir)
+    except HandoffImportError as error:
+        _print_import_issues(error.issues)
+        raise
+    _print_import_issues(handoff.issues)
     print(
         f"Success. Persisted snapshot {handoff.snapshot_id}: "
         f"{handoff.entity_count} entities, {handoff.relationship_count} relationships"
     )
+
+
+def _print_import_issues(issues: tuple[HandoffImportIssue, ...]) -> None:
+    for issue in issues:
+        print(json.dumps(asdict(issue), ensure_ascii=False), file=sys.stderr)
 
 
 def _parse_args(argv: list[str] | None) -> argparse.Namespace:

@@ -29,6 +29,19 @@ def api_database(monkeypatch):
     return factory, driver, writer
 
 
+@pytest.fixture
+def populated_handoff():
+    entity = ExternalSymbolObservationFact(
+        record_type="ExternalSymbolObservation",
+        record_id="a" * 64,
+        snapshot_id="snapshot",
+        observation_id="symbol",
+        name="List",
+        qualified_name="java.util.List",
+    )
+    return RelationshipHandoffResult(1, 0, "snapshot", {entity.record_id: entity}, {})
+
+
 def test_ingest_step_forwards_inputs_and_returns_run_result(
     reference, tmp_path, api_database, monkeypatch
 ):
@@ -56,20 +69,19 @@ def test_ingest_step_forwards_inputs_and_returns_run_result(
 
 
 def test_persist_handoff_reads_before_connecting_and_returns_facts(
-    tmp_path, api_database, monkeypatch
+    tmp_path, api_database, monkeypatch, populated_handoff
 ):
     factory, driver, writer = api_database
-    expected = RelationshipHandoffResult(0, 0, "snapshot", {}, {})
 
     def read(directory):
         assert directory == tmp_path
         factory.assert_not_called()
-        return expected
+        return populated_handoff
 
     monkeypatch.setattr(api, "read_relationship_handoff", read)
 
-    assert api.persist_handoff(tmp_path) is expected
-    writer.persist_handoff.assert_called_once_with(expected)
+    assert api.persist_handoff(tmp_path) is populated_handoff
+    writer.persist_handoff.assert_called_once_with(populated_handoff)
     driver.__exit__.assert_called_once_with(None, None, None)
 
 
@@ -130,7 +142,7 @@ def test_connection_settings_are_read_per_operation(api_database, monkeypatch):
 
 @pytest.mark.parametrize("operation", ["ingest", "persist", "load"])
 def test_operation_errors_propagate_and_close_connection(
-    reference, tmp_path, api_database, monkeypatch, operation
+    reference, tmp_path, api_database, monkeypatch, operation, populated_handoff
 ):
     _, driver, writer = api_database
     error = ServiceUnavailable("database unavailable")
@@ -140,7 +152,7 @@ def test_operation_errors_propagate_and_close_connection(
     monkeypatch.setattr(
         api,
         "read_relationship_handoff",
-        Mock(return_value=RelationshipHandoffResult(0, 0, "snapshot", {}, {})),
+        Mock(return_value=populated_handoff),
     )
     writer.persist_handoff.side_effect = error
     writer.load_entities.side_effect = error

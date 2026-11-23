@@ -15,7 +15,11 @@ from migration_assistant.adapters.outbound.neo4j import Neo4jPersistenceWriter
 from migration_assistant.adapters.outbound.pipeline_storage import LocalPipelineStorage
 from migration_assistant.adapters.outbound.relationship_handoff import read_relationship_handoff
 from migration_assistant.application.pipeline import PipelineService
-from migration_assistant.domain.pipeline import PipelineResult, RelationshipHandoffResult
+from migration_assistant.domain.pipeline import (
+    HandoffImportError,
+    PipelineResult,
+    RelationshipHandoffResult,
+)
 from migration_assistant.domain.reference_source import ReferenceSourceConfig
 from migration_assistant.domain.sources import LoadResult
 
@@ -50,8 +54,10 @@ def ingest_step(
 
 
 def persist_handoff(handoff_dir: Path) -> RelationshipHandoffResult:
-    """Persist an existing handoff without repeating extraction, returning its facts."""
+    """Persist valid facts from an existing run and return any rejected rows."""
     handoff = read_relationship_handoff(handoff_dir)
+    if not handoff.all_entities:
+        raise HandoffImportError(handoff_dir, handoff.issues)
     with _persistence_writer() as writer:
         writer.persist_handoff(handoff)
     return handoff

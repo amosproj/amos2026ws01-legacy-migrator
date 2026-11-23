@@ -33,6 +33,10 @@ class Neo4jPersistenceWriter:
         """Atomically replace the observation subgraph belonging to this snapshot."""
         grouped: dict[LiteralString, list[dict[str, Any]]] = {label: [] for label in _FACT_TYPES}
         for fact in handoff.all_entities.values():
+            if fact.snapshot_id != handoff.snapshot_id:
+                raise ValueError(
+                    f"Entity {fact.record_id} is outside snapshot {handoff.snapshot_id}"
+                )
             properties = fact.model_dump(exclude={"source_span"}, exclude_none=True)
             if isinstance(fact, SymbolObservationFact):
                 properties.update(
@@ -45,6 +49,10 @@ class Neo4jPersistenceWriter:
 
         relationships: list[dict[str, Any]] = []
         for fact in handoff.all_relationships.values():
+            if fact.snapshot_id != handoff.snapshot_id:
+                raise ValueError(
+                    f"Relationship {fact.record_id} is outside snapshot {handoff.snapshot_id}"
+                )
             properties = fact.model_dump(
                 exclude={
                     "record_type",

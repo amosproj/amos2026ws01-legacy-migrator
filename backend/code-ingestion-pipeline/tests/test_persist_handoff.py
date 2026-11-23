@@ -136,23 +136,44 @@ def test_cli_persists_saved_handoff(saved_handoff, cli_persistence, persistence_
     assert expected.snapshot_id in capsys.readouterr().out
 
 
-def test_cli_leaves_consistency_checks_to_persistence(
-    saved_handoff, cli_persistence, persistence_writer
+def test_cli_imports_valid_rows_and_reports_rejected_ones(
+    saved_handoff, cli_persistence, persistence_writer, capsys
 ):
-    directory, _ = saved_handoff
+    directory, expected = saved_handoff
     path = directory / "entities.jsonl"
     rows = path.read_text(encoding="utf-8").splitlines()
     record = json.loads(rows[0])
     record["snapshotId"] = "f" * 64
-    record["payload"]["observationId"] = "external"
     rows[0] = json.dumps(record)
-    rows.append(rows[0])
-    path.write_text("\n".join(rows) + "\n", encoding="utf-8")
+    rows.extend(["not JSON", rows[1]])
+    duplicate_observation = json.loads(rows[1])
+    duplicate_observation["recordId"] = "a" * 64
+    rows.append(json.dumps(duplicate_observation))
+    wrong_commit = json.loads(next(iter(expected.all_entities.values())).to_jsonl())
+    wrong_commit["payload"]["sourceSpan"]["commitSha"] = "a" * 39 + "b"
+    rows.append(json.dumps(wrong_commit))
+    wrong_repo = json.loads(next(iter(expected.all_entities.values())).to_jsonl())
+    wrong_repo["payload"]["repoId"] = "different-repo"
+    rows.append(json.dumps(wrong_repo))
+    path.write_bytes(("\n".join(rows) + "\n").encode("utf-8") + b"\xff\n")
 
     assert cli.run_persistence_from_handoff(["--handoff-dir", str(directory)]) == 0
     persistence_writer.persist_handoff.assert_called_once()
     (handoff,) = persistence_writer.persist_handoff.call_args.args
-    assert handoff.all_entities[record["recordId"]].snapshot_id == "f" * 64
+    assert set(handoff.all_entities) == set(expected.all_entities) - {record["recordId"]}
+    assert handoff.all_relationships == {}
+    errors = [json.loads(line) for line in capsys.readouterr().err.splitlines()]
+    assert [(error["file"], error["line"], error["code"]) for error in errors] == [
+        (str(path), 1, "snapshot_mismatch"),
+        (str(path), 4, "invalid_record"),
+        (str(path), 5, "duplicate_record"),
+        (str(path), 6, "duplicate_observation"),
+        (str(path), 7, "source_revision_mismatch"),
+        (str(path), 8, "source_repo_mismatch"),
+        (str(path), 9, "invalid_record"),
+        (str(directory / "relationships.jsonl"), 1, "missing_endpoint"),
+    ]
+    assert all(error["message"] for error in errors)
 
 
 @pytest.mark.parametrize(
@@ -189,17 +210,29 @@ def test_invalid_handoff_fails_before_connecting(
             record["recordType"] = "CodeGraph"
         elif corruption == "missing-type":
             del record["recordType"]
-        rows[0] = json.dumps(record)
-        path.write_text("\n".join(rows) + "\n", encoding="utf-8")
+        path.write_text(json.dumps(record) + "\n", encoding="utf-8")
 
     assert cli.run_persistence_from_handoff(["--handoff-dir", str(directory)]) == 1
     api.GraphDatabase.driver.assert_not_called()
     persistence_writer.persist_handoff.assert_not_called()
     error = capsys.readouterr().err
-    assert "Cannot read handoff" in error
     assert str(directory) in error
-    if corruption not in {"missing-file", "invalid-identity"}:
-        assert f"{path}:1:" in error
+    if corruption in {"missing-file", "invalid-identity"}:
+        assert "Cannot read handoff" in error
+    else:
+        assert "The existing snapshot was kept" in error
+        row = json.loads(error.splitlines()[0])
+        assert row["file"] == str(path)
+        assert row["line"] == 1
+        assert row["code"] == "invalid_record"
+
+
+def test_empty_handoff_keeps_existing_snapshot(saved_handoff, cli_persistence, persistence_writer):
+    directory, _ = saved_handoff
+    (directory / "entities.jsonl").write_text("", encoding="utf-8")
+    assert cli.run_persistence_from_handoff(["--handoff-dir", str(directory)]) == 1
+    api.GraphDatabase.driver.assert_not_called()
+    persistence_writer.persist_handoff.assert_not_called()
 
 
 def test_cli_reports_neo4j_failure(saved_handoff, cli_persistence, persistence_writer, capsys):

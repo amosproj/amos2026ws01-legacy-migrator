@@ -137,8 +137,11 @@ uv run --project .. persist-handoff --handoff-dir .cache/ingestion/<existing-run
 
 This reads `snapshot-identity.json`, `entities.jsonl`, and `relationships.jsonl`
 from the run folder and uses the same Neo4j connection settings as `ingest`.
-It replaces the observations and relationships for that snapshot. Add `--verbose`
-to show a traceback on failure.
+It validates the snapshot and source revisions, reports rejected rows as JSON
+on stderr (file, line, code and message), and replaces that snapshot with the
+valid facts in one transaction. Edges with missing endpoints are rejected.
+An unreadable manifest or file fails the import. A run without valid entities
+leaves the existing snapshot in place. Add `--verbose` for a traceback on failure.
 
 Developers control output and checkout locations and their Git ignore rules. The
 pipeline does not enforce output placement or refuse Git commands based on the
@@ -164,6 +167,11 @@ snapshot = load_snapshot(result.snapshot_id)
 # Replay an existing run without extracting again:
 handoff = persist_handoff(result.run_directory)
 ```
+
+`persist_handoff` returns rejected rows in `handoff.issues`. The backend image
+includes the Python package for snapshot reads. Compose uses
+`bolt://neo4j:7687` inside its network. Run extraction on the host as described
+above.
 
 The configuration selects the stage and components. `ingest_step` returns a
 `PipelineResult` and accepts optional `source_export`, `on_loaded`, and `progress`
