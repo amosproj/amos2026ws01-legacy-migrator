@@ -1,26 +1,15 @@
-"""Command line: load a reference stage and extract graphs and canonical facts per component.
-"""
+"""Command line: load a reference stage and extract graphs and canonical facts per component."""
 
 import argparse
-import os
 import sys
 import traceback
-from collections.abc import Callable, Generator
-from contextlib import contextmanager
+from collections.abc import Callable
 from pathlib import Path
 
-from neo4j import GraphDatabase
 from neo4j.exceptions import DriverError, Neo4jError
 from pydantic import ValidationError
 
-from migration_assistant.adapters.outbound.git.local_git import LocalGitAdapter
-from migration_assistant.adapters.outbound.git.source_loader import load_sources
-from migration_assistant.adapters.outbound.graphify import GraphifyAdapter
-from migration_assistant.adapters.outbound.graphify_relationships import write_relationship_handoff
-from migration_assistant.adapters.outbound.neo4j import Neo4jPersistenceWriter
-from migration_assistant.adapters.outbound.pipeline_storage import LocalPipelineStorage
-from migration_assistant.adapters.outbound.relationship_handoff import read_relationship_handoff
-from migration_assistant.application.pipeline import PipelineService
+from migration_assistant.api import ingest_step, persist_handoff
 from migration_assistant.domain.checkout import CheckoutError
 from migration_assistant.domain.pipeline import PipelineError
 from migration_assistant.domain.reference_source import (
@@ -77,18 +66,8 @@ def _execute(args: argparse.Namespace, action: Callable[[argparse.Namespace], No
     return 0
 
 
-@contextmanager
-def _persistence_writer() -> Generator[Neo4jPersistenceWriter]:
-    uri = os.getenv("NEO4J_URI", "bolt://localhost:7687")
-    with GraphDatabase.driver(uri, auth=("neo4j", "change-this")) as driver:
-        driver.verify_connectivity()
-        yield Neo4jPersistenceWriter(driver)
-
-
 def _persist_from_handoff(args: argparse.Namespace) -> None:
-    handoff = read_relationship_handoff(args.handoff_dir)
-    with _persistence_writer() as writer:
-        writer.persist_handoff(handoff)
+    handoff = persist_handoff(args.handoff_dir)
     print(
         f"Success. Persisted snapshot {handoff.snapshot_id}: "
         f"{handoff.entity_count} entities, {handoff.relationship_count} relationships"
@@ -123,34 +102,23 @@ def _run_full_ingestion(args: argparse.Namespace) -> None:
     config_path = args.config or default_config_path()
     config = _with_overrides(load_config(config_path), args)
 
-    with _persistence_writer() as writer:
-        service = PipelineService(
-            git_repo=LocalGitAdapter(),
-            source_loader=load_sources,
-            graph_builder=GraphifyAdapter(),
-            handoff_writer=write_relationship_handoff,
-            storage=LocalPipelineStorage(),
-            persistence_writer=writer,
-        )
+    def on_loaded(loaded: LoadResult) -> None:
+        print(f"config: {Path(config_path).as_posix()}")
+        _print_loaded(loaded)
 
-        def on_loaded(loaded: LoadResult) -> None:
-            print(f"config: {Path(config_path).as_posix()}")
-            _print_loaded(loaded)
-
-        result = service.run(
-            config,
-            args.output_dir,
-            source_export=args.out,
-            on_loaded=on_loaded,
-            progress=lambda message: print(message, flush=True),
-        )
-        if args.out is not None:
-            print(f"output: {args.out}")
-        print(
-            f"Graph handoff: {result.entity_count} entities, "
-            f"{result.relationship_count} relationships"
-        )
-        print(f"Success. Graphs: {result.run_directory / 'graphs'}")
+    result = ingest_step(
+        config,
+        args.output_dir,
+        source_export=args.out,
+        on_loaded=on_loaded,
+        progress=lambda message: print(message, flush=True),
+    )
+    if args.out is not None:
+        print(f"output: {args.out}")
+    print(
+        f"Graph handoff: {result.entity_count} entities, {result.relationship_count} relationships"
+    )
+    print(f"Success. Graphs: {result.run_directory / 'graphs'}")
 
 
 def _print_loaded(result: LoadResult) -> None:

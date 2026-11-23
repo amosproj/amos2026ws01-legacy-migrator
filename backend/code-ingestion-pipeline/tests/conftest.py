@@ -272,11 +272,11 @@ def persistence_writer() -> Mock:
 @pytest.fixture
 def cli_persistence(monkeypatch: pytest.MonkeyPatch, persistence_writer: Mock) -> None:
     """Run CLI unit tests without opening a Bolt connection."""
-    from migration_assistant.bootstrap import cli
+    from migration_assistant import api
 
     driver = Mock(spec_set=Driver)
-    monkeypatch.setattr(cli.GraphDatabase, "driver", Mock(return_value=nullcontext(driver)))
-    monkeypatch.setattr(cli, "Neo4jPersistenceWriter", Mock(return_value=persistence_writer))
+    monkeypatch.setattr(api.GraphDatabase, "driver", Mock(return_value=nullcontext(driver)))
+    monkeypatch.setattr(api, "Neo4jPersistenceWriter", Mock(return_value=persistence_writer))
 
 
 @pytest.fixture

@@ -6,6 +6,7 @@ import json
 import pytest
 from conftest import git, tree_hashes
 
+from migration_assistant import api
 from migration_assistant.adapters.outbound.git.local_git import LocalGitAdapter
 from migration_assistant.adapters.outbound.git.source_loader import load_sources
 from migration_assistant.adapters.outbound.graphify import GraphifyAdapter
@@ -125,7 +126,7 @@ def test_cli_unexpected_error_and_verbose_traceback(reference, pipeline_cli, mon
     def broken(*args, **kwargs):
         raise KeyError("unexpected test failure")
 
-    monkeypatch.setattr(cli, "load_sources", broken)
+    monkeypatch.setattr(api, "load_sources", broken)
     assert cli.run_full_ingestion(["--config", str(reference.config_path)]) == 2
     assert "unexpected failure, rerun with --verbose" in capsys.readouterr().err
     assert cli.run_full_ingestion(["--config", str(reference.config_path), "--verbose"]) == 2

@@ -146,6 +146,38 @@ original source directory. Keep the configured workspace separate from that sour
 and choose output paths that do not overwrite source files. Default `.cache/`
 locations are Git-ignored.
 
+## Python interface for backend callers
+
+Import the operations directly from `migration_assistant.api`. For example,
+with paths relative to `backend/`:
+
+```python
+from pathlib import Path
+
+from migration_assistant.api import ingest_step, load_snapshot, persist_handoff
+from migration_assistant.domain.reference_source import load_config
+
+config = load_config(Path("code-ingestion-pipeline/config/reference-source.yaml"))
+result = ingest_step(config, Path("code-ingestion-pipeline/.cache/ingestion"))
+snapshot = load_snapshot(result.snapshot_id)
+
+# Replay an existing run without extracting again:
+handoff = persist_handoff(result.run_directory)
+```
+
+The configuration selects the stage and components. `ingest_step` returns a
+`PipelineResult` and accepts optional `source_export`, `on_loaded`, and `progress`
+arguments matching `PipelineService.run`. `persist_handoff` and `load_snapshot`
+return a `RelationshipHandoffResult` with `snapshot_id`, `all_entities`,
+`all_relationships`, `entity_count`, and `relationship_count`. An absent snapshot
+returns empty dictionaries and zero counts.
+
+These synchronous functions use the same Neo4j settings as the CLI, open and close
+a connection for each operation, and propagate exceptions to the caller. Importing
+the module does not connect to Neo4j. Reads require an explicit snapshot ID;
+stage-to-snapshot lookup is not part of this interface. The CLI commands wrap
+these functions and retain their existing arguments and exit codes.
+
 ## Pipeline and artifacts
 
 ```text

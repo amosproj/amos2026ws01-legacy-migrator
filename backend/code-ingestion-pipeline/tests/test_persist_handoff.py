@@ -5,6 +5,7 @@ import json
 import pytest
 from neo4j.exceptions import ServiceUnavailable
 
+from migration_assistant import api
 from migration_assistant.adapters.outbound.graphify_relationships import write_jsonl_records
 from migration_assistant.adapters.outbound.relationship_handoff import read_relationship_handoff
 from migration_assistant.bootstrap import cli
@@ -192,7 +193,7 @@ def test_invalid_handoff_fails_before_connecting(
         path.write_text("\n".join(rows) + "\n", encoding="utf-8")
 
     assert cli.run_persistence_from_handoff(["--handoff-dir", str(directory)]) == 1
-    cli.GraphDatabase.driver.assert_not_called()
+    api.GraphDatabase.driver.assert_not_called()
     persistence_writer.persist_handoff.assert_not_called()
     error = capsys.readouterr().err
     assert "Cannot read handoff" in error
