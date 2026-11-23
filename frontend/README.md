@@ -11,7 +11,9 @@ The SunsetTracker frontend is a standalone, decoupled React application built wi
 2. **arc42 Views UI (`ViewsUI`)**: Interactive architecture views (System Context, Building Block View with status coloring, and Deployment View) rendered via Mermaid.
 3. **Git Comparisons (`DiffUI`)**: A GitHub-first workflow for selecting a repository, choosing base/head branches from dropdowns, and reviewing changed-file explanations, risk, and migration warnings.
 
-## Quick Start
+## Local development
+
+To try the demo using prebuilt images, follow the [tester setup](../SETUP.md).
 
 ```bash
 cd frontend
