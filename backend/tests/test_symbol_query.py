@@ -6,13 +6,19 @@ to also run the checks against a fresh export of all components in the stage.
 
 import json
 import os
+from collections.abc import Iterable
 from importlib import import_module
 from pathlib import Path
 
 import pytest
 import yaml
 
-from app.symbol_query import load_symbol_records, query_component_symbols
+from app.symbol_query import (
+    SnapshotEntity,
+    load_symbol_records,
+    query_component_symbols,
+    query_snapshot_symbols,
+)
 from migration_assistant.bootstrap.cli import main as ingest
 from migration_assistant.domain.reference_source import load_config
 from shared_contracts.records import (
@@ -180,24 +186,19 @@ def test_json_uses_the_camel_case_contract(result: SymbolQueryResult) -> None:
     reason="set NEO4J_QUERY_TEST_URI and REFERENCE_SOURCE to run the Neo4j comparison",
 )
 def test_catalog_query_matches_neo4j(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    # The reader and driver are supplied by the local test merge with #94.
-    neo4j = import_module("neo4j")
-    adapter = import_module("migration_assistant.adapters.outbound.neo4j")
-    uri = os.environ["NEO4J_QUERY_TEST_URI"]
-    monkeypatch.setenv("NEO4J_URI", uri)
+    # The public reader is supplied by #94.
+    api = import_module("migration_assistant.api")
+    monkeypatch.setenv("NEO4J_URI", os.environ["NEO4J_QUERY_TEST_URI"])
     entities, sources = _export_step_06(os.environ["REFERENCE_SOURCE"], tmp_path)
     identity = json.loads(entities.with_name("snapshot-identity.json").read_text(encoding="utf-8"))
 
-    with neo4j.GraphDatabase.driver(uri, auth=("neo4j", "change-this")) as driver:
-        facts = adapter.Neo4jPersistenceWriter(driver).load_entities(identity["snapshotId"])
-    records = [
-        SymbolObservationRecord.model_validate(fact.to_record_dict())
-        for fact in facts.values()
-        if isinstance(fact, SymbolObservationFact)
-    ]
+    def stored_entities(snapshot_id: str) -> Iterable[SnapshotEntity]:
+        assert snapshot_id == identity["snapshotId"]
+        facts = api.load_snapshot(snapshot_id).all_entities.values()
+        assert len({fact.repo_id for fact in facts if isinstance(fact, SymbolObservationFact)}) > 1
+        return facts
 
-    assert len({record.payload.repo_id for record in records}) > 1
-    result = query_component_symbols(records, STEP_ID, COMPONENT)
+    result = query_snapshot_symbols(stored_entities, identity["snapshotId"], STEP_ID, COMPONENT)
     expected = query_component_symbols(load_symbol_records(entities), STEP_ID, COMPONENT)
     assert result.total_symbols == EXPECTED_SYMBOLS
     assert result == expected
@@ -206,3 +207,9 @@ def test_catalog_query_matches_neo4j(tmp_path: Path, monkeypatch: pytest.MonkeyP
         span = symbol.source_span
         key = (result.step_id, span.repo_id, span.commit_sha, span.path)
         assert 1 <= span.start_line <= span.end_line <= line_counts[key]
+
+
+def test_empty_snapshot_returns_no_symbols() -> None:
+    missing = query_snapshot_symbols(lambda _: (), "missing", STEP_ID, COMPONENT)
+    assert missing.symbols == []
+    assert missing.total_symbols == 0

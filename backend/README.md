@@ -94,6 +94,12 @@ The test runs the full `step-06` ingestion into the test database, reads the
 with the JSONL result. It also checks that every returned span resolves against
 `sources.jsonl` from the same run.
 
+Backend callers pass a reader for the selected snapshot to
+`app.symbol_query.query_snapshot_symbols`. Use the migration step associated
+with that run, the exact `snapshotId` from `snapshot-identity.json` and the repo
+ID (for example `legacy-example-catalog-service`). The #94 reader supplies the
+entities via `load_snapshot(snapshot_id).all_entities.values()`.
+
 ## Configuration
 
 | Variable | Default | Purpose |

@@ -1,24 +1,24 @@
-"""Typed symbol lookup over canonical ingestion facts (issue #95, first pass).
-
-Reads the ``entities.jsonl`` handoff written by the ingestion pipeline and
-returns the source-backed symbols of one component as a ``SymbolQueryResult``.
-Until the graph store from #94 exists, this file reader stands in for it; the
-same mapping will later be applied to rows read from the store.
-"""
+"""Typed symbol lookup over persisted snapshots and canonical exports."""
 
 from __future__ import annotations
 
 import json
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from pathlib import Path
 
 from shared_contracts.records import (
+    ExternalSymbolObservationFact,
+    SymbolObservationFact,
     SymbolObservationRecord,
     SymbolQueryResult,
     SymbolQuerySymbol,
+    UnresolvedSymbolObservationFact,
 )
 
 SYMBOL_RECORD_TYPE = "SymbolObservation"
+type SnapshotEntity = (
+    SymbolObservationFact | ExternalSymbolObservationFact | UnresolvedSymbolObservationFact
+)
 
 
 def load_symbol_records(entities_jsonl: Path) -> list[SymbolObservationRecord]:
@@ -39,9 +39,9 @@ def load_symbol_records(entities_jsonl: Path) -> list[SymbolObservationRecord]:
     return records
 
 
-def to_query_symbol(record: SymbolObservationRecord) -> SymbolQuerySymbol:
+def to_query_symbol(record: SymbolObservationRecord | SymbolObservationFact) -> SymbolQuerySymbol:
     """Map one canonical symbol record to a typed query row, keeping its evidence."""
-    payload = record.payload
+    payload = record.payload if isinstance(record, SymbolObservationRecord) else record
     return SymbolQuerySymbol(
         id=payload.observation_id,
         name=payload.name,
@@ -54,7 +54,7 @@ def to_query_symbol(record: SymbolObservationRecord) -> SymbolQuerySymbol:
 
 
 def query_component_symbols(
-    records: Iterable[SymbolObservationRecord],
+    records: Iterable[SymbolObservationRecord | SymbolObservationFact],
     step_id: str,
     component: str,
 ) -> SymbolQueryResult:
@@ -64,7 +64,7 @@ def query_component_symbols(
     ``legacy-example-catalog-service``. The caller selects the snapshot for the
     stage before calling this function. Symbols are sorted by file and line.
     """
-    symbols = [to_query_symbol(record) for record in records if record.payload.repo_id == component]
+    symbols = [symbol for symbol in map(to_query_symbol, records) if symbol.repo_id == component]
     symbols.sort(
         key=lambda symbol: (
             symbol.source_span.path,
@@ -78,3 +78,18 @@ def query_component_symbols(
         symbols=symbols,
         total_symbols=len(symbols),
     )
+
+
+def query_snapshot_symbols(
+    load_entities: Callable[[str], Iterable[SnapshotEntity]],
+    snapshot_id: str,
+    step_id: str,
+    component: str,
+) -> SymbolQueryResult:
+    """Query source-backed symbols in one explicitly selected snapshot."""
+    records = (
+        fact
+        for fact in load_entities(snapshot_id)
+        if isinstance(fact, SymbolObservationFact) and fact.repo_id == component
+    )
+    return query_component_symbols(records, step_id, component)
