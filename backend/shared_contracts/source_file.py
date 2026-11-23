@@ -6,6 +6,11 @@ from pydantic.alias_generators import to_camel
 from .source_span import COMMIT_SHA_PATTERN
 
 
+def source_lines(content: str) -> list[str]:
+    """Split Git source lines, accepting LF and CRLF file endings."""
+    return content.replace("\r\n", "\n").removesuffix("\n").split("\n") if content else []
+
+
 class SourceFile(BaseModel):
     """One text file of a component, read at the pinned commit."""
 

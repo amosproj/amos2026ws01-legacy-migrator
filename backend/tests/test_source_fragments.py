@@ -10,6 +10,7 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 from app.source_fragments import FragmentPosition, extract_fragment
+from app.source_loader_adapter import LoaderFragmentFetcher
 from migration_assistant.adapters.outbound.pipeline_storage import LocalPipelineStorage
 from shared_contracts.records import SymbolObservationRecord
 from shared_contracts.source_file import SourceFile
@@ -71,6 +72,28 @@ def test_extract_fragment_escapes_path_and_keeps_line_boundaries() -> None:
     assert fragment.total_lines == 3
     assert fragment.github_url == f"{_PUBLIC_URL}/blob/{_SHA}/src/A%20%231.java#L2-L3"
     assert fragment.position == position
+
+
+def test_extract_fragment_uses_physical_git_lines() -> None:
+    position = _position(start_line=1, end_line=2)
+    content = "first\u2028line\r\nsecond\r\n"
+    fragment = extract_fragment(position, content, "java", _PUBLIC_URL)
+
+    assert fragment.fragment == "first\u2028line\nsecond"
+    assert fragment.total_lines == 2
+
+
+def test_loader_exposes_stage_revisions_and_rejects_mixed_commits(
+    sources: list[SourceFile],
+) -> None:
+    fetcher = LoaderFragmentFetcher(sources)
+    assert fetcher.revisions_for_stage("step-06") == {"catalog-service": _SHA}
+    assert fetcher.revisions_for_stage("step-05") == {"catalog-service": _PREVIOUS_SHA}
+    assert fetcher.revisions_for_stage("step-01") == {}
+
+    mixed = sources[0].model_copy(update={"path": "Other.java", "commit_sha": _PREVIOUS_SHA})
+    with pytest.raises(ValueError, match="multiple revisions for catalog-service in step-06"):
+        LoaderFragmentFetcher([*sources, mixed])
 
 
 def test_api_resolves_shared_span_from_ingestion_export(client: TestClient) -> None:

@@ -20,12 +20,16 @@ class LoaderFragmentFetcher:
 
     def __init__(self, files: Iterable[SourceFile]) -> None:
         self._files: dict[tuple[str, str, str], SourceFile] = {}
+        self._revisions: dict[tuple[str, str], str] = {}
         for file in files:
             key = (file.stage, file.repo_id, file.path)
             if key in self._files:
                 raise ValueError(
                     f"duplicate source file in {file.stage}: {file.repo_id}/{file.path}"
                 )
+            revision = self._revisions.setdefault((file.stage, file.repo_id), file.commit_sha)
+            if revision != file.commit_sha:
+                raise ValueError(f"multiple revisions for {file.repo_id} in {file.stage}")
             self._files[key] = file
         if not self._files:
             raise ValueError("source export contains no files")
@@ -46,6 +50,14 @@ class LoaderFragmentFetcher:
                 except ValidationError as exc:
                     raise ValueError(f"invalid source record at {path}:{line_number}") from exc
         return cls(files)
+
+    def revisions_for_stage(self, stage: str) -> dict[str, str]:
+        """Return the pinned revisions represented in the requested stage."""
+        return {
+            repo_id: commit
+            for (file_stage, repo_id), commit in self._revisions.items()
+            if file_stage == stage
+        }
 
     def fetch(self, position: FragmentPosition) -> SourceFile:
         file = self._files.get((position.stage, position.repo_id, position.path))

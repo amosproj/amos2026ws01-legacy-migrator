@@ -151,7 +151,8 @@ curl -fsS http://127.0.0.1:8000/api/source-fragment \
 ```
 
 The response contains `@Entity` and a link ending in `ProductCategory.java#L7-L7`.
-The lookup returns inclusive line ranges, with the requested position preserved.
+The lookup returns inclusive Git line ranges for LF and CRLF files. Each
+repository has one pinned revision per stage in the source export.
 Changing the commit to another valid SHA returns HTTP 404 with the
 `commit_sha_mismatch` error code.
 

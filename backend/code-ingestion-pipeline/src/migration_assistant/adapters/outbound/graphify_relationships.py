@@ -22,6 +22,7 @@ from shared_contracts.records import (
     SymbolObservationFact,
     UnresolvedSymbolObservationFact,
 )
+from shared_contracts.source_file import source_lines
 
 
 class Observation(Protocol):
@@ -106,7 +107,7 @@ def write_relationship_handoff(
             selected_paths.setdefault(repo_id, set()).add(path)
             content = source.get("content")
             if isinstance(content, str):
-                source_line_counts[(repo_id, path)] = len(content.splitlines())
+                source_line_counts[(repo_id, path)] = len(source_lines(content))
     if not source_revisions:
         raise ValueError("Cannot create relationship handoff from an empty source manifest")
     if not graph_paths:

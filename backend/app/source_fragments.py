@@ -7,7 +7,7 @@ from urllib.parse import quote
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
-from shared_contracts.source_file import SourceFile
+from shared_contracts.source_file import SourceFile, source_lines
 from shared_contracts.source_span import SourceSpan
 
 
@@ -51,7 +51,7 @@ def extract_fragment(
     public_url: str,
 ) -> SourceFragment:
     """Build the fragment from full file content; raises on a bad line range."""
-    lines = content.splitlines()
+    lines = source_lines(content)
     if position.end_line > len(lines):
         raise SourceFragmentError(
             "line_range_out_of_bounds",
