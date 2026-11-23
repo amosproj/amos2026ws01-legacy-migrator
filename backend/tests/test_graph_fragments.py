@@ -3,21 +3,23 @@
 import json
 import os
 import shutil
+from importlib import import_module
 from pathlib import Path
+from typing import Never
 from unittest.mock import AsyncMock
 
 import pytest
 from fastapi.testclient import TestClient
 
-import app.main as main
+from app import graph_fragments, main
 from app.graph_fragments import fragment_positions
 from app.llm import MockLlmProvider
 from app.source_fragments import SourceFragmentError, resolve_fragment
 from app.source_loader_adapter import LoaderFragmentFetcher
 from app.symbol_query import load_symbol_records, query_component_symbols
-from migration_assistant.api import ingest_step
 from migration_assistant.domain.reference_source import load_config
 from shared_contracts.records import SymbolQueryResult
+from shared_contracts.snapshot_identity import compute_snapshot_identity
 
 FIXTURES = Path(__file__).parent / "fixtures"
 REPOSITORY = "legacy-example-catalog-service"
@@ -106,6 +108,32 @@ def test_adapter_accepts_empty_query_results() -> None:
     assert fragment_positions(result) == []
 
 
+def test_chat_explains_when_graph_integration_is_unavailable(
+    routes: SymbolQueryResult, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    commit = routes.symbols[0].source_span.commit_sha
+    snapshot = compute_snapshot_identity(
+        {REPOSITORY: commit}, [{"name": "graphify", "version": "0.9.100"}], {}
+    )
+    (tmp_path / "snapshot-identity.json").write_text(
+        snapshot.model_dump_json(by_alias=True), encoding="utf-8"
+    )
+    shutil.copyfile(FIXTURES / "catalog-service-step-06-sources.jsonl", tmp_path / "sources.jsonl")
+    monkeypatch.setenv("GRAPH_RUN_DIR", str(tmp_path))
+
+    def missing_dependency(_name: str) -> Never:
+        raise ModuleNotFoundError(name="migration_assistant.api")
+
+    monkeypatch.setattr(graph_fragments, "import_module", missing_dependency)
+    with TestClient(main.app) as client:
+        response = client.post("/api/chat", json={"query": "Where is ProductResource?"})
+
+    events = [json.loads(line) for line in response.text.splitlines()]
+    assert response.status_code == 200
+    assert [event["type"] for event in events] == ["sources", "error"]
+    assert events[-1]["code"] == "graph_integration_unavailable"
+
+
 @pytest.mark.skipif(
     not (os.environ.get("NEO4J_QUERY_TEST_URI") and os.environ.get("REFERENCE_SOURCE")),
     reason="set NEO4J_QUERY_TEST_URI and REFERENCE_SOURCE for the persisted chat example",
@@ -124,7 +152,11 @@ def test_chat_uses_the_persisted_catalog_fragments(
             "components": [],
         }
     )
-    run = ingest_step(config, tmp_path / "runs").run_directory
+    run: Path = (
+        import_module("migration_assistant.api")
+        .ingest_step(config, tmp_path / "runs")
+        .run_directory
+    )
     monkeypatch.setenv("GRAPH_RUN_DIR", str(run))
     provider = MockLlmProvider()
     complete = AsyncMock(
