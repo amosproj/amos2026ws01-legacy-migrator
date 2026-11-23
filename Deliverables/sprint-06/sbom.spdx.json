@@ -3,8 +3,8 @@
   "@graph": [
     {
       "@id": "_:CreationInfo-AMOS",
-      "comment": "SBOM-Version: sha256:3245a81c3fa663b62a5254328e0c0d935b5bbdc48758db0fcca5f70905687f23; SPDX 3.0.1 source SBOM; generated from backend/uv.lock and frontend/package-lock.json.",
-      "created": "2026-11-22T22:21:42Z",
+      "comment": "SBOM-Version: sha256:318db84aae92ab5e50c75c208154ff260e4e23a079e063d1f0a498fb716ccccb; SPDX 3.0.1 source SBOM; generated from backend/uv.lock and frontend/package-lock.json.",
+      "created": "2026-11-23T16:50:30Z",
       "createdBy": [
         "SPDXRef:Agent-98ec22ac510fc3108181"
       ],
@@ -1138,6 +1138,17 @@
     },
     {
       "creationInfo": "_:CreationInfo-AMOS",
+      "from": "SPDXRef:Package-npm--upsetjs-venn.js-e0964861806ad7d2",
+      "relationshipType": "dependsOn",
+      "spdxId": "SPDXRef:Relationship-02843f8996792ef2956f",
+      "to": [
+        "SPDXRef:Package-npm-d3-selection-f4157f23b6c35c01"
+      ],
+      "type": "Relationship",
+      "completeness": "https://spdx.org/rdf/3.0.1/terms/Core/RelationshipCompleteness/complete"
+    },
+    {
+      "creationInfo": "_:CreationInfo-AMOS",
       "from": "SPDXRef:Package-python-numpy-cb1bebde4f308bea",
       "relationshipType": "hasDeclaredLicense",
       "spdxId": "SPDXRef:Relationship-032472d54162028e09f2",
@@ -1205,6 +1216,17 @@
       "spdxId": "SPDXRef:Relationship-049e17a4b0a17f57a98a",
       "to": [
         "SPDXRef:Package-npm-safer-buffer-a44392e727156dec"
+      ],
+      "type": "Relationship",
+      "completeness": "https://spdx.org/rdf/3.0.1/terms/Core/RelationshipCompleteness/complete"
+    },
+    {
+      "creationInfo": "_:CreationInfo-AMOS",
+      "from": "SPDXRef:Package-npm-lucide-react-52ee7262aa88c81b",
+      "relationshipType": "dependsOn",
+      "spdxId": "SPDXRef:Relationship-04c5f2e7585a5f4bd5e2",
+      "to": [
+        "SPDXRef:Package-npm--types-react-d02e06f91e69e190"
       ],
       "type": "Relationship",
       "completeness": "https://spdx.org/rdf/3.0.1/terms/Core/RelationshipCompleteness/complete"
@@ -1832,6 +1854,17 @@
         "SPDXRef:DistributionArtifact-90d982b9d7507ae543a8"
       ],
       "type": "Relationship"
+    },
+    {
+      "creationInfo": "_:CreationInfo-AMOS",
+      "from": "SPDXRef:Package-npm-d3-transition-62101d59a4250463",
+      "relationshipType": "dependsOn",
+      "spdxId": "SPDXRef:Relationship-182f1e183a101968ac12",
+      "to": [
+        "SPDXRef:Package-npm-d3-selection-f4157f23b6c35c01"
+      ],
+      "type": "Relationship",
+      "completeness": "https://spdx.org/rdf/3.0.1/terms/Core/RelationshipCompleteness/complete"
     },
     {
       "creationInfo": "_:CreationInfo-AMOS",
@@ -3173,6 +3206,17 @@
     },
     {
       "creationInfo": "_:CreationInfo-AMOS",
+      "from": "SPDXRef:Package-npm-dompurify-aba9befa3ded6493",
+      "relationshipType": "dependsOn",
+      "spdxId": "SPDXRef:Relationship-3f75bf8a7ce600686924",
+      "to": [
+        "SPDXRef:Package-npm--types-trusted-types-4797fdbf8ea235eb"
+      ],
+      "type": "Relationship",
+      "completeness": "https://spdx.org/rdf/3.0.1/terms/Core/RelationshipCompleteness/complete"
+    },
+    {
+      "creationInfo": "_:CreationInfo-AMOS",
       "from": "SPDXRef:Package-python-tree-sitter-java-903272ed5a6e8fa5",
       "relationshipType": "hasDistributionArtifact",
       "spdxId": "SPDXRef:Relationship-3fbc2977d1a3da1af3a3",
@@ -3614,6 +3658,17 @@
         "SPDXRef:LicenseExpression-e5dcffe836b6ec8a58e4"
       ],
       "type": "Relationship"
+    },
+    {
+      "creationInfo": "_:CreationInfo-AMOS",
+      "from": "SPDXRef:Package-npm-react-dom-5102228b82690e8f",
+      "relationshipType": "dependsOn",
+      "spdxId": "SPDXRef:Relationship-4af1ee5d2d70e70d77a1",
+      "to": [
+        "SPDXRef:Package-npm-react-575527b861542765"
+      ],
+      "type": "Relationship",
+      "completeness": "https://spdx.org/rdf/3.0.1/terms/Core/RelationshipCompleteness/complete"
     },
     {
       "creationInfo": "_:CreationInfo-AMOS",
@@ -4110,6 +4165,17 @@
         "SPDXRef:DistributionArtifact-b18abc96622070493321"
       ],
       "type": "Relationship"
+    },
+    {
+      "creationInfo": "_:CreationInfo-AMOS",
+      "from": "SPDXRef:Package-npm-cytoscape-cose-bilkent-fc1123154076e74a",
+      "relationshipType": "dependsOn",
+      "spdxId": "SPDXRef:Relationship-5a4a49b8554f5a144722",
+      "to": [
+        "SPDXRef:Package-npm-cytoscape-afd87fa98a55e038"
+      ],
+      "type": "Relationship",
+      "completeness": "https://spdx.org/rdf/3.0.1/terms/Core/RelationshipCompleteness/complete"
     },
     {
       "creationInfo": "_:CreationInfo-AMOS",
@@ -7302,6 +7368,17 @@
     },
     {
       "creationInfo": "_:CreationInfo-AMOS",
+      "from": "SPDXRef:Package-npm--upsetjs-venn.js-e0964861806ad7d2",
+      "relationshipType": "dependsOn",
+      "spdxId": "SPDXRef:Relationship-bee1686ea6226b3570bd",
+      "to": [
+        "SPDXRef:Package-npm-d3-transition-62101d59a4250463"
+      ],
+      "type": "Relationship",
+      "completeness": "https://spdx.org/rdf/3.0.1/terms/Core/RelationshipCompleteness/complete"
+    },
+    {
+      "creationInfo": "_:CreationInfo-AMOS",
       "from": "SPDXRef:Package-python-uvicorn-68671a62d23fcf8c",
       "relationshipType": "dependsOn",
       "spdxId": "SPDXRef:Relationship-bef703bc97939a04c69b",
@@ -8306,6 +8383,17 @@
     },
     {
       "creationInfo": "_:CreationInfo-AMOS",
+      "from": "SPDXRef:Package-npm-lucide-react-52ee7262aa88c81b",
+      "relationshipType": "dependsOn",
+      "spdxId": "SPDXRef:Relationship-ddc71648fa5fdb95e267",
+      "to": [
+        "SPDXRef:Package-npm-react-575527b861542765"
+      ],
+      "type": "Relationship",
+      "completeness": "https://spdx.org/rdf/3.0.1/terms/Core/RelationshipCompleteness/complete"
+    },
+    {
+      "creationInfo": "_:CreationInfo-AMOS",
       "from": "SPDXRef:Package-npm-katex-bdce4f7bb35ca4a2",
       "relationshipType": "hasConcludedLicense",
       "spdxId": "SPDXRef:Relationship-ddce53ff7bca2add83bc",
@@ -8900,6 +8988,17 @@
         "SPDXRef:LicenseExpression-118dbcd2d5c9f9b296a9"
       ],
       "type": "Relationship"
+    },
+    {
+      "creationInfo": "_:CreationInfo-AMOS",
+      "from": "SPDXRef:Package-npm-cytoscape-fcose-6afe3ef5d0a27eb8",
+      "relationshipType": "dependsOn",
+      "spdxId": "SPDXRef:Relationship-ed81716d5a9fe2082d0b",
+      "to": [
+        "SPDXRef:Package-npm-cytoscape-afd87fa98a55e038"
+      ],
+      "type": "Relationship",
+      "completeness": "https://spdx.org/rdf/3.0.1/terms/Core/RelationshipCompleteness/complete"
     },
     {
       "creationInfo": "_:CreationInfo-AMOS",
@@ -9570,7 +9669,7 @@
       "name": "SunsetTracker",
       "namespaceMap": [
         {
-          "namespace": "https://spdx.org/spdxdocs/SunsetTracker-3245a81c3fa663b62a5254328e0c0d935b5bbdc48758db0fcca5f70905687f23#",
+          "namespace": "https://spdx.org/spdxdocs/SunsetTracker-318db84aae92ab5e50c75c208154ff260e4e23a079e063d1f0a498fb716ccccb#",
           "prefix": "SPDXRef",
           "type": "NamespaceMap"
         }
@@ -9582,7 +9681,7 @@
       "rootElement": [
         "SPDXRef:SBOM-1"
       ],
-      "spdxId": "https://spdx.org/spdxdocs/SunsetTracker-3245a81c3fa663b62a5254328e0c0d935b5bbdc48758db0fcca5f70905687f23#",
+      "spdxId": "https://spdx.org/spdxdocs/SunsetTracker-318db84aae92ab5e50c75c208154ff260e4e23a079e063d1f0a498fb716ccccb#",
       "type": "SpdxDocument"
     },
     {
@@ -27586,6 +27685,7 @@
         "SPDXRef:Relationship-02641a093cb0b6c0258e",
         "SPDXRef:Relationship-02683276b522943bbd1b",
         "SPDXRef:Relationship-0269d6ee170d35065688",
+        "SPDXRef:Relationship-02843f8996792ef2956f",
         "SPDXRef:Relationship-032472d54162028e09f2",
         "SPDXRef:Relationship-037fc09a0d457664bc57",
         "SPDXRef:Relationship-039dea5c3a101927374b",
@@ -27593,6 +27693,7 @@
         "SPDXRef:Relationship-03ca863646f3ee852561",
         "SPDXRef:Relationship-03cbbca9408cc468417c",
         "SPDXRef:Relationship-049e17a4b0a17f57a98a",
+        "SPDXRef:Relationship-04c5f2e7585a5f4bd5e2",
         "SPDXRef:Relationship-05df34433969de55d397",
         "SPDXRef:Relationship-0639c60fc7b7d4bd34cb",
         "SPDXRef:Relationship-0658d6cf2bc96beef206",
@@ -27653,6 +27754,7 @@
         "SPDXRef:Relationship-17b2ba9f462baf73a094",
         "SPDXRef:Relationship-17dddd8da165d575df99",
         "SPDXRef:Relationship-180c1d919a4217232af6",
+        "SPDXRef:Relationship-182f1e183a101968ac12",
         "SPDXRef:Relationship-1840156f9d7432477d0d",
         "SPDXRef:Relationship-18e032f8658c46634696",
         "SPDXRef:Relationship-18e981c507f82d72e4fc",
@@ -27782,6 +27884,7 @@
         "SPDXRef:Relationship-3eb4c9967a257b8732f7",
         "SPDXRef:Relationship-3ecc2814e2d03993631c",
         "SPDXRef:Relationship-3f095be110ea5ae7eb6c",
+        "SPDXRef:Relationship-3f75bf8a7ce600686924",
         "SPDXRef:Relationship-3fbc2977d1a3da1af3a3",
         "SPDXRef:Relationship-3fced3c7ecab5a243743",
         "SPDXRef:Relationship-3ff38ef59e0f766bb1d8",
@@ -27825,6 +27928,7 @@
         "SPDXRef:Relationship-49a1314c388a5de7300a",
         "SPDXRef:Relationship-4aa33e433b7729c0b39e",
         "SPDXRef:Relationship-4aea5b1fd8c8fd632b20",
+        "SPDXRef:Relationship-4af1ee5d2d70e70d77a1",
         "SPDXRef:Relationship-4c2f7bbbf3f626ed69aa",
         "SPDXRef:Relationship-4c34dac13486a3112824",
         "SPDXRef:Relationship-4cf7a39205a3e6c5f738",
@@ -27873,6 +27977,7 @@
         "SPDXRef:Relationship-593bdb025a187eda8280",
         "SPDXRef:Relationship-597d53ed4f5202003b19",
         "SPDXRef:Relationship-598e0c9850df04ff0c73",
+        "SPDXRef:Relationship-5a4a49b8554f5a144722",
         "SPDXRef:Relationship-5a5ca6aa1525f209e4aa",
         "SPDXRef:Relationship-5b29a52b1ece1db360c0",
         "SPDXRef:Relationship-5b868a799644a9c42eac",
@@ -28181,6 +28286,7 @@
         "SPDXRef:Relationship-be4adf542bd95114fe03",
         "SPDXRef:Relationship-be56415d06a8fa039815",
         "SPDXRef:Relationship-beb6383566a45216da4a",
+        "SPDXRef:Relationship-bee1686ea6226b3570bd",
         "SPDXRef:Relationship-bef703bc97939a04c69b",
         "SPDXRef:Relationship-bf52cbfc62f48e10e866",
         "SPDXRef:Relationship-bfa95dcce8c3416fdb3d",
@@ -28278,6 +28384,7 @@
         "SPDXRef:Relationship-dc857a63313c636af509",
         "SPDXRef:Relationship-dce389c365813afffffe",
         "SPDXRef:Relationship-dd7bb6529a0f39e6990a",
+        "SPDXRef:Relationship-ddc71648fa5fdb95e267",
         "SPDXRef:Relationship-ddce53ff7bca2add83bc",
         "SPDXRef:Relationship-de53e3edd842c88b8831",
         "SPDXRef:Relationship-de72adcb9f84a1ad4521",
@@ -28336,6 +28443,7 @@
         "SPDXRef:Relationship-ed391e706fbb01bb3603",
         "SPDXRef:Relationship-ed3edda9054c69ecb557",
         "SPDXRef:Relationship-ed7b708b3310b1905071",
+        "SPDXRef:Relationship-ed81716d5a9fe2082d0b",
         "SPDXRef:Relationship-ed9e6e8ea2d2de14f585",
         "SPDXRef:Relationship-edd3ba1cb418596ee120",
         "SPDXRef:Relationship-edde9a89264c2d5b99cd",
