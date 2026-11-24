@@ -30,15 +30,16 @@ inside the stream.
 
 ## Setup and start
 
-Full installation instructions (Linux and Windows): see [SETUP.md](SETUP.md).
+See the [development setup](../SETUP.md#development-setup) for prerequisites.
+For the demo with prebuilt images, follow the [tester setup](../SETUP.md).
 
-Start everything with one command:
+- Linux: `./run.sh` starts Ollama if needed and runs the backend in this terminal.
+  It can open the frontend in a separate terminal.
+- Windows: `.\run.ps1` opens Ollama, the backend, and the frontend in Windows Terminal.
 
-- Linux: `./run.sh` — starts Ollama (if not running) and the backend in this terminal
-- Windows: `.\run.ps1` — opens one Windows Terminal window with a tab per process
-
-Both scripts wire the backend to the local Ollama server automatically; without
-Ollama the backend still runs and answers with a mock provider.
+Both developer launchers expect the configured Ollama model to be installed.
+`uv run uvicorn app.main:app` starts just the API and uses the mock provider
+when no LLM is configured.
 
 ## Tests and CI checks
 
@@ -117,8 +118,8 @@ entities via `load_snapshot(snapshot_id).all_entities.values()`.
 Example — run against a local Ollama server (thinking disabled for speed):
 
 ```bash
-LLM_BASE_URL=http://127.0.0.1:11434/v1 LLM_NAME=qwen3.5:0.8b \
-  LLM_EXTRA_BODY='{"think": false}' ./backend/run.sh
+LLM_BASE_URL=http://127.0.0.1:11434/v1 LLM_NAME=qwen3.5:2b \
+  LLM_EXTRA_BODY='{"think": false}' ./run.sh
 ```
 
 ## Structure
@@ -136,8 +137,7 @@ backend/
 ├── tests/                    # query API and graph contract tests
 ├── pyproject.toml
 ├── run.sh                    # one-command start (Linux)
-├── run.ps1                   # one-command start (Windows Terminal)
-└── SETUP.md                  # installation instructions (Linux and Windows)
+└── run.ps1                   # one-command start (Windows Terminal)
 ```
 
 The `LlmProvider` protocol in `app/llm.py` is the seam for ticket #25: adding a
