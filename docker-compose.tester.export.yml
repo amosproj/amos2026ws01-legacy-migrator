@@ -1,0 +1,10 @@
+services:
+  ingestion:
+    entrypoint:
+      - /bin/sh
+      - -ec
+      - |
+        persist-handoff --handoff-dir /reference
+        mkdir -p /graph-run/current
+        cp /reference/snapshot-identity.json /reference/sources.jsonl /graph-run/current/
+        chmod 644 /graph-run/current/snapshot-identity.json /graph-run/current/sources.jsonl

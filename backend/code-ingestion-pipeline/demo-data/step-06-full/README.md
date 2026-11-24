@@ -10,7 +10,12 @@ without running the ingest. The full ingest fails on Windows because
 - 754 entities, 1,890 relationships
 - Generated on Linux (WSL Ubuntu 24.04) with `ingest --stage step-06`
 
-## Load into Neo4j
+## Run the Windows demo
+
+From the SunsetTracker repo root, run `.\run-tester.ps1`. It loads this export
+into Neo4j and starts the app. See the [tester setup](../../../../SETUP.md).
+
+## Load into Neo4j manually
 
 Start Neo4j from the repository root, then load the data from
 `backend/code-ingestion-pipeline/` (same commands in PowerShell and bash):
@@ -23,10 +28,10 @@ uv run --project .. persist-handoff --handoff-dir demo-data/step-06-full
 Tested on Windows (PowerShell): the import succeeds and Neo4j returns the
 30 Catalog symbols of this run.
 
-## Run SunsetTracker with this data
+## Run SunsetTracker from source with this data
 
-After #96 (graph-backed chat) is merged, point the backend at this folder
-instead of a fresh ingest run (see "Catalog chat demo with Neo4j" in
+After the manual import, point the backend at this folder
+(see "Catalog chat demo with Neo4j" in
 `backend/README.md`). On Windows (PowerShell), from `backend/`:
 
 ```powershell

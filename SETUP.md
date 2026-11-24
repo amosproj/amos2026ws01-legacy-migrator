@@ -23,9 +23,9 @@ Apple Silicon. ARM Linux hosts need AMD64 emulation configured separately.
 
 ## 2. Prepare the reference checkout once
 
-Use a GitHub account with access to the application, its images, and the
-reference repositories. If GitHub Container Registry requires authentication,
-sign in with `docker login ghcr.io`.
+The Windows demo uses the bundled `step-06` export. Windows testers can go
+directly to step 3. For fresh ingestion, use a GitHub account with access to
+the reference repositories.
 
 Clone the reference repository **next to** the SunsetTracker checkout. Run
 this from the directory that contains the SunsetTracker checkout.
@@ -46,6 +46,9 @@ another location, pass its path to the launcher.
 
 ## 3. Start from the SunsetTracker repo root
 
+If GitHub Container Registry requires authentication, sign in with
+`docker login ghcr.io`.
+
 Linux and macOS
 
 ```bash
@@ -58,7 +61,7 @@ Windows
 
 ```powershell
 .\run-tester.ps1
-# With another reference checkout:
+# To rebuild the graph from a reference checkout:
 .\run-tester.ps1 -ReferenceSource "C:\Projects\legacy-example-stages"
 ```
 
@@ -69,9 +72,10 @@ If PowerShell's policy blocks the cloned script, run it in a session with the
 powershell -NoProfile -ExecutionPolicy RemoteSigned -File .\run-tester.ps1
 ```
 
-The launcher waits for Neo4j, builds the code graph and imports the facts, then
-starts the app from the published images. It reads the reference checkout
-through a read-only mount. Open <http://localhost:3000> once the frontend starts.
+The launcher waits for Neo4j and starts the app from the published images after
+loading the graph. On Windows the default loads the saved export without running
+Graphify. Linux, macOS, and Windows with `-ReferenceSource` build the graph from
+the reference checkout. Open <http://localhost:3000> once the frontend starts.
 Choose `step-06` and ask **Where are the Product and Category endpoints
 implemented in the Catalog service?** Look for source cards for
 `ProductResource.java:28` and `CategoryResource.java:17`.
@@ -94,6 +98,7 @@ running the launcher. [Container builds and publishing](Documentation/containers
 
 | Symptom | What to check |
 | --- | --- |
+| Windows reports a missing demo export | Update your SunsetTracker checkout to a revision that contains `backend/code-ingestion-pipeline/demo-data/step-06-full`. |
 | Reference checkout or a component is missing | Check the path and run the submodule initialization in step 2. |
 | Image pull is denied | Sign in to GHCR with access to the team's packages and check the selected tag. |
 | Import reports that the Python API or Git is missing | Use a prebuilt backend image that includes the graph pipeline and the tester setup. |

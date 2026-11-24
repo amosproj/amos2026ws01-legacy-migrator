@@ -1,10 +1,19 @@
 param(
-    [string]$ReferenceSource = (Join-Path $PSScriptRoot "..\legacy-example-stages")
+    [string]$ReferenceSource
 )
 
 $ErrorActionPreference = "Stop"
+$useExport = -not $PSBoundParameters.ContainsKey("ReferenceSource")
+if ($useExport) {
+    $ReferenceSource = Join-Path $PSScriptRoot "backend/code-ingestion-pipeline/demo-data/step-06-full"
+    foreach ($file in "snapshot-identity.json", "entities.jsonl", "relationships.jsonl", "sources.jsonl") {
+        if (-not (Test-Path -LiteralPath (Join-Path $ReferenceSource $file) -PathType Leaf)) {
+            throw "Demo export is missing $file in $ReferenceSource. Update your develop checkout. See SETUP.md."
+        }
+    }
+}
 $reference = (Resolve-Path -LiteralPath $ReferenceSource).Path
-if (-not (Test-Path -LiteralPath (Join-Path $reference ".git"))) {
+if (-not $useExport -and -not (Test-Path -LiteralPath (Join-Path $reference ".git"))) {
     throw "Reference checkout missing: $reference. See SETUP.md."
 }
 Get-Command docker, ollama -ErrorAction Stop | Out-Null
@@ -50,6 +59,9 @@ $previous = @{
     LLM_NAME = $env:LLM_NAME
 }
 $compose = @("compose", "--project-name", "sunsettracker-tester-$PID", "-f", "docker-compose.tester.yml")
+if ($useExport) {
+    $compose += @("-f", "docker-compose.tester.export.yml")
+}
 $ollamaProcess = $null
 $composeStarted = $false
 Push-Location $PSScriptRoot
@@ -70,7 +82,11 @@ try {
         if ($LASTEXITCODE -ne 0) { throw "Could not pull $env:LLM_NAME." }
     }
 
-    Write-Host "Importing step-06. Open http://localhost:3000 when the frontend starts."
+    if ($useExport) {
+        Write-Host "Loading the saved step-06 export. Open http://localhost:3000 when the frontend starts."
+    } else {
+        Write-Host "Importing step-06 from Git. Open http://localhost:3000 when the frontend starts."
+    }
     $imageOptions = @("--no-build")
     if (-not $env:SUNSETTRACKER_BACKEND_IMAGE -and -not $env:SUNSETTRACKER_FRONTEND_IMAGE) {
         $imageOptions += @("--pull", "always")
