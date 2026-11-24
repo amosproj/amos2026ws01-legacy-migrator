@@ -1,5 +1,6 @@
 """Compute a stable SBOM version from source inputs and generator versions."""
 import hashlib
+import json
 import os
 from pathlib import Path
 
@@ -43,6 +44,30 @@ def compute_sbom_version(root, syft_version):
     digest.update(f"Syft {syft_version}; AMOS SBOM post-processor 1.0\0".encode())
     for path in _source_files(root):
         relative = path.relative_to(root).as_posix().encode()
-        content_digest = hashlib.sha256(path.read_bytes()).digest()
+        content = path.read_bytes()
+        if path.name == "registry-license-snapshot.json":
+            # Retrieval timestamps describe when evidence was fetched, not the
+            # dependency inventory. Ignore them so an identical snapshot refresh
+            # does not change the SBOM identity on every CI run.
+            snapshot = json.loads(content)
+
+            def remove_retrieval_times(value):
+                if isinstance(value, dict):
+                    return {
+                        key: remove_retrieval_times(item)
+                        for key, item in value.items()
+                        if key != "retrievedAt"
+                    }
+                if isinstance(value, list):
+                    return [remove_retrieval_times(item) for item in value]
+                return value
+
+            content = json.dumps(
+                remove_retrieval_times(snapshot),
+                sort_keys=True,
+                separators=(",", ":"),
+                ensure_ascii=False,
+            ).encode()
+        content_digest = hashlib.sha256(content).digest()
         digest.update(relative+b"\0"+content_digest+b"\0")
     return digest.hexdigest()

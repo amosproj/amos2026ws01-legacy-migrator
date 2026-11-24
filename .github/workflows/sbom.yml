@@ -67,14 +67,23 @@ jobs:
       - uses: anchore/sbom-action/download-syft@v0.20.6
         with:
           syft-version: v1.57.2
-      - name: Check generated SBOM and notices
-        run: scripts/sbom/regenerate_sbom.sh --check
+      - name: Generate SBOM and legal notices
+        run: scripts/sbom/regenerate_sbom.sh --refresh-registry-snapshot
       - name: Check BSI TR-03183-2 v2.1.0 conformance
         run: uv tool run --from 'ntia-conformance-checker==6.0.0' sbomcheck -s spdx3 -c bsi sbom.spdx.json
       - name: Test license expression gate
         run: python3 -m unittest discover -s scripts/sbom -p 'test_*.py'
       - name: Enforce permissive dependency licenses
         run: python3 scripts/sbom/check_licenses.py sbom.spdx.json
+      - name: Upload generated SBOM and evidence snapshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-spdx-3.0.1
+          path: |
+            sbom.spdx.json
+            scripts/sbom/registry-license-snapshot.json
+            frontend/public/legal/THIRD_PARTY_NOTICES.md
+          if-no-files-found: error
 
   attest-sbom:
     needs: sbom
@@ -85,10 +94,13 @@ jobs:
       id-token: write
       attestations: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: sbom-spdx-3.0.1
+          path: sbom-artifact
       - name: Sign SPDX SBOM with GitHub artifact attestations
         uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4.1.0
         with:
-          subject-path: sbom.spdx.json
-          sbom-path: sbom.spdx.json
+          subject-path: sbom-artifact/sbom.spdx.json
+          sbom-path: sbom-artifact/sbom.spdx.json
           create-storage-record: false
