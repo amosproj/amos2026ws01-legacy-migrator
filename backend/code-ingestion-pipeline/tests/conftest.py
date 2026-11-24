@@ -7,12 +7,15 @@ import json
 import os
 import subprocess
 import sys
+from contextlib import nullcontext
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
+from unittest.mock import Mock
 
 import pytest
 import yaml
+from neo4j import Driver
 
 PIPELINE_DIR = Path(__file__).resolve().parents[1]
 BACKEND_DIR = PIPELINE_DIR.parent
@@ -260,8 +263,25 @@ def reference(origin, tmp_path) -> Reference:
 
 
 @pytest.fixture
-def pipeline_cli(monkeypatch, tmp_path):
-    """Exercise bootstrap and the real loader without requiring Graphify."""
+def persistence_writer() -> Mock:
+    from migration_assistant.application.ports.pipeline import PersistenceWriter
+
+    return Mock(spec_set=PersistenceWriter)
+
+
+@pytest.fixture
+def cli_persistence(monkeypatch: pytest.MonkeyPatch, persistence_writer: Mock) -> None:
+    """Run CLI unit tests without opening a Bolt connection."""
+    from migration_assistant import api
+
+    driver = Mock(spec_set=Driver)
+    monkeypatch.setattr(api.GraphDatabase, "driver", Mock(return_value=nullcontext(driver)))
+    monkeypatch.setattr(api, "Neo4jPersistenceWriter", Mock(return_value=persistence_writer))
+
+
+@pytest.fixture
+def pipeline_cli(monkeypatch, tmp_path, cli_persistence):
+    """Exercise bootstrap and the real loader with isolated Graphify and Neo4j."""
     from migration_assistant.adapters.outbound.graphify import GraphifyAdapter
     from migration_assistant.bootstrap import cli
 
