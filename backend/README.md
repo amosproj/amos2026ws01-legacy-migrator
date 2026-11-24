@@ -66,6 +66,40 @@ with TestClient(app) as client:
 "
 ```
 
+The symbol-query tests use the Catalog exports in `tests/fixtures/` from PR #125.
+To run the same checks against a fresh export of the full `step-06` stage, point
+`REFERENCE_SOURCE` at your local reference checkout with its submodules initialized.
+The test writes its checkout and exports to pytest's temporary directory.
+
+```bash
+REFERENCE_SOURCE=/path/to/legacy-example-stages uv run --locked pytest tests/test_symbol_query.py -q
+```
+
+### Compare Catalog queries with Neo4j
+
+Run this opt-in test on a local test merge with #94. Sync the merged lockfile
+with `uv sync --locked` and start a disposable Neo4j instance with the ingestion
+login described in the [pipeline guide](code-ingestion-pipeline/README.md#neo4j-connection).
+From `backend/` in Bash, point the test at that database and your local reference
+checkout.
+
+```bash
+REFERENCE_SOURCE=/path/to/legacy-example-stages \
+  NEO4J_QUERY_TEST_URI=bolt://127.0.0.1:17687 \
+  uv run --locked pytest tests/test_symbol_query.py -k matches_neo4j -q
+```
+
+The test runs the full `step-06` ingestion into the test database, reads the
+`snapshotId` from that run, and compares the typed Catalog result from Neo4j
+with the JSONL result. It also checks that every returned span resolves against
+`sources.jsonl` from the same run.
+
+Backend callers pass a reader for the selected snapshot to
+`app.symbol_query.query_snapshot_symbols`. Use the migration step associated
+with that run, the exact `snapshotId` from `snapshot-identity.json` and the repo
+ID (for example `legacy-example-catalog-service`). The #94 reader supplies the
+entities via `load_snapshot(snapshot_id).all_entities.values()`.
+
 ## Configuration
 
 | Variable | Default | Purpose |
