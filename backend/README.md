@@ -21,6 +21,7 @@ Run all commands from this folder.
 | `/api/chat` | POST | Submit a query: `{"query": "...", "conversation_id"?: "..."}` → NDJSON stream: `sources` event, then `content` text deltas, or an `error` event |
 | `/api/health` | GET | Liveness check (`{"status": "ok", ..., "model": "..."}`) |
 | `/api/repositories` | GET | Mock repository list for the frontend picker (real loading is ticket #17) |
+| `/api/source-fragment` | POST | Resolve a stage and `SourceSpan` to full source lines and a commit-pinned GitHub link |
 
 The chat answer is streamed as newline-delimited JSON so the frontend can
 render tokens as they arrive and cancel long-running generations. Invalid
@@ -110,6 +111,7 @@ entities via `load_snapshot(snapshot_id).all_entities.values()`.
 | `LLM_API_KEY` | *(empty)* | API key for external providers; may stay empty for local servers |
 | `LLM_TIMEOUT_SECONDS` | `600` | Request timeout for LLM calls (local CPU inference can be slow) |
 | `LLM_EXTRA_BODY` | *(empty)* | JSON object merged into every completion request for server/model-specific fields, e.g. `{"think": false}` to disable reasoning on thinking models |
+| `SOURCE_LOAD_RESULT` | *(unset)* | Path to the `sources.jsonl` from an ingestion run, loaded at API startup |
 
 Example — run against a local Ollama server (thinking disabled for speed):
 
@@ -150,6 +152,43 @@ integration. It shares `backend/.venv`, `pyproject.toml`, and `uv.lock` with the
 After `uv sync --locked`, run it from that directory with `uv run --project .. ingest`.
 Follow the [complete setup guide](code-ingestion-pipeline/README.md) for configuration
 and canonical output details.
+
+### Try a source fragment from step-06
+
+With the reference source configured as described in the pipeline guide, run
+these commands from `backend/` in a Bash terminal.
+
+```bash
+cd code-ingestion-pipeline
+uv run --project .. ingest --stage step-06 --components catalog-service \
+  --out .cache/catalog-step-06.jsonl
+cd ..
+SOURCE_LOAD_RESULT=code-ingestion-pipeline/.cache/catalog-step-06.jsonl \
+  uv run uvicorn app.main:app
+```
+
+In a second terminal, send the position of `ProductCategory` in that stage.
+`catalog-service` is the ingestion selector and `legacy-example-catalog-service`
+is the `repoId` in the export.
+
+```bash
+curl -fsS http://127.0.0.1:8000/api/source-fragment \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "stage": "step-06",
+    "repoId": "legacy-example-catalog-service",
+    "path": "src/main/java/com/ibm/catalog/ProductCategory.java",
+    "commitSha": "474422cf156eb9bcce4267578b089a15edcc3733",
+    "startLine": 7,
+    "endLine": 7
+  }'
+```
+
+The response contains `@Entity` and a link ending in `ProductCategory.java#L7-L7`.
+The lookup returns inclusive Git line ranges for LF and CRLF files. Each
+repository has one pinned revision per stage in the source export.
+Changing the commit to another valid SHA returns HTTP 404 with the
+`commit_sha_mismatch` error code.
 
 ## Known limitations / future work
 
