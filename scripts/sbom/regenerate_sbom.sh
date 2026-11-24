@@ -43,7 +43,22 @@ mkdir -p "$NPM_ROOT"
 cp frontend/package.json frontend/package-lock.json "$NPM_ROOT/"
 npm ci --prefix "$NPM_ROOT" --ignore-scripts --no-audit --no-fund --quiet
 export SBOM_FRONTEND_NODE_MODULES="$NPM_ROOT/node_modules"
-syft scan dir:. --source-name SunsetTracker --source-version 0.1.0 --exclude './.git/**' --exclude './.venv/**' --exclude './.github/**' --exclude '**/.github/**' --exclude './Documentation/**' --exclude './frontend/node_modules/**' --exclude './backend/.venv/**' --exclude './backend/ba/**' --exclude './backend/code-ingestion-pipeline/.cache/**' --exclude './.venv/lib/python3.15/site-packages/pip/_vendor/distlib/w64.exe' --exclude './backend/.venv/**/pip/_vendor/distlib/w64.exe' --output "spdx-json@3.0=$OUT/sbom.spdx.json"
+syft scan dir:. --source-name SunsetTracker --source-version 0.1.0 \
+  --exclude './.git/**' \
+  --exclude './.venv/**' \
+  --exclude './.github/**' \
+  --exclude '**/.github/**' \
+  --exclude './Documentation/**' \
+  --exclude './frontend/node_modules/**' \
+  --exclude './backend/.venv/**' \
+  --exclude './backend/ba/**' \
+  --exclude './backend/code-ingestion-pipeline/.cache/**' \
+  --exclude './sbom.spdx.json' \
+  --exclude './Deliverables/sprint-06/sbom.spdx.json' \
+  --exclude './frontend/public/legal/THIRD_PARTY_NOTICES.md' \
+  --exclude './.venv/lib/python3.15/site-packages/pip/_vendor/distlib/w64.exe' \
+  --exclude './backend/.venv/**/pip/_vendor/distlib/w64.exe' \
+  --output "spdx-json@3.0=$OUT/sbom.spdx.json"
 if [[ "$REFRESH_REGISTRY" == true ]]; then python3 scripts/sbom/refresh_registry_snapshot.py "$OUT/sbom.spdx.json" "$OUT/python-dists.json"; fi
 python3 scripts/sbom/enrich_sbom.py "$OUT/sbom.spdx.json" "$OUT/python-dists.json" "$ROOT" "$OUT/THIRD_PARTY_NOTICES.md"
 python3 scripts/sbom/check_completeness.py "$OUT/sbom.spdx.json"

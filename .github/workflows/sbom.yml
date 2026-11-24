@@ -84,7 +84,6 @@ jobs:
       contents: read
       id-token: write
       attestations: write
-      artifact-metadata: write
     steps:
       - uses: actions/checkout@v4
       - name: Sign SPDX SBOM with GitHub artifact attestations
@@ -92,3 +91,4 @@ jobs:
         with:
           subject-path: sbom.spdx.json
           sbom-path: sbom.spdx.json
+          create-storage-record: false

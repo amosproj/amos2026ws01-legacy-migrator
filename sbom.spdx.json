@@ -3,8 +3,8 @@
   "@graph": [
     {
       "@id": "_:CreationInfo-AMOS",
-      "comment": "SBOM-Version: sha256:318db84aae92ab5e50c75c208154ff260e4e23a079e063d1f0a498fb716ccccb; SPDX 3.0.1 source SBOM; generated from backend/uv.lock and frontend/package-lock.json.",
-      "created": "2026-11-23T16:50:30Z",
+      "comment": "SBOM-Version: sha256:26b0e19a2a2e96a6f45a03b9c5dff69a37bca7daea37681aa4713583e71edc99; SPDX 3.0.1 source SBOM; generated from backend/uv.lock and frontend/package-lock.json.",
+      "created": "2026-11-23T18:33:12Z",
       "createdBy": [
         "SPDXRef:Agent-98ec22ac510fc3108181"
       ],
@@ -9669,7 +9669,7 @@
       "name": "SunsetTracker",
       "namespaceMap": [
         {
-          "namespace": "https://spdx.org/spdxdocs/SunsetTracker-318db84aae92ab5e50c75c208154ff260e4e23a079e063d1f0a498fb716ccccb#",
+          "namespace": "https://spdx.org/spdxdocs/SunsetTracker-26b0e19a2a2e96a6f45a03b9c5dff69a37bca7daea37681aa4713583e71edc99#",
           "prefix": "SPDXRef",
           "type": "NamespaceMap"
         }
@@ -9681,7 +9681,7 @@
       "rootElement": [
         "SPDXRef:SBOM-1"
       ],
-      "spdxId": "https://spdx.org/spdxdocs/SunsetTracker-318db84aae92ab5e50c75c208154ff260e4e23a079e063d1f0a498fb716ccccb#",
+      "spdxId": "https://spdx.org/spdxdocs/SunsetTracker-26b0e19a2a2e96a6f45a03b9c5dff69a37bca7daea37681aa4713583e71edc99#",
       "type": "SpdxDocument"
     },
     {
