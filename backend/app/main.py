@@ -27,6 +27,9 @@ from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 
+from shared_contracts.records import SnapshotIdentity
+
+from .graph_fragments import resolve_question_fragments
 from .llm import LlmError, create_llm_provider
 from .query_service import QueryService, create_query_service
 from .repositories import list_repositories
@@ -60,20 +63,43 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     provider = create_llm_provider()
     app.state.llm_provider = provider
     app.state.query_service = create_query_service(provider)
-    app.state.fragment_fetcher = await run_in_threadpool(_create_fragment_fetcher)
+    fetcher, identity, config_error = await run_in_threadpool(_load_source_context)
+    app.state.fragment_fetcher = fetcher
+    app.state.graph_identity = identity
+    app.state.graph_config_error = config_error
     yield
     await provider.aclose()
 
 
-def _create_fragment_fetcher() -> LoaderFragmentFetcher | None:
-    path = os.environ.get("SOURCE_LOAD_RESULT", "").strip()
-    if not path:
-        return None
+def _load_source_context() -> tuple[
+    LoaderFragmentFetcher | None, SnapshotIdentity | None, str | None
+]:
+    run_path = os.environ.get("GRAPH_RUN_DIR", "").strip()
+    source_path = os.environ.get("SOURCE_LOAD_RESULT", "").strip()
+    if not run_path and not source_path:
+        return None, None, None
+
+    export = Path(run_path) / "sources.jsonl" if run_path else Path(source_path)
     try:
-        return LoaderFragmentFetcher.from_export(Path(path))
+        fetcher = LoaderFragmentFetcher.from_export(export)
     except (OSError, ValueError) as exc:
         logger.warning("fragment fetcher disabled: %s", exc)
-        return None
+        return (
+            None,
+            None,
+            "The configured graph run has no readable sources.jsonl." if run_path else None,
+        )
+
+    if not run_path:
+        return fetcher, None, None
+    try:
+        identity = SnapshotIdentity.model_validate_json(
+            (Path(run_path) / "snapshot-identity.json").read_text(encoding="utf-8")
+        )
+    except (OSError, ValueError) as exc:
+        logger.warning("invalid graph run manifest: %s", exc)
+        return fetcher, None, "The configured graph run has no valid snapshot-identity.json."
+    return fetcher, identity, None
 
 
 app = FastAPI(title="SunsetTracker backend query API", version=VERSION, lifespan=lifespan)
@@ -86,9 +112,12 @@ app.add_middleware(
 )
 
 
-def _event(kind: str, text: str) -> str:
+def _event(kind: str, text: str, *, code: str | None = None) -> str:
     """One newline-delimited JSON stream event."""
-    return json.dumps({"type": kind, "text": text}) + "\n"
+    payload = {"type": kind, "text": text}
+    if code is not None:
+        payload["code"] = code
+    return json.dumps(payload) + "\n"
 
 
 @app.get("/api/health", response_model=HealthResponse)
@@ -105,20 +134,41 @@ def health() -> HealthResponse:
 async def chat(request: ChatRequest) -> StreamingResponse:
     """Submit one migration-status query and receive a streamed answer.
 
-    The response is newline-delimited JSON: a ``sources`` event with the
-    evidence labels, then ``thinking`` events with reasoning deltas (when the
-    model produces them) and ``content`` events with answer text deltas, or a
-    single ``error`` event when the LLM provider fails. Invalid requests
-    (empty/oversized query, wrong types) are rejected with HTTP 422 by the
-    Pydantic request model.
+    The NDJSON stream includes model labels, resolved evidence when configured,
+    reasoning and answer deltas, or a visible graph, source or model error.
     """
     service: QueryService = app.state.query_service
 
     async def events() -> AsyncIterator[str]:
         yield _event("sources", json.dumps(service.sources()))
         try:
-            async for kind, delta in service.stream_answer(request.query):
+            config_error: str | None = app.state.graph_config_error
+            if config_error:
+                raise SourceFragmentError("invalid_graph_run", config_error)
+            fetcher: LoaderFragmentFetcher | None = app.state.fragment_fetcher
+            identity: SnapshotIdentity | None = app.state.graph_identity
+            evidence: list[SourceFragment] = []
+            if identity is not None and fetcher is not None:
+                legacy_step = request.conversation_id or ""
+                step = request.step_id or (
+                    legacy_step if legacy_step.startswith("step-") else "step-06"
+                )
+                evidence = await run_in_threadpool(
+                    resolve_question_fragments, request.query, step, identity, fetcher
+                )
+                yield _event(
+                    "evidence",
+                    json.dumps(
+                        [
+                            fragment.model_dump(by_alias=True, mode="json", exclude_none=True)
+                            for fragment in evidence
+                        ]
+                    ),
+                )
+            async for kind, delta in service.stream_answer(request.query, evidence=evidence):
                 yield _event(kind, delta)
+        except SourceFragmentError as exc:
+            yield _event("error", str(exc), code=exc.code)
         except LlmError as exc:
             yield _event("error", str(exc))
 
