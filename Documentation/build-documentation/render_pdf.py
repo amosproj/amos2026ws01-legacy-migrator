@@ -24,7 +24,7 @@ from reportlab.platypus import (
 )
 
 SOURCE = Path(__file__).resolve().parent
-OUTPUT = SOURCE.parent / "build-documentation.pdf"
+OUTPUT = SOURCE.parents[1] / "Deliverables" / "sprint-06" / "build-documentation.pdf"
 WIKI_ROOT = "https://github.com/amosproj/amos2026ws01-legacy-migrator/wiki/"
 
 PAGE_NAMES = [
@@ -263,7 +263,7 @@ def draw_page(canvas, doc):
     canvas.setFont("Helvetica", 7.3)
     canvas.setFillColor(colors.HexColor("#526273"))
     canvas.drawString(LEFT, PAGE_H - 7.5 * mm, "SunsetTracker | Build documentation")
-    canvas.drawRightString(PAGE_W - RIGHT, 8 * mm, f"sprint-05-release | Page {doc.page}")
+    canvas.drawRightString(PAGE_W - RIGHT, 8 * mm, f"develop | Page {doc.page}")
     canvas.restoreState()
 
 class GuideDocTemplate(BaseDocTemplate):

@@ -1,6 +1,6 @@
 # Automated tests
 
-The backend and frontend use separate CI workflows. The local commands below were run on the verification tag.
+The backend and frontend have separate test and check commands.
 
 ## Backend checks
 
@@ -16,24 +16,34 @@ uv run --directory code-ingestion-pipeline --project .. pytest tests -v
 uv run python -m compileall -q app shared_contracts code-ingestion-pipeline/src
 ~~~
 
-The API startup check uses FastAPI's test client and enters its application lifespan:
+The ingestion suite covers step-06 extraction, canonical handoff files, Neo4j persistence, and typed symbol-query data with source spans. Its Neo4j integration tests run when `NEO4J_TEST_URI` points to a disposable Neo4j instance.
+
+To run the persistence integration tests, start the disposable test server from the repository root using Bash or WSL:
 
 ~~~bash
-uv run python -c "
-from fastapi.testclient import TestClient
-from app.main import app
-with TestClient(app) as client:
-    r = client.get('/api/health')
-    print(r.status_code, r.text)
-    assert r.status_code == 200, r.text
-"
+docker run --rm -d --name neo4j-test \
+  -p 127.0.0.1:17687:7687 \
+  -e NEO4J_AUTH=neo4j/test-only-password \
+  neo4j:2026.10.2
 ~~~
 
-The GitHub Actions backend workflow performs the same lint, formatting, typing, test, compile, and health checks on pushes and pull requests to `main` and `develop`.
+From `backend/`, set `NEO4J_TEST_URI` and run the persistence tests:
+
+~~~bash
+NEO4J_TEST_URI=bolt://localhost:17687 uv run --directory code-ingestion-pipeline --project .. pytest tests/test_neo4j_persistence.py -v
+~~~
+
+In PowerShell, set `$env:NEO4J_TEST_URI = 'bolt://localhost:17687'` first, then run `uv run --directory code-ingestion-pipeline --project .. pytest tests/test_neo4j_persistence.py -v`.
+
+Stop the temporary server when the tests finish:
+
+~~~bash
+docker stop neo4j-test
+~~~
 
 ## Frontend checks
 
-Run from `frontend/`:
+Run from `frontend/` with Node 20 or 22:
 
 ~~~bash
 npm ci
@@ -43,8 +53,4 @@ npm test
 npm run build
 ~~~
 
-The GitHub Actions frontend workflow runs these checks on Node 20 and Node 22 for pushes and pull requests to `main` and `develop`. Its test command is `npm test`, which runs `vitest run`.
-
-## Verification result
-
-The API suite passed 28 tests. The ingestion suite passed 101 tests and skipped one optional real-reference-source test. The frontend suite passed 17 tests across five files. Lint, formatting, typing, compilation, health, and production build checks passed. The ingestion suite printed three Graphify cache-index runtime warnings while still passing.
+The GitHub Actions frontend workflow runs these checks on Node 20 and Node 22. The backend workflow runs the backend checks on pushes and pull requests to `main` and `develop.

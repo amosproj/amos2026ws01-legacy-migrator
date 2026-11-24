@@ -1,19 +1,15 @@
 # Dependencies
 
-The lockfiles define the reproducible dependency sets. Install them from the repository root as described on [Clone and setup](Clone-and-setup).
+The lockfiles define the dependency versions. Install them from the repository root as described on [Clone and setup](Clone-and-setup).
 
 ## Backend
 
-The backend and ingestion pipeline share `backend/pyproject.toml` and `backend/uv.lock`. Run `uv sync --locked` from `backend/` to install runtime and development dependencies.
-
-The query API uses FastAPI, Uvicorn, Pydantic, and httpx2. The ingestion pipeline uses Graphify and a set of Tree-sitter language parsers. Backend development checks use Ruff, ty, and pytest. The lockfile pins the resolved package versions.
+The backend API and ingestion pipeline share `backend/pyproject.toml` and `backend/uv.lock`. The environment includes FastAPI, Uvicorn, Pydantic, the Neo4j driver, Graphify, and Tree-sitter parsers. Ruff, ty, and pytest provide the backend checks.
 
 ## Frontend
 
-The frontend uses React 19, React DOM, Vite, and TypeScript. Its UI dependencies include Mermaid and lucide-react. The development and test toolchain includes Tailwind CSS, ESLint, and Vitest.
-
-Run `npm ci` in `frontend/` to install the exact dependency versions from `package-lock.json`. Do not use `npm install` for the documented clean setup.
+The frontend uses React, Vite, and TypeScript. Run `npm ci` in `frontend/` to install the versions pinned by `package-lock.json`. Its checks use ESLint, TypeScript, and Vitest.
 
 ## Containers
 
-The optional Compose deployment builds a Python 3.12 backend image and a Node 22-built frontend served by nginx. Container builds use the backend uv lockfile and frontend npm lockfile. Ollama is not included in either image.
+Docker Compose builds the backend and frontend images and starts the Neo4j service. The backend image uses Python 3.12. The frontend image builds with Node 22 and serves the static bundle with nginx.

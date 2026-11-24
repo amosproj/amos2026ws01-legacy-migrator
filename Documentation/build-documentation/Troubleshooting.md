@@ -1,21 +1,28 @@
 # Troubleshooting
 
-Only issues observed during verification are listed here.
+## Docker commands cannot reach the engine
 
-## Host port is already allocated
+Start Docker Desktop, wait for the engine to report ready, then retry the Compose command.
 
-The default Compose startup reported:
+## Neo4j connection fails
 
-~~~text
-Bind for 0.0.0.0:8000 failed: port is already allocated
+From the repository root, start the service and check its logs:
+
+~~~bash
+docker compose up -d neo4j
+docker compose logs neo4j
 ~~~
 
-Port 8000 was already bound by another Docker Desktop service. The successful Compose smoke check used host ports 8001 and 3001. If the backend host port is changed, also ensure the frontend bundle points at that backend URL; the current Compose file does not pass a custom `VITE_BACKEND_URL` build argument.
+The ingestion CLI runs on the host and connects to `bolt://localhost:7687`. The backend container connects to Neo4j as `bolt://neo4j:7687` on the Compose network.
 
-## Vite selects a different port
+## Step-06 ingest cannot fetch the reference source
 
-Port 3000 was occupied. Both `npm run dev` and `npm run preview` selected port 3001 and continued to serve the UI and proxy `/api`. Use the URL printed by Vite.
+Check that Git credentials can read the private repository configured in `backend/code-ingestion-pipeline/config/reference-source.yaml`.
 
-## Node 23 engine warnings
+## Windows path errors
 
-An initial dependency installation using Node 23 completed but printed `EBADENGINE` warnings for locked packages. Repeating the install and checks on Node 22.23.5 completed without those warnings. CI uses Node 20 and Node 22; use one of those versions.
+The full step-06 `ingest` run hits a filename under `proxy` that Windows does not allow. Use WSL for that run, or use `persist-handoff` with a handoff produced elsewhere. Enable Windows long paths before running pipeline tests.
+
+## A required port is busy
+
+The Compose defaults use host ports 3000, 8000, and 7687. Stop the process using the required port, then retry.

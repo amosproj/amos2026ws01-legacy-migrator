@@ -1,35 +1,60 @@
 # Deployment
 
-The tag provides a local Docker Compose deployment for a single machine. No cloud or Kubernetes production deployment path is defined in the verified tree.
+Docker Compose builds and runs the backend, frontend, and Neo4j for local use.
 
-## Default ports and images
+## Services and ports
 
-| Service | Host URL | Container port | Image name |
-|---|---|---:|---|
-| Backend | `http://localhost:8000` | 8000 | `ghcr.io/amosproj/amos2026ws01-legacy-migrator-backend:latest` |
-| Frontend | `http://localhost:3000` | 80 | `ghcr.io/amosproj/amos2026ws01-legacy-migrator-frontend:latest` |
+| Service | Host port | Container port |
+|---|---:|---:|
+| Backend | 8000 | 8000 |
+| Frontend | 3000 | 80 |
+| Neo4j Bolt | 7687 | 7687 |
 
-Compose builds both images from the checked-out source. By default, the backend uses the mock provider. Ollama is outside the images.
+## Start the application
 
-## Start and verify Compose
-
-The default host ports are 8000 and 3000. In the verification environment, port 8000 was already occupied, so the successful smoke check used 8001 and 3001:
+From the repository root:
 
 ~~~bash
-FRONTEND_PORT=3001 BACKEND_PORT=8001 docker compose up --build -d
-curl -fsS http://localhost:8001/api/health
-curl -fsS http://localhost:3001/
+docker compose up -d --build
+docker compose ps
+curl -fsS http://localhost:8000/api/health
+curl -fsS http://localhost:3000/
+~~~
+
+The Compose defaults publish the backend on 8000 and frontend on 3000. The frontend image uses `http://localhost:8000` as its backend URL.
+
+Stop the services with:
+
+~~~bash
 docker compose down
 ~~~
 
-The build completed and both containers started. The backend health endpoint and frontend document each returned HTTP 200. The default-port attempt could not bind port 8000; see [Troubleshooting](Troubleshooting).
+## Ingest step-06 facts into Neo4j
 
-Changing the backend host port alone does not reconfigure the URL baked into the frontend bundle. The Dockerfile defaults `VITE_BACKEND_URL` to `http://localhost:8000`, and this Compose file does not pass a custom build argument. The successful alternate-port check verified the two published endpoints separately; it did not verify a frontend chat call to the backend at port 8001.
+The step-06 pipeline writes canonical entities and relationships to Neo4j and saves the run handoff under `backend/code-ingestion-pipeline/.cache/ingestion/`. The private reference repository configured for the pipeline must be readable through Git before running `ingest`.
 
-## LLM configuration
+Start Neo4j from the repository root:
 
-No LLM settings are needed for the mock provider. Compose forwards `LLM_BASE_URL`, `LLM_NAME`, and `LLM_EXTRA_BODY` to the backend. It does not forward `LLM_API_KEY` or `LLM_TIMEOUT_SECONDS`; those variables are available to non-container backend runs, but are not wired through this Compose file at this tag.
+~~~bash
+docker compose up -d neo4j
+docker compose exec -T neo4j cypher-shell -u neo4j -p change-this "RETURN 1;"
+~~~
 
-## Scope
+Install the backend environment and run the step-06 ingest:
 
-This procedure is for local deployment. Do not treat the GHCR image workflow as evidence of a cloud deployment. The workflow builds and publishes container images on configured branch and version-tag events.
+~~~bash
+cd backend
+uv sync --locked
+cd code-ingestion-pipeline
+uv run --project .. ingest --stage step-06
+~~~
+
+The command prints the run directory and snapshot counts. Keep the handoff directory if it may need to be imported again.
+
+To import a handoff that already exists without rerunning checkout and extraction, run from `backend/code-ingestion-pipeline/` and replace `<existing-run>` with its directory name:
+
+~~~bash
+uv run --project .. persist-handoff --handoff-dir .cache/ingestion/<existing-run>
+~~~
+
+ `backend/app/symbol_query.py` reads source-backed symbol records from an `entities.jsonl` handoff and returns typed symbol results with source spans. This is a backend helper exercised by the step-06 tests, separate from the Neo4j persistence command.
