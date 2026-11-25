@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from enum import StrEnum
-from typing import Annotated, Any, Literal, Self, get_args
+from typing import Annotated, Any, Literal, get_args
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
 from pydantic.alias_generators import to_camel
@@ -304,28 +304,6 @@ class RelationshipFact(_FactRecord):
     extractor_name: str = Field(default="graphify", min_length=1)
     extractor_version: str = Field(default="unknown", min_length=1)
 
-    @classmethod
-    def from_json(cls, data: str) -> Self:
-        """Reconstruct a fact from its canonical JSON record."""
-        record = RelationshipRecord.model_validate_json(data)
-        payload = record.payload
-        return cls(
-            schema_version=record.schema_version,
-            record_type=record.record_type,
-            record_id=record.record_id,
-            snapshot_id=record.snapshot_id,
-            relationship_type=payload.relationship_type,
-            source_observation_id=payload.source_observation_id,
-            target_observation_id=payload.target_observation_id,
-            evidence_ids=payload.evidence_ids,
-            source_span=payload.source_span,
-            source_edge_id=payload.source_edge_id,
-            original_relationship_type=payload.original_relationship_type,
-            original_edge=payload.original_edge,
-            extractor_name=payload.extractor.name,
-            extractor_version=payload.extractor.version,
-        )
-
     def to_record_dict(self) -> dict[str, Any]:
         payload = {
             "relationshipType": _relationship_value(self.relationship_type),
@@ -377,26 +355,6 @@ class SymbolObservationFact(_FactRecord):
     extractor_name: str = Field(default="graphify", min_length=1)
     extractor_version: str = Field(default="unknown", min_length=1)
 
-    @classmethod
-    def from_json(cls, data: str) -> Self:
-        """Reconstruct a fact from its canonical JSON record."""
-        record = SymbolObservationRecord.model_validate_json(data)
-        payload = record.payload
-        return cls(
-            schema_version=record.schema_version,
-            record_type=record.record_type,
-            record_id=record.record_id,
-            snapshot_id=record.snapshot_id,
-            observation_id=payload.observation_id,
-            kind=payload.kind,
-            name=payload.name,
-            qualified_name=payload.qualified_name,
-            repo_id=payload.repo_id,
-            source_span=payload.source_span,
-            extractor_name=payload.extractor.name,
-            extractor_version=payload.extractor.version,
-        )
-
     def to_record_dict(self) -> dict[str, Any]:
         record = {
             "schemaVersion": self.schema_version,
@@ -432,23 +390,6 @@ class ExternalSymbolObservationFact(_FactRecord):
     qualified_name: str = Field(min_length=1)
     extractor_name: str = Field(default="graphify", min_length=1)
     extractor_version: str = Field(default="unknown", min_length=1)
-
-    @classmethod
-    def from_json(cls, data: str) -> Self:
-        """Reconstruct a fact from its canonical JSON record."""
-        record = ExternalSymbolObservationRecord.model_validate_json(data)
-        payload = record.payload
-        return cls(
-            schema_version=record.schema_version,
-            record_type=record.record_type,
-            record_id=record.record_id,
-            snapshot_id=record.snapshot_id,
-            observation_id=payload.observation_id,
-            name=payload.name,
-            qualified_name=payload.qualified_name,
-            extractor_name=payload.extractor.name,
-            extractor_version=payload.extractor.version,
-        )
 
     def to_record_dict(self) -> dict[str, Any]:
         record = {
@@ -486,26 +427,6 @@ class UnresolvedSymbolObservationFact(_FactRecord):
     source_file: str | None = None
     extractor_name: str = Field(default="graphify", min_length=1)
     extractor_version: str = Field(default="unknown", min_length=1)
-
-    @classmethod
-    def from_json(cls, data: str) -> Self:
-        """Reconstruct a fact from its canonical JSON record."""
-        record = UnresolvedSymbolObservationRecord.model_validate_json(data)
-        payload = record.payload
-        return cls(
-            schema_version=record.schema_version,
-            record_type=record.record_type,
-            record_id=record.record_id,
-            snapshot_id=record.snapshot_id,
-            observation_id=payload.observation_id,
-            kind=payload.kind,
-            name=payload.name,
-            qualified_name=payload.qualified_name,
-            repo_id=payload.repo_id,
-            source_file=payload.source_file,
-            extractor_name=payload.extractor.name,
-            extractor_version=payload.extractor.version,
-        )
 
     def to_record_dict(self) -> dict[str, Any]:
         payload = {

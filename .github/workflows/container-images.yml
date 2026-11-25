@@ -53,9 +53,6 @@ jobs:
     permissions:
       contents: read
       packages: write
-      id-token: write
-      attestations: write
-      artifact-metadata: write
     strategy:
       matrix:
         image: [backend, frontend]
@@ -87,21 +84,11 @@ jobs:
             type=semver,pattern={{version}}
 
       - name: Build and publish
-        id: build
         uses: docker/build-push-action@v6
         with:
           context: ${{ matrix.image }}
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          provenance: mode=max
           cache-from: type=gha,scope=${{ matrix.image }}
           cache-to: type=gha,mode=max,scope=${{ matrix.image }}
-
-      - name: Sign container image provenance
-        if: github.event_name != 'pull_request'
-        uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4.1.0
-        with:
-          subject-name: ${{ env.REGISTRY }}/${{ env.OWNER }}/amos2026ws01-legacy-migrator-${{ matrix.image }}
-          subject-digest: ${{ steps.build.outputs.digest }}
-          push-to-registry: true

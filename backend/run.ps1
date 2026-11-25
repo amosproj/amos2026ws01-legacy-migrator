@@ -9,7 +9,7 @@ $frontendDir = Join-Path (Split-Path $backendDir -Parent) "frontend"
 $ollamaPort = if ($env:OLLAMA_PORT) { $env:OLLAMA_PORT } else { "11434" }
 $apiHost    = if ($env:HOST)        { $env:HOST }        else { "127.0.0.1" }
 $apiPort    = if ($env:PORT)        { $env:PORT }        else { "8000" }
-$model      = if ($env:LLM_NAME)    { $env:LLM_NAME }    else { "qwen3.5:2b" }
+$model      = if ($env:LLM_NAME)    { $env:LLM_NAME }    else { "qwen3.5:0.8b" }
 
 # Fail early when the local model is missing; skipped for remote providers.
 $llmBaseUrl = if ($env:LLM_BASE_URL) { $env:LLM_BASE_URL } else { "http://127.0.0.1:$ollamaPort/v1" }

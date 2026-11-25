@@ -22,7 +22,6 @@ from shared_contracts.records import (
     SymbolObservationFact,
     UnresolvedSymbolObservationFact,
 )
-from shared_contracts.source_file import source_lines
 
 
 class Observation(Protocol):
@@ -107,7 +106,7 @@ def write_relationship_handoff(
             selected_paths.setdefault(repo_id, set()).add(path)
             content = source.get("content")
             if isinstance(content, str):
-                source_line_counts[(repo_id, path)] = len(source_lines(content))
+                source_line_counts[(repo_id, path)] = len(content.splitlines())
     if not source_revisions:
         raise ValueError("Cannot create relationship handoff from an empty source manifest")
     if not graph_paths:
@@ -229,8 +228,6 @@ def write_relationship_handoff(
         entity_count=len(all_entities),
         relationship_count=len(all_relationships),
         snapshot_id=snapshot_id,
-        all_entities=all_entities,
-        all_relationships=all_relationships,
     )
 
 
@@ -313,7 +310,7 @@ def normalize_graphify_facts(
             raise ValueError("Every Graphify node must be an object with an id")
         raw_id = str(node["id"])
         kind = _node_kind(node, method_ids)
-        repo_id, path = _source_reference(node, source_revisions, default_repo_id)
+        repo_id, path = _source_reference(node)
         location = _graphify_span(
             node,
             source_revisions,
@@ -358,10 +355,6 @@ def normalize_graphify_facts(
                     path or "",
                     kind,
                     qualified_name,
-                    # Graphify can emit distinct source-less nodes with the same
-                    # label (for example `Override` annotations in several files).
-                    # Their raw node IDs are the only available discriminator.
-                    raw_id,
                 ]
             )
             node_observation_ids[raw_id] = observation_id
@@ -509,7 +502,8 @@ def _graphify_span(
     default_repo_id: str | None = None,
     kind: str | None = None,
 ) -> tuple[str, SourceSpan] | None:
-    repo_id, path = _source_reference(node, source_revisions, default_repo_id)
+    repo_id, path = _source_reference(node)
+    repo_id = repo_id or default_repo_id
     if repo_id is None or path is None or repo_id not in source_revisions:
         return None
     lines = None
@@ -530,34 +524,15 @@ def _graphify_span(
     )
 
 
-def _source_reference(
-    node: dict[str, Any],
-    source_revisions: dict[str, str],
-    default_repo_id: str | None,
-) -> tuple[str | None, str | None]:
+def _source_reference(node: dict[str, Any]) -> tuple[str | None, str | None]:
     raw_path = str(node.get("source_file", "")).replace("\\", "/").strip("/")
-    first_segment, separator, remaining_path = raw_path.partition("/")
-
-    # Some Graphify invocations prefix source_file with the repository ID;
-    # per-component runs instead return paths relative to that component. Only
-    # consume the first segment as a repository ID when the manifest confirms it.
-    if separator and first_segment in source_revisions:
-        return first_segment, normalize_path(remaining_path)
-
-    explicit_repo_id = node.get("repoId", node.get("repo_id"))
-    explicit_path = node.get("path")
-    if explicit_repo_id in source_revisions and explicit_path:
-        return str(explicit_repo_id), normalize_path(str(explicit_path))
-
-    if default_repo_id in source_revisions and raw_path:
-        return default_repo_id, normalize_path(raw_path)
-
-    if explicit_repo_id and explicit_path:
-        return str(explicit_repo_id), normalize_path(str(explicit_path))
+    repo_id, separator, path = raw_path.partition("/")
     if separator:
-        return first_segment, normalize_path(remaining_path)
-    if first_segment in source_revisions:
-        return first_segment, None
+        return repo_id, normalize_path(path)
+    repo_id = node.get("repoId", node.get("repo_id"))
+    path = node.get("path")
+    if repo_id and path:
+        return str(repo_id), normalize_path(str(path))
     return None, None
 
 

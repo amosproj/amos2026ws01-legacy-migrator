@@ -1,23 +1,23 @@
-"""Command line: load a reference stage and extract graphs and canonical facts per component."""
+"""Command line: load a reference stage and extract graphs and canonical facts per component.
+
+Run from code-ingestion-pipeline/ with: uv run --project .. ingest
+"""
 
 import argparse
-import json
 import sys
 import traceback
-from collections.abc import Callable
-from dataclasses import asdict
 from pathlib import Path
 
-from neo4j.exceptions import DriverError, Neo4jError
 from pydantic import ValidationError
 
-from migration_assistant.api import ingest_step, persist_handoff
+from migration_assistant.adapters.outbound.git.local_git import LocalGitAdapter
+from migration_assistant.adapters.outbound.git.source_loader import load_sources
+from migration_assistant.adapters.outbound.graphify import GraphifyAdapter
+from migration_assistant.adapters.outbound.graphify_relationships import write_relationship_handoff
+from migration_assistant.adapters.outbound.pipeline_storage import LocalPipelineStorage
+from migration_assistant.application.pipeline import PipelineService
 from migration_assistant.domain.checkout import CheckoutError
-from migration_assistant.domain.pipeline import (
-    HandoffImportError,
-    HandoffImportIssue,
-    PipelineError,
-)
+from migration_assistant.domain.pipeline import PipelineError
 from migration_assistant.domain.reference_source import (
     ConfigError,
     ReferenceSourceConfig,
@@ -31,37 +31,11 @@ EXIT_UNEXPECTED = 2
 DEFAULT_OUTPUT_DIR = Path(__file__).resolve().parents[3] / ".cache" / "ingestion"
 
 
-def run_full_ingestion(argv: list[str] | None = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
-    return _execute(args, _run_full_ingestion)
-
-
-main = run_full_ingestion
-
-
-def run_persistence_from_handoff(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(
-        prog="persist-handoff", description="Persist a saved canonical handoff to Neo4j."
-    )
-    parser.add_argument(
-        "--handoff-dir", type=Path, required=True, help="existing ingestion run folder"
-    )
-    parser.add_argument("--verbose", action="store_true", help="show the full traceback on errors")
-    return _execute(parser.parse_args(argv), _persist_from_handoff)
-
-
-def _execute(args: argparse.Namespace, action: Callable[[argparse.Namespace], None]) -> int:
     try:
-        action(args)
-    except (
-        ConfigError,
-        CheckoutError,
-        PipelineError,
-        DriverError,
-        Neo4jError,
-        OSError,
-        KeyboardInterrupt,
-    ) as error:
+        _run(args)
+    except (ConfigError, CheckoutError, PipelineError, OSError, KeyboardInterrupt) as error:
         if args.verbose:
             traceback.print_exc()
         message = " ; ".join(str(error).splitlines()) or "Interrupted"
@@ -73,24 +47,6 @@ def _execute(args: argparse.Namespace, action: Callable[[argparse.Namespace], No
         print("ERROR: unexpected failure, rerun with --verbose", file=sys.stderr)
         return EXIT_UNEXPECTED
     return 0
-
-
-def _persist_from_handoff(args: argparse.Namespace) -> None:
-    try:
-        handoff = persist_handoff(args.handoff_dir)
-    except HandoffImportError as error:
-        _print_import_issues(error.issues)
-        raise
-    _print_import_issues(handoff.issues)
-    print(
-        f"Success. Persisted snapshot {handoff.snapshot_id}: "
-        f"{handoff.entity_count} entities, {handoff.relationship_count} relationships"
-    )
-
-
-def _print_import_issues(issues: tuple[HandoffImportIssue, ...]) -> None:
-    for issue in issues:
-        print(json.dumps(asdict(issue), ensure_ascii=False), file=sys.stderr)
 
 
 def _parse_args(argv: list[str] | None) -> argparse.Namespace:
@@ -117,15 +73,22 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def _run_full_ingestion(args: argparse.Namespace) -> None:
+def _run(args: argparse.Namespace) -> None:
     config_path = args.config or default_config_path()
     config = _with_overrides(load_config(config_path), args)
+    service = PipelineService(
+        git_repo=LocalGitAdapter(),
+        source_loader=load_sources,
+        graph_builder=GraphifyAdapter(),
+        handoff_writer=write_relationship_handoff,
+        storage=LocalPipelineStorage(),
+    )
 
     def on_loaded(loaded: LoadResult) -> None:
         print(f"config: {Path(config_path).as_posix()}")
         _print_loaded(loaded)
 
-    result = ingest_step(
+    result = service.run(
         config,
         args.output_dir,
         source_export=args.out,
@@ -176,4 +139,4 @@ def _with_overrides(
 
 
 if __name__ == "__main__":
-    sys.exit(run_full_ingestion())
+    sys.exit(main())

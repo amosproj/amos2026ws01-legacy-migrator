@@ -1,10 +1,53 @@
+import { SourceEvidence } from '../types/chat';
 import { Arc42ViewMetadata } from '../types/arc42';
 
 export const INITIAL_SUGGESTIONS: string[] = [
-  "Where are the Product and Category endpoints implemented in the Catalog service?",
-  "Where is ProductResource defined?",
-  "Where is CategoryResource defined?"
+  "Which parts of the legacy system have already been decommissioned in Step-06?",
+  "What is currently implemented in Catalog Service (Step-06 vs Step-05)?",
+  "Which legacy and target components still share database tables or routes?",
+  "What are the top candidates for the next decommissioning step?"
 ];
+
+export const MOCK_EVIDENCES: Record<string, SourceEvidence[]> = {
+  catalog: [
+    {
+      id: "ev-01",
+      repoId: "legacy-example-monolith",
+      repoUrl: "https://github.com/amosproj/legacy-example-monolith",
+      filePath: "src/main/java/com/example/legacy/catalog/CatalogItemResource.java",
+      startLine: 42,
+      endLine: 68,
+      commitSha: "e9f3b12879a834e56c7104b281f6927d3598c11e",
+      status: "decommissioned",
+      snippet: "@Deprecated\n// Replaced by Target Catalog Service v2 in Step-06\n@Path(\"/api/v1/legacy/catalog\")\npublic class CatalogItemResource {\n    // Ingress disabled; routes to Strangler facade\n}",
+      description: "Direct legacy REST endpoint deprecated and traffic routed via API Gateway Strangler proxy."
+    },
+    {
+      id: "ev-02",
+      repoId: "catalog-service-target",
+      repoUrl: "https://github.com/amosproj/catalog-service-target",
+      filePath: "src/catalog/domain/item_service.py",
+      startLine: 18,
+      endLine: 45,
+      commitSha: "a1c72093bf65e4395e1d90a842b1093845cfb74a",
+      status: "migrated",
+      snippet: "class CatalogItemService:\n    \"\"\"Fully handles autonomous inventory and pricing lookups.\"\"\"\n    async def get_item_details(self, item_id: str) -> ItemDTO:\n        return await self.repo.find_by_id(item_id)",
+      description: "Target Microservice implementation now handles read and write operations independently."
+    },
+    {
+      id: "ev-03",
+      repoId: "legacy-example-monolith",
+      repoUrl: "https://github.com/amosproj/legacy-example-monolith",
+      filePath: "src/main/resources/db/migration/V12__legacy_inventory_coupling.sql",
+      startLine: 12,
+      endLine: 24,
+      commitSha: "c40761d4a8efb738129812739182379182739182",
+      status: "coupled",
+      snippet: "-- Shared inventory table still read by OrderProcessingJob\nSELECT item_id, stock_count FROM T_LEGACY_INVENTORY\nWHERE updated_at > :lastRun;",
+      description: "Legacy background batch still queries the shared inventory table, blocking final schema drop."
+    }
+  ]
+};
 
 export const MOCK_ARC42_VIEWS: Arc42ViewMetadata[] = [
   {
