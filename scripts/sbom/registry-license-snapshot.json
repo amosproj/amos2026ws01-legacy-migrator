@@ -1920,6 +1920,24 @@
       "source": "PyPI registry",
       "sourceUrl": "https://pypi.org/pypi/iniconfig/2.3.1/json"
     },
+    "pypi:neo4j@6.4.1": {
+      "artifact": {
+        "filename": "neo4j-6.4.1-py3-none-any.whl",
+        "sha256": "f56a281c74355522fc2642df8919bec450115431531b8f3f6fe1cc17acb57a27",
+        "sha512": "cdb9df0caff5ed290321a6cd845f013dda27a48c8317de0b30605d212fbf3ebbac80e3e8fdb37b629fc947dc7715fb351c675e7c2051081ab6513052af6498c4",
+        "url": "https://files.pythonhosted.org/packages/07/69/3036bdcacfba561c6ef4b00fe72529e0a1b6241a6b2de82572a0940a276b/neo4j-6.4.1-py3-none-any.whl"
+      },
+      "creatorContactChecked": true,
+      "creatorLookupResponseSha256": "88127bff71c45748d9d0ba785cb0905718bcc3dbc5bc02aa894af6581b4e18c9",
+      "creatorLookupUrl": "https://pypi.org/pypi/neo4j/6.4.1/json",
+      "originator": "Neo4j, Inc.",
+      "originatorEmail": "drivers@neo4j.com",
+      "originatorUrl": "https://github.com/neo4j/neo4j-python-driver",
+      "responseSha256": "88127bff71c45748d9d0ba785cb0905718bcc3dbc5bc02aa894af6581b4e18c9",
+      "retrievedAt": "2026-11-25T08:38:15Z",
+      "source": "PyPI registry",
+      "sourceUrl": "https://pypi.org/pypi/neo4j/6.4.1/json"
+    },
     "pypi:networkx@3.7": {
       "artifact": {
         "filename": "networkx-3.7-py3-none-any.whl",
@@ -2059,6 +2077,24 @@
       "retrievedAt": "2026-11-22T22:21:34Z",
       "source": "PyPI registry",
       "sourceUrl": "https://pypi.org/pypi/python-dotenv/1.2.4/json"
+    },
+    "pypi:pytz@2026.6": {
+      "artifact": {
+        "filename": "pytz-2026.6-py2.py3-none-any.whl",
+        "sha256": "7fed3fee8fd6bd4a2b7b75a8d56021d0624127bf69bd5691f115db929ac570b3",
+        "sha512": "741d28cb3f7102df298f758b45bcbd3d68d05215cddf58939421d5385f2b3c8a2b4f93ece1e0f4cd6a5aefa3990cecb69a2695c8890d3bf16e074de4e165b12c",
+        "url": "https://files.pythonhosted.org/packages/b6/25/564f3fc5b70c1398d706c51f2b1470d0ea0b1b2f96fee67877b6f5bdf3b6/pytz-2026.6-py2.py3-none-any.whl"
+      },
+      "creatorContactChecked": true,
+      "creatorLookupResponseSha256": "21ae0b1b7e9cebaf550fd1fed0acc147ec068024e65449e45320e3f9a70ee60e",
+      "creatorLookupUrl": "https://pypi.org/pypi/pytz/2026.6/json",
+      "originator": "Stuart Bishop",
+      "originatorEmail": "stuart@stuartbishop.net",
+      "originatorUrl": "https://github.com/stub42/pytz.git",
+      "responseSha256": "21ae0b1b7e9cebaf550fd1fed0acc147ec068024e65449e45320e3f9a70ee60e",
+      "retrievedAt": "2026-11-25T08:38:15Z",
+      "source": "PyPI registry",
+      "sourceUrl": "https://pypi.org/pypi/pytz/2026.6/json"
     },
     "pypi:pyyaml@6.0.3": {
       "artifact": {
