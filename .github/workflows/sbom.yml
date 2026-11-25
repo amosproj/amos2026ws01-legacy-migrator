@@ -1,0 +1,106 @@
+name: SBOM and legal notices
+on:
+  push:
+    branches:
+      - 112-deliverable-create-mid-project-release-sbom-and-legal-notices
+      - develop
+      - main
+    paths:
+      - 'backend/uv.lock'
+      - 'backend/pyproject.toml'
+      - 'frontend/package-lock.json'
+      - 'frontend/package.json'
+      - 'backend/Dockerfile'
+      - 'frontend/Dockerfile'
+      - 'docker-compose.yml'
+      - 'LICENSE*'
+      - 'LICENSES/**'
+      - 'scripts/sbom/**'
+      - 'scripts/sbom/registry-license-snapshot.json'
+      - 'sbom.spdx.json'
+      - 'Deliverables/sprint-06/sbom.spdx.json'
+      - 'frontend/public/legal/**'
+      - '.github/workflows/sbom.yml'
+      - '.github/workflows/container-images.yml'
+  pull_request:
+    branches:
+      - 112-deliverable-create-mid-project-release-sbom-and-legal-notices
+      - develop
+    paths:
+      - 'backend/uv.lock'
+      - 'backend/pyproject.toml'
+      - 'frontend/package-lock.json'
+      - 'frontend/package.json'
+      - 'backend/Dockerfile'
+      - 'frontend/Dockerfile'
+      - 'docker-compose.yml'
+      - 'LICENSE*'
+      - 'LICENSES/**'
+      - 'scripts/sbom/**'
+      - 'scripts/sbom/registry-license-snapshot.json'
+      - 'sbom.spdx.json'
+      - 'Deliverables/sprint-06/sbom.spdx.json'
+      - 'frontend/public/legal/**'
+      - '.github/workflows/sbom.yml'
+      - '.github/workflows/container-images.yml'
+permissions:
+  contents: read
+jobs:
+  sbom:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: 0.13.9
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+      - name: Install Python 3.12
+        run: uv python install 3.12
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - uses: anchore/sbom-action/download-syft@v0.20.6
+        with:
+          syft-version: v1.57.2
+      - name: Generate SBOM and legal notices
+        run: scripts/sbom/regenerate_sbom.sh --refresh-registry-snapshot
+      - name: Check BSI TR-03183-2 v2.1.0 conformance
+        run: uv tool run --from 'ntia-conformance-checker==6.0.0' sbomcheck -s spdx3 -c bsi sbom.spdx.json
+      - name: Test license expression gate
+        run: python3 -m unittest discover -s scripts/sbom -p 'test_*.py'
+      - name: Enforce permissive dependency licenses
+        run: python3 scripts/sbom/check_licenses.py sbom.spdx.json
+      - name: Upload generated SBOM and evidence snapshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-spdx-3.0.1
+          path: |
+            sbom.spdx.json
+            scripts/sbom/registry-license-snapshot.json
+            frontend/public/legal/THIRD_PARTY_NOTICES.md
+          if-no-files-found: error
+
+  attest-sbom:
+    needs: sbom
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: sbom-spdx-3.0.1
+          path: sbom-artifact
+      - name: Sign SPDX SBOM with GitHub artifact attestations
+        uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4.1.0
+        with:
+          subject-path: sbom-artifact/sbom.spdx.json
+          sbom-path: sbom-artifact/sbom.spdx.json
+          create-storage-record: false
