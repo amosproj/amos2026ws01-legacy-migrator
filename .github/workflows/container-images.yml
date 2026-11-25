@@ -68,7 +68,7 @@ jobs:
 
       - name: Log in to the container registry
         # GITHUB_TOKEN only — no credentials stored in the repository.
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
