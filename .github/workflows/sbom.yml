@@ -98,9 +98,8 @@ jobs:
         with:
           name: sbom-spdx-3.0.1
           path: sbom-artifact
-      - name: Sign SPDX SBOM with GitHub artifact attestations
+      - name: Attest generated SPDX SBOM artifact
         uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4.1.0
         with:
           subject-path: sbom-artifact/sbom.spdx.json
-          sbom-path: sbom-artifact/sbom.spdx.json
           create-storage-record: false
