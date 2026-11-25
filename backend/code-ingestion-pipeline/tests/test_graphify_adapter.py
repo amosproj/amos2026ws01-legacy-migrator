@@ -110,16 +110,14 @@ def test_unparsed_sources_are_reported_without_discarding_extracted_graph(
     assert "legacy-example-monolith" in log
 
 
-def test_html_limit_failure_preserves_json(
-    reference, tmp_path, graphify_api, capsys, cli_persistence, persistence_writer
-):
+def test_html_limit_failure_preserves_json(reference, tmp_path, graphify_api, capsys):
     _, modules = graphify_api
 
     def too_large(*args, **kwargs):
         raise ValueError("Graph too large for HTML viz")
 
     modules["graphify.export"].to_html = too_large
-    code = cli.run_full_ingestion(
+    code = cli.main(
         ["--config", str(reference.config_path), "--output-dir", str(tmp_path / "runs")]
     )
     assert code == 1
@@ -131,4 +129,3 @@ def test_html_limit_failure_preserves_json(
     log = (graph.parent.parent / "extract.log").read_text()
     assert "Traceback" in log
     assert "Graph too large for HTML viz" in log
-    persistence_writer.persist_handoff.assert_not_called()

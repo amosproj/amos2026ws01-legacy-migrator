@@ -17,7 +17,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedStep }) =>
       id: 'welcome-1',
       role: 'assistant',
       content: `Welcome to **SunsetTracker** · Legacy Migration Knowledge Base.
-Ask about the legacy system and its migration. When source evidence is available, its GitHub links appear below the answer.`,
+This system indexes deterministic code facts across **legacy-example-monolith** and target repositories without running untrusted code. Every analysis answer connects directly to GitHub AST observations, commit provenance, and coupling boundaries.
+Select a verified inquiry below or submit a custom question.`,
       timestamp: 'Just now',
       suggestedNextQueries: INITIAL_SUGGESTIONS
     }
@@ -95,6 +96,9 @@ Ask about the legacy system and its migration. When source evidence is available
                   : m
               )
             );
+          },
+          onSources: () => {
+            // Sources arrive before content; evidence is attached on completion.
           },
         },
         controller.signal,

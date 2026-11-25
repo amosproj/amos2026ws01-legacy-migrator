@@ -6,35 +6,28 @@ import json
 import pytest
 from conftest import git, tree_hashes
 
-from migration_assistant import api
 from migration_assistant.adapters.outbound.git.local_git import LocalGitAdapter
 from migration_assistant.adapters.outbound.git.source_loader import load_sources
 from migration_assistant.adapters.outbound.graphify import GraphifyAdapter
 from migration_assistant.adapters.outbound.graphify_relationships import write_relationship_handoff
 from migration_assistant.adapters.outbound.pipeline_storage import LocalPipelineStorage
 from migration_assistant.application.pipeline import PipelineService
-from migration_assistant.application.ports.pipeline import PersistenceWriter
 from migration_assistant.bootstrap import cli
 from migration_assistant.domain.pipeline import PipelineError
 
 
-def service(
-    graph_builder: GraphifyAdapter, persistence_writer: PersistenceWriter
-) -> PipelineService:
+def service(graph_builder):
     return PipelineService(
         git_repo=LocalGitAdapter(),
         source_loader=load_sources,
         graph_builder=graph_builder,
         handoff_writer=write_relationship_handoff,
         storage=LocalPipelineStorage(),
-        persistence_writer=persistence_writer,
     )
 
 
-def test_cli_builds_separate_graphs_without_source_copies(
-    reference, pipeline_cli, tmp_path, persistence_writer
-):
-    code = cli.run_full_ingestion(
+def test_cli_builds_separate_graphs_without_source_copies(reference, pipeline_cli, tmp_path):
+    code = cli.main(
         [
             "--config",
             str(reference.config_path),
@@ -62,29 +55,18 @@ def test_cli_builds_separate_graphs_without_source_copies(
     assert (run / "code-graphs.jsonl").is_file()
     assert (run / "entities.jsonl").is_file()
     assert (run / "relationships.jsonl").is_file()
-    persistence_writer.persist_handoff.assert_called_once()
-    (handoff,) = persistence_writer.persist_handoff.call_args.args
-    assert (
-        handoff.snapshot_id
-        == json.loads((run / "snapshot-identity.json").read_text())["snapshotId"]
-    )
 
 
-def test_empty_selection_does_not_start_graphify(
-    reference, pipeline_cli, tmp_path, persistence_writer
-):
-    pipeline = service(GraphifyAdapter(), persistence_writer)
+def test_empty_selection_does_not_start_graphify(reference, pipeline_cli, tmp_path):
+    pipeline = service(GraphifyAdapter())
     with pytest.raises(PipelineError, match="No source files selected"):
         pipeline.run(reference.config(include=[".missing"]), tmp_path / "empty-run")
     assert pipeline_cli == []
     assert not (tmp_path / "empty-run").exists()
-    persistence_writer.persist_handoff.assert_not_called()
 
 
-def test_component_without_loaded_files_is_skipped(
-    reference, pipeline_cli, tmp_path, persistence_writer
-):
-    result = service(GraphifyAdapter(), persistence_writer).run(
+def test_component_without_loaded_files_is_skipped(reference, pipeline_cli, tmp_path):
+    result = service(GraphifyAdapter()).run(
         reference.config(stage="step-04a", components=[], include=["Dockerfile"]),
         tmp_path / "runs",
     )
@@ -97,13 +79,11 @@ def test_component_without_loaded_files_is_skipped(
 
 def test_cli_rejects_graph_mode():
     with pytest.raises(SystemExit) as error:
-        cli.run_full_ingestion(["--graph-mode", "per-component"])
+        cli.main(["--graph-mode", "per-component"])
     assert error.value.code == 2
 
 
-def test_missing_graphify_is_a_component_error_with_partial_run(
-    reference, tmp_path, monkeypatch, persistence_writer
-):
+def test_missing_graphify_is_a_component_error_with_partial_run(reference, tmp_path, monkeypatch):
     original_import = builtins.__import__
 
     def blocked(name, *args, **kwargs):
@@ -117,7 +97,7 @@ def test_missing_graphify_is_a_component_error_with_partial_run(
     assert load_sources(config, LocalGitAdapter().checkout(config)).counts.loaded == 3
     message = "component 'legacy-example-monolith'.*uv sync"
     with pytest.raises(PipelineError, match=message) as error:
-        service(GraphifyAdapter(), persistence_writer).run(config, tmp_path / "runs")
+        service(GraphifyAdapter()).run(config, tmp_path / "runs")
     (run,) = (tmp_path / "runs").iterdir()
     assert str(run) in str(error.value)
 
@@ -126,20 +106,18 @@ def test_cli_unexpected_error_and_verbose_traceback(reference, pipeline_cli, mon
     def broken(*args, **kwargs):
         raise KeyError("unexpected test failure")
 
-    monkeypatch.setattr(api, "load_sources", broken)
-    assert cli.run_full_ingestion(["--config", str(reference.config_path)]) == 2
+    monkeypatch.setattr(cli, "load_sources", broken)
+    assert cli.main(["--config", str(reference.config_path)]) == 2
     assert "unexpected failure, rerun with --verbose" in capsys.readouterr().err
-    assert cli.run_full_ingestion(["--config", str(reference.config_path), "--verbose"]) == 2
+    assert cli.main(["--config", str(reference.config_path), "--verbose"]) == 2
     assert "KeyError" in capsys.readouterr().err
 
 
-def test_real_graphify_generates_only_minimal_artifacts_and_repeatable_facts(
-    reference, tmp_path, persistence_writer
-):
+def test_real_graphify_generates_only_minimal_artifacts_and_repeatable_facts(reference, tmp_path):
     pytest.importorskip("graphify")
     original_hashes = tree_hashes(reference.source)
     config = reference.config(stage="step-04a", components=[])
-    pipeline = service(GraphifyAdapter(), persistence_writer)
+    pipeline = service(GraphifyAdapter())
 
     first = pipeline.run(config, tmp_path / "runs")
     second = pipeline.run(config, tmp_path / "runs")

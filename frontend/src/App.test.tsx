@@ -3,7 +3,6 @@ import { createRoot } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
 import { checkBackendHealth } from './services/api';
-import { INITIAL_SUGGESTIONS } from './services/mockData';
 
 vi.mock('./services/api', async () => {
   const actual = await vi.importActual<typeof import('./services/api')>('./services/api');
@@ -58,9 +57,8 @@ describe('App', () => {
     expect(container.textContent).toContain('SunsetTracker');
 
     // Click a suggested query to initiate a conversation
-    const firstSuggestion = INITIAL_SUGGESTIONS[0];
-    const suggestionBtn = Array.from(container.querySelectorAll('button')).find(
-      (btn) => btn.textContent?.includes(firstSuggestion),
+    const suggestionBtn = Array.from(container.querySelectorAll('button')).find((btn) =>
+      btn.textContent?.includes('Which parts of the legacy system')
     );
     expect(suggestionBtn).toBeDefined();
     act(() => {
@@ -69,7 +67,7 @@ describe('App', () => {
     await flushEffects();
 
     // Verify user inquiry is now part of the conversation
-    expect(container.textContent).toContain(firstSuggestion);
+    expect(container.textContent).toContain('Which parts of the legacy system');
 
     // Navigate to Git Comparisons tab
     const diffTab = Array.from(container.querySelectorAll('button')).find(
@@ -86,7 +84,7 @@ describe('App', () => {
     await flushEffects();
 
     // The chat history must still be preserved, not wiped!
-    expect(container.textContent).toContain(firstSuggestion);
+    expect(container.textContent).toContain('Which parts of the legacy system');
     act(() => root.unmount());
   });
 });

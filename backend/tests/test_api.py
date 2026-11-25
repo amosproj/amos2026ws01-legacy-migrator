@@ -1,7 +1,7 @@
 """Pytest coverage for the query API request/response contract (tickets #24/#25)."""
 
 import json
-from collections.abc import AsyncIterator, Sequence
+from collections.abc import AsyncIterator
 
 import pytest
 from fastapi.testclient import TestClient
@@ -9,7 +9,6 @@ from fastapi.testclient import TestClient
 from app.llm import LlmError
 from app.main import app
 from app.query_service import LlmQueryService
-from app.source_fragments import SourceFragment
 
 
 @pytest.fixture(autouse=True)
@@ -18,7 +17,6 @@ def _mock_llm_environment(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("LLM_BASE_URL", raising=False)
     monkeypatch.delenv("LLM_NAME", raising=False)
     monkeypatch.delenv("LLM_API_KEY", raising=False)
-    monkeypatch.delenv("GRAPH_RUN_DIR", raising=False)
 
 
 def _parse_events(response) -> list[dict]:
@@ -91,8 +89,7 @@ def test_chat_passes_query_to_query_service() -> None:
         def sources(self) -> list[str]:
             return ["test:source"]
 
-        def stream_answer(self, query: str, *, evidence: Sequence[SourceFragment] = ()):
-            assert not evidence
+        def stream_answer(self, query: str):
             calls.append(query)
 
             async def stream():
@@ -142,9 +139,7 @@ def test_chat_maps_llm_abort_error_to_actionable_gateway_error() -> None:
         def sources(self) -> list[str]:
             return []
 
-        def stream_answer(
-            self, query: str, *, evidence: Sequence[SourceFragment] = ()
-        ) -> AsyncIterator[str]:
+        def stream_answer(self, query: str) -> AsyncIterator[str]:
             async def stream() -> AsyncIterator[str]:
                 raise LlmError("signal is aborted without reason")
                 yield ""

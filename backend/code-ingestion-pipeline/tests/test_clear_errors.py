@@ -111,7 +111,7 @@ def test_dirty_component_in_workspace_is_refused(reference):
 
 
 def test_cli_success_returns_zero(reference, capsys):
-    code = cli.run_full_ingestion(["--config", str(reference.config_path)])
+    code = cli.main(["--config", str(reference.config_path)])
 
     captured = capsys.readouterr()
     assert code == 0
@@ -121,7 +121,7 @@ def test_cli_success_returns_zero(reference, capsys):
 
 
 def test_cli_error_is_a_single_line_with_exit_code_one(reference, capsys):
-    code = cli.run_full_ingestion(["--config", str(reference.config_path), "--stage", "step-99"])
+    code = cli.main(["--config", str(reference.config_path), "--stage", "step-99"])
 
     captured = capsys.readouterr()
     assert code == 1
@@ -132,7 +132,7 @@ def test_cli_error_is_a_single_line_with_exit_code_one(reference, capsys):
 
 
 def test_cli_missing_config_is_a_single_error_line(tmp_path, capsys):
-    code = cli.run_full_ingestion(["--config", str(tmp_path / "does-not-exist.yaml")])
+    code = cli.main(["--config", str(tmp_path / "does-not-exist.yaml")])
 
     lines = capsys.readouterr().err.splitlines()
     assert code == 1
@@ -146,7 +146,7 @@ def test_cli_uses_local_override_file_when_present(reference, tmp_path, monkeypa
     )
     monkeypatch.chdir(tmp_path)
 
-    code = cli.run_full_ingestion([])
+    code = cli.main([])
 
     out = capsys.readouterr().out
     assert code == 0
@@ -154,7 +154,7 @@ def test_cli_uses_local_override_file_when_present(reference, tmp_path, monkeypa
 
 
 def test_cli_override_stage_04a(reference, capsys):
-    code = cli.run_full_ingestion(["--config", str(reference.config_path), "--stage", "step-04a"])
+    code = cli.main(["--config", str(reference.config_path), "--stage", "step-04a"])
 
     assert code == 0
     assert "stage: step-04a" in capsys.readouterr().out
@@ -171,7 +171,7 @@ def test_cli_output_locations_are_developer_controlled(reference, capsys, monkey
 
     monkeypatch.setattr(subprocess, "run", without_git_path_checks)
 
-    code = cli.run_full_ingestion(
+    code = cli.main(
         ["--config", str(reference.config_path), "--out", str(out), "--output-dir", str(output)]
     )
 
@@ -184,7 +184,7 @@ def test_cli_output_locations_are_developer_controlled(reference, capsys, monkey
 def test_cli_writes_jsonl_with_camel_case(reference, tmp_path, capsys):
     out = tmp_path / "out" / "files.jsonl"
 
-    code = cli.run_full_ingestion(["--config", str(reference.config_path), "--out", str(out)])
+    code = cli.main(["--config", str(reference.config_path), "--out", str(out)])
 
     import json
 
@@ -211,7 +211,7 @@ def test_cli_component_selection(reference, tmp_path, capsys, selection, overrid
     if override:
         args.extend(["--components", "catalog-service"])
 
-    code = cli.run_full_ingestion(args)
+    code = cli.main(args)
 
     captured = capsys.readouterr()
     assert code == 0, captured.err

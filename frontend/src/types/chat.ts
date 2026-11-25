@@ -6,15 +6,16 @@ export type ComponentMigrationStatus =
   | 'target_in_progress';
 
 export interface SourceEvidence {
-  position: {
-    repoId: string;
-    path: string;
-    commitSha: string;
-    startLine: number;
-    endLine: number;
-  };
-  githubUrl: string;
-  fragment: string;
+  id: string;
+  repoId: string;
+  repoUrl: string;
+  filePath: string;
+  startLine?: number;
+  endLine?: number;
+  commitSha: string;
+  status: ComponentMigrationStatus;
+  snippet?: string;
+  description: string;
 }
 
 export interface ChatMessage {
