@@ -1,0 +1,78 @@
+Title	URL	Assignees	Status	Estimated size	Real size	Labels	Milestone
+Document the Acceptance Run	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/40		Product Backlog			Ready for next Sprint	
+Validate Expected System Architecture Against Actual Implementation	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/130		Product Backlog			Ready for next Sprint	
+Test Direct Access to Generated Code Graph	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/29		Product Backlog			question	
+Implement First Migration-Status Query	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/54		Product Backlog			question	
+Answer the Initial Acceptance Question Set	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/36		Product Backlog			question	
+Track Legacy, Migrated, and Replaced Components	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/37		Product Backlog			question	
+Separate Ingestion from LLM-Based Comprehension	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/39		Product Backlog			question	
+Research: Refactoring	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/138	nudelisidle	Sprint Backlog	8		Ready for next Sprint	Sprint 7
+Clone and reuse the reference repositories in Docker for fresh ingestion	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/148	nudelisidle	Sprint Backlog	5		docker, enhancement	Sprint 7
+Research: Compare Different Migration Stages	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/131	RaihanFAU	Sprint Backlog	5		Ready for next Sprint	Sprint 7
+Research: Handle Unsupported Migration Questions	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/35	AdriansRubins	Sprint Backlog	5		Ready for next Sprint	Sprint 7
+Establish Migration Questions as Acceptance-Test Baseline	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/31		Sprint Backlog	5		Ready for next Sprint	Sprint 7
+Derive full line ranges for functions and methods in graph entities	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/116	AdriansRubins, nudelisidle	In Progress	3		enhancement	Sprint 7
+Repository Sync on Frontend between Tabs	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/97	ppohlitze	In Progress	3		enhancement, good first issue, Ready for next Sprint	Sprint 7
+Deliverable: Create User Documentation	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/109	ppohlitze	Feature Archive	3	2	documentation, enhancement	Sprint 6
+Generate Answer from Graph Result	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/26		Feature Archive			duplicate	
+Deliverable: Prepare Mid-Project Review Demonstration	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/113	Josefinafr, nudelisidle	Feature Archive	2	2	help wanted, Ready for next Sprint	Sprint 6
+Deliverable: Create Mid-Project Release SBOM and Legal Notices	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/112	AdriansRubins, RaihanFAU	Feature Archive	3	3	documentation, Ready for next Sprint	Sprint 6
+Persist Source Evidence with Extracted Facts	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/53		Feature Archive			duplicate	
+Persist Code Knowledge in Graph	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/22	ppohlitze	Feature Archive	5		duplicate, question	
+Provide a Reproducible Local Development Setup	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/38		Feature Archive			duplicate	
+111 deliverable create build and deployment documentation	https://github.com/amosproj/amos2026ws01-legacy-migrator/pull/129	AdriansRubins	Feature Archive			documentation	Sprint 6
+Hotfix/symbols have same	https://github.com/amosproj/amos2026ws01-legacy-migrator/pull/123	AdriansRubins	Feature Archive			bug	
+Create Build Process Demonstration Video	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/98	3liAf, RaihanFAU	Feature Archive	2	3	documentation	Sprint 5
+Finalize #20 (relationships) as the ingestion fact baseline	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/92	AdriansRubins, nudelisidle	Feature Archive	3	3	documentation, enhancement	Sprint 5
+Unify the source-span contract across ingestion, graph schema and queries	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/91	AdriansRubins, nudelisidle	Feature Archive	3	3	documentation, enhancement	Sprint 5
+Define Initial Graph Schema	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/78	RafaelMcMarques	Feature Archive	3	2	research	Sprint 5
+Align the initial graph schema with the merged fact layer (#20)	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/93	nudelisidle, RafaelMcMarques	Feature Archive	5	5	enhancement	Sprint 5
+Review and Refine Existing Frontend Test CI Workflow	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/79	3liAf	Feature Archive	3	3	enhancement	Sprint 5
+Set Up Backend Test and Build CI Workflow	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/80	ppohlitze	Feature Archive	5	3	enhancement	Sprint 5
+Set Up Container Image Build and Publish CI Workflow	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/82	nudelisidle	Feature Archive	3	3	enhancement	Sprint 5
+Implement Initial Graph Schema	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/21	RaihanFAU	Feature Archive	8		duplicate	Sprint 4
+Extract Code Entities	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/19	3liAf	Feature Archive	5		duplicate, wontfix	Sprint 4
+Implement Basic Graph Query	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/23	3liAf	Feature Archive	3	5	duplicate	Sprint 4
+Implement Deterministic Reference-System Ingestion	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/52	nudelisidle, RafaelMcMarques	Feature Archive	8		duplicate, enhancement	
+feat(graph): implement basic graph queries and in-memory store (#23)	https://github.com/amosproj/amos2026ws01-legacy-migrator/pull/85	3liAf	Feature Archive			duplicate, enhancement	Sprint 4
+Extract Code Relationships	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/20	AdriansRubins	Feature Archive	5	5	documentation, enhancement	Sprint 4
+91 unify the source span contract across ingestion graph schema and queries	https://github.com/amosproj/amos2026ws01-legacy-migrator/pull/106	AdriansRubins	Feature Archive			documentation, enhancement	Sprint 5
+Research Graph Schema Requirements	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/77	RafaelMcMarques	Feature Archive	3	5	research	Sprint 4
+Deliverable: Create Build and Deployment Documentation	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/111	AdriansRubins	Feature Archive	2	2	documentation, Ready for next Sprint	Sprint 6
+Deliverable: Create Technical Design Documentation	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/110	nudelisidle	Feature Archive	2	2	documentation, help wanted, Ready for next Sprint	Sprint 6
+Bug: Chat History Is Lost When Switching Between Tabs	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/83	3liAf	Feature Archive		3	Ready for next Sprint	Sprint 4
+Implementation LLM Provider Interface	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/25	nudelisidle	Feature Archive	3	3	enhancement	sprint-3
+Implementation Existing Code Parser	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/18	RafaelMcMarques	Feature Archive	5	3	enhancement	sprint-3
+Implement Plaintext Source Code Ingestion and Retrieval	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/67	nudelisidle	Feature Archive	5	5	Ready for next Sprint	Sprint 6
+Connect Query Interface to Backend	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/28	3liAf, AdriansRubins, nudelisidle	Feature Archive		5	enhancement	sprint-3
+Graph related contracts consolidation	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/99		Feature Archive			Ready for next Sprint	Sprint 6
+Create Basic Query Interface	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/27	3liAf, AdriansRubins	Feature Archive	5	5	enhancement	sprint-3
+Create Backend Query API	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/24	nudelisidle	Feature Archive	5	3	enhancement	sprint-3
+Persist the canonical facts into the graph storage	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/94	RafaelMcMarques	Feature Archive	3	5	Ready for next Sprint	Sprint 6
+Load Reference Repository	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/17	nudelisidle, RafaelMcMarques, RaihanFAU	Feature Archive	3	5	enhancement	sprint-2
+Wire graph query results into the source fragment service (#67)	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/96	3liAf, nudelisidle	Feature Archive	3	3	Ready for next Sprint	Sprint 6
+Switch graph query results from hand-seeded store to loaded facts and typed spans	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/95	3liAf, nudelisidle, RaihanFAU	Feature Archive	3	3	Ready for next Sprint	Sprint 6
+Validate the Catalog Service Migration from Step-05 to Step-06	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/33	ppohlitze	Feature Archive	5	5	enhancement	sprint-2
+Select and design the synthetic reference system	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/4	AdriansRubins, nudelisidle	Feature Archive	5	5	good first issue, research	sprint-2
+Research existing code-analysis and code-to-graph tooling	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/5	RafaelMcMarques, RaihanFAU	Feature Archive	5	5	good first issue	sprint-2
+Research arc42 view rendering options	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/7	3liAf, AdriansRubins	Feature Archive	5	5	documentation, good first issue, research	sprint-2
+Document open technical decisions and evaluation criteria	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/6	ppohlitze	Feature Archive	3	3		sprint-2
+Select and design the synthetic reference system	https://github.com/amosproj/amos2026ws01-legacy-migrator/pull/43	AdriansRubins	Feature Archive			documentation, research	sprint-2
+27 create basic query interface	https://github.com/amosproj/amos2026ws01-legacy-migrator/pull/68		Feature Archive				sprint-3
+added doc with open technical and architectural decisions	https://github.com/amosproj/amos2026ws01-legacy-migrator/pull/47		Feature Archive			documentation	
+Research arc42 view rendering options	https://github.com/amosproj/amos2026ws01-legacy-migrator/pull/41	3liAf, AdriansRubins	Feature Archive			documentation, research	sprint-2
+feat(ingestion): emit canonical relationship facts from Graphify	https://github.com/amosproj/amos2026ws01-legacy-migrator/pull/88	AdriansRubins	Feature Archive			enhancement	Sprint 4
+docs(issue-5): research code-analysis and code-to-graph tools	https://github.com/amosproj/amos2026ws01-legacy-migrator/pull/46		Feature Archive			documentation, research	
+docs(architecture): create standardized architecture deliverable, reorganize docs	https://github.com/amosproj/amos2026ws01-legacy-migrator/pull/45	AdriansRubins, nudelisidle	Feature Archive			documentation, research	sprint-2
+select and design the synthetic reference system	https://github.com/amosproj/amos2026ws01-legacy-migrator/pull/42	AdriansRubins	Feature Archive			documentation, research	sprint-2
+feat: vertical slice — backend query API, LLM provider, and query interface (#24, #25, #27, #28)	https://github.com/amosproj/amos2026ws01-legacy-migrator/pull/64	3liAf, AdriansRubins, nudelisidle	Feature Archive			enhancement	sprint-3
+Research existing code analysis and code to graph tooling	https://github.com/amosproj/amos2026ws01-legacy-migrator/pull/44	AdriansRubins	Feature Archive			documentation, research	sprint-2
+Create basic query interface	https://github.com/amosproj/amos2026ws01-legacy-migrator/pull/62	AdriansRubins	Feature Archive			enhancement	sprint-3
+add backend test, lint, typecheck, and startup workflow	https://github.com/amosproj/amos2026ws01-legacy-migrator/pull/108		Feature Archive			enhancement	
+feat(graph): typed step-06 catalog symbol query (#95)	https://github.com/amosproj/amos2026ws01-legacy-migrator/pull/125	RaihanFAU	Feature Archive				Sprint 6
+109 user documentation	https://github.com/amosproj/amos2026ws01-legacy-migrator/pull/127		Feature Archive			documentation	
+Provide Source Evidence for Generated Answers	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/34		Feature Archive			duplicate	
+Integrate SBOM Regeneration into CI	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/81		Feature Archive			duplicate	
+Clarify Licensing Constraints for Candidate Tools	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/30		Feature Archive			duplicate	
+Align Entity and Relationship Representations Across the Ingestion Pipeline	https://github.com/amosproj/amos2026ws01-legacy-migrator/issues/102		Feature Archive			duplicate	
+Add generated SBOM, legal notices, and CI checks	https://github.com/amosproj/amos2026ws01-legacy-migrator/pull/124	AdriansRubins	Feature Archive			enhancement, help wanted	Sprint 6
