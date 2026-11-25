@@ -2,7 +2,6 @@ name: SBOM and legal notices
 on:
   push:
     branches:
-      - 112-deliverable-create-mid-project-release-sbom-and-legal-notices
       - develop
       - main
     paths:
@@ -24,8 +23,8 @@ on:
       - '.github/workflows/container-images.yml'
   pull_request:
     branches:
-      - 112-deliverable-create-mid-project-release-sbom-and-legal-notices
       - develop
+      - main
     paths:
       - 'backend/uv.lock'
       - 'backend/pyproject.toml'
