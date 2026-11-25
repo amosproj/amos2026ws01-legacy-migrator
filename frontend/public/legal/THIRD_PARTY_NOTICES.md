@@ -51,7 +51,7 @@ Generated from `sbom.spdx.json` and locked package metadata. Review license term
 | @types/react | 19.3.0 | MIT | locked package metadata; artifact=https://registry.npmjs.org/@types/react/-/react-19.3.0.tgz; sha512=374ac50ae1fd628c46f7f9bad65f4c7e924a7e62ce554d1e9bb8a9233e9346049292f45e2c1f6f2fce4607ecabf01b3995eaa9be0f7a252c05e194b5b38be242 |
 | @types/trusted-types | 2.0.7 | MIT | locked package metadata; artifact=https://registry.npmjs.org/@types/trusted-types/-/trusted-types-2.0.7.tgz; sha512=49c68f767d5d41cce06e5d101537933a65471542eddfde17260390368c95859eabdaf2e730b25f04f779dd2079d93ff71b7e95235fe0d8c65a5f47300ee5ec7f |
 | @upsetjs/venn.js | 2.0.0 | MIT | locked package metadata; artifact=https://registry.npmjs.org/@upsetjs/venn.js/-/venn.js-2.0.0.tgz; sha512=59b0612eba28c9e3ee435559c6b263b4bbd37383557e93b22b1d2c2aa8a8abd6d7d42d66ec98329249fc80baedc2e9818a85c8a9a9bc0cbc69f3c01d6ee7ba1f |
-| amos-sunset-tracker-frontend | 0.1.0 | MIT | repository LICENSE; artifact=https://github.com/amosproj/amos2026ws01-legacy-migrator; sha512=d2cd84eb5c8763ca92776e11609142247a202736e85403802d0bbe8413d90468e3dbd37541b67e84499916032673137ef41fe7ff637d0500b37978a266adb2a9 |
+| amos-sunset-tracker-frontend | 0.1.0 | MIT | repository LICENSE; artifact=https://github.com/amosproj/amos2026ws01-legacy-migrator; sha512=2e9d5cea1a5e7a5ea43c76930ac8df8aea22d36fa20f47c77e5338ceeeacf616cccfbbc1831f9fe2c3aa678b3a4f8700ffd9f941fa6cd28355a633986f14567a |
 | annotated-doc | 0.0.5 | MIT | locked package metadata; artifact=https://files.pythonhosted.org/packages/3e/30/e900b21425a860e195f32e37657aa1f7c7f2b1bfb26f03ca209b90933c06/annotated_doc-0.0.5-py3-none-any.whl; sha512=ca04c60a3567f2f13ca2b30520ec89e9babeab0a6c58d490b02cb91e2aaffcb72e1a379a42848e44a254e332713cf791c2840360f05ce6b50ed58145911fc777 |
 | annotated-types | 0.8.0 | MIT | locked package metadata; artifact=https://files.pythonhosted.org/packages/99/91/8acff4f5e50511b911bbccb72b8628a49c68ce14148cd9f6431094859a90/annotated_types-0.8.0-py3-none-any.whl; sha512=7ac6e108608d60de7b6980f87c3321777b82903f12b32409fc997d638711684ce9d8b800c8e1be7b86edf983fc8e70d032413fb0b622b7b2e49df27724833490 |
 | anyio | 4.16.0 | MIT | locked package metadata; artifact=https://files.pythonhosted.org/packages/a9/16/7757fb84c819accc7d7e9af5291b261e4abb8627ee040f99e7d35ef2457a/anyio-4.16.0-py3-none-any.whl; sha512=b9fe53eb451b16c1e8cc924ec401678dc9a5f08dd4b3feba2f966883163b10a9fdf2724c3ed2ac4405bfbe24f3fe1af7ccac758c81036c0750fccc8816bab97d |
@@ -126,6 +126,7 @@ Generated from `sbom.spdx.json` and locked package metadata. Review license term
 | lucide-react | 1.66.0 | ISC | locked package metadata; artifact=https://registry.npmjs.org/lucide-react/-/lucide-react-1.66.0.tgz; sha512=f338db8bf52cf844d7a9f07099717f147ad6188a8e744eb34f5c9475124b415a29b68992901d3374559520cebaeedf4af1d8d60da5dd90192a8b6a954ee0cd8b |
 | marked | 16.4.2 | MIT | locked package metadata; artifact=https://registry.npmjs.org/marked/-/marked-16.4.2.tgz; sha512=4c8dd5f18616be455fdca25ed5d464a678ecebc2543f211ae6f8caae9d5710425400e69073e423f8bd6a59b3ddd1226e01d424154d21ef7b175eac03631b220c |
 | mermaid | 12.2.0 | MIT | locked package metadata; artifact=https://registry.npmjs.org/mermaid/-/mermaid-12.2.0.tgz; sha512=c3b9ebfd216b2ceec16954ecddd413bd8495ea7612063d18cbd0e3061b0826d01c1ea4735d2ab83e0df6ba31d9fc0756b0030d12fbe16e6e5db7d136b4e887cf |
+| neo4j | 6.4.1 | Apache-2.0 AND Python-2.0 | locked package metadata; artifact=https://files.pythonhosted.org/packages/07/69/3036bdcacfba561c6ef4b00fe72529e0a1b6241a6b2de82572a0940a276b/neo4j-6.4.1-py3-none-any.whl; sha512=cdb9df0caff5ed290321a6cd845f013dda27a48c8317de0b30605d212fbf3ebbac80e3e8fdb37b629fc947dc7715fb351c675e7c2051081ab6513052af6498c4 |
 | networkx | 3.7 | BSD-3-Clause | locked package metadata; artifact=https://files.pythonhosted.org/packages/7e/cd/fe58041e9011f307c490e3e17dd48cc516448f7c698a3f2d9d9d65d7e6a8/networkx-3.7-py3-none-any.whl; sha512=5a39558d1b90afae855db7f0fe6c201c230fb1a2faa0e5a7b6d4bd09d7126aa05c7bfd5a49eb9a7d4233c81553d030c809485ada7ec82a4f819adb867bde399c |
 | numpy | 2.5.4 | BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0 | locked package metadata; artifact=https://files.pythonhosted.org/packages/dc/96/8319e2457ae4333c62c815c7006b869a4f60985c1e01024c2f8c6c040fe5/numpy-2.5.4-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl; sha512=e07263861064a6048d9cc7779be8c8c7ec6550812df78a7316b9d11fab98a1e844242f378ce93fd3e07dc6b780fe78f6f51e6f3f03a2e14701cbf836fbb4fdf1 |
 | package-manager-detector | 1.9.0 | MIT | locked package metadata; artifact=https://registry.npmjs.org/package-manager-detector/-/package-manager-detector-1.9.0.tgz; sha512=cc031f6ed6bd9cf03c00a900e167663404fc47cb3a0e4d3fc703eca8d9d189d30570ba356242ee3c34e0b367fae177734bcbdb2cd9e827eb9422481bcfba111c |
@@ -135,6 +136,7 @@ Generated from `sbom.spdx.json` and locked package metadata. Review license term
 | pydantic | 2.14.2 | MIT | locked package metadata; artifact=https://files.pythonhosted.org/packages/97/01/c71a71258b58659c72504e5fd65b451f6e36e34dc931d0b237ded213c814/pydantic-2.14.2-py3-none-any.whl; sha512=8f162d46cb26ce92cbd06924db22bd3b81d0192d8f4ff4c8faa391a3703b6a036d10269a5765086b748f783f6451e3d6f9418e04b26eac6acb892b418be5bfe4 |
 | pydantic-core | 2.50.2 | MIT | locked package metadata; artifact=https://files.pythonhosted.org/packages/62/d3/24147a1aa22f7eade546172750e1110fd7b2793998057809800d3ebeae4e/pydantic_core-2.50.2-cp312-cp312-manylinux1_i686.manylinux_2_5_i686.whl; sha512=30032b55fbdce3bec8d59bd149195902d7c68a6f50942fec532343d99ce26d17757e2e86f7834f57ee91416e0e5c463625582ac8ee05bb2c8bf92c33ff5ea6f4 |
 | python-dotenv | 1.2.4 | BSD-3-Clause | locked package metadata; artifact=https://files.pythonhosted.org/packages/60/d1/38f3a3405989a89ac18390803e70c6ad7c7760da4f9b83cbeca0c44a0c72/python_dotenv-1.2.4-py3-none-any.whl; sha512=af1a9b99a6bcd2258ebb6884e04069011fdab95fcc9c229eb7d3f69b25b07c46cec47d09ffd9761e9eca57bd47152fa207bc69fbf1609e9bfcb5667c22bfc313 |
+| pytz | 2026.6 | MIT | locked package metadata; artifact=https://files.pythonhosted.org/packages/b6/25/564f3fc5b70c1398d706c51f2b1470d0ea0b1b2f96fee67877b6f5bdf3b6/pytz-2026.6-py2.py3-none-any.whl; sha512=741d28cb3f7102df298f758b45bcbd3d68d05215cddf58939421d5385f2b3c8a2b4f93ece1e0f4cd6a5aefa3990cecb69a2695c8890d3bf16e074de4e165b12c |
 | pyyaml | 6.0.3 | MIT | locked package metadata; artifact=https://files.pythonhosted.org/packages/ed/23/7a778b6bd0b9a8039df8b1b1d80e2e2ad78aa04171592c8a5c43a56a6af4/pyyaml-6.0.3-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl; sha512=79b650fe01f9936d4e5c25828d25950ae60fcc0d775c711f16a9329abe7d7e45335414b5991c0af7ef94ae8b090de5a2b6facdfb67dbed0c4330901b46bb9466 |
 | rapidfuzz | 3.14.6 | MIT | locked package metadata; artifact=https://files.pythonhosted.org/packages/39/e9/0794043c1a0af09cacdbb6a9e8b9b2079cdf73337e7c29b4a9f117415bb9/rapidfuzz-3.14.6-cp312-cp312-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl; sha512=d15ccf2efaeacf87dbfb1f65d0f91c8e238f281fe87ec6578c5b35b86ec9b624a33518e84fabceaf899b119358837ba055811e07883d6d06503b09b85a4fa4b5 |
 | react | 19.3.1 | MIT | locked package metadata; artifact=https://registry.npmjs.org/react/-/react-19.3.1.tgz; sha512=40d85676dee7ae05565901b9f10b86b004778efdc76dee266f8bf3ef0d9cb271dabdc89926075ad423cd6a5745e9e571bfdd2e7778d45e92a51cbebd80edfccb |
@@ -146,8 +148,8 @@ Generated from `sbom.spdx.json` and locked package metadata. Review license term
 | scheduler | 0.28.0 | MIT | locked package metadata; artifact=https://registry.npmjs.org/scheduler/-/scheduler-0.28.0.tgz; sha512=8eea2b7c2988908c3cb53fa9e415d29ba3c98d017fc9c11898acb3511088b7f45a64884bf8fba56d0f58bb6cf51dd3890dda834e5c40d7ec4a0661d726c73303 |
 | starlette | 1.10.0 | BSD-3-Clause | locked package metadata; artifact=https://files.pythonhosted.org/packages/88/2e/947cfe02def9371c07cd5bf5b6b61c829e9aecb9904db02a66cfafbc1eec/starlette-1.10.0-py3-none-any.whl; sha512=443243c69b62ce227da196538bea655b374c141e2ef037ca49f875ceebdf98c107515e1453dfab8092b6aeecb6af31e3638cef2b2a15d0dff350a6a0194a69d9 |
 | stylis | 4.4.0 | MIT | locked package metadata; artifact=https://registry.npmjs.org/stylis/-/stylis-4.4.0.tgz; sha512=e59f59a51cdfb87ea5fd402f08f00f528dfaeb9364db02da654df1f932c7295cc8cf7dfeb1b26a6edad8a02dca0f8fee54eaf6669f8bd0bc927b33fd38757dc8 |
-| SunsetTracker | 0.1.0 | MIT | repository LICENSE; artifact=https://github.com/amosproj/amos2026ws01-legacy-migrator; sha512=964526db1311a64a52c59a8de6d5b3c1ec358c1da41e1d045dd4d39ead50684ee7bbc463092c779649c347657fca05fed3d8753382c726b72c82a4a75c1d73d7 |
-| sunsettracker-backend | 0.1.0 | MIT | repository LICENSE; artifact=https://github.com/amosproj/amos2026ws01-legacy-migrator; sha512=8014a7c82d7c81ce754d65b3b4903732c6031a1388ebe73357f6ae86e73b1eb10b7fe7b5c4b003e26f41638646c696cf405382839893a7f0815b19da3913f9d2 |
+| SunsetTracker | 0.1.0 | MIT | repository LICENSE; artifact=https://github.com/amosproj/amos2026ws01-legacy-migrator; sha512=65833ebd9eacc564728731cfa497a2447c700789a71ef708dbb48aa8f8bcb3c99cf87acb1dd0a53316d16cf196bbb661bd24460caa771961fd0bdf43ec05ad58 |
+| sunsettracker-backend | 0.1.0 | MIT | repository LICENSE; artifact=https://github.com/amosproj/amos2026ws01-legacy-migrator; sha512=67d0a7858693a40c1230e7a0ef8101eacdb6417206f747dc25ea8b1e8cc8ceb6e4df24de788e433dbe1ea7059389db62c28df968979188173661b83ab86c6b80 |
 | tinyexec | 1.3.1 | MIT | locked package metadata; artifact=https://registry.npmjs.org/tinyexec/-/tinyexec-1.3.1.tgz; sha512=182bc1ddaa32b3de88b8314131c4c1e3a24e47a99d32d013a2ac225bc2655a1b288759a11e2ff19fdb2cfc383b379e791a227212ddaace81bf3470b033a87510 |
 | tree-sitter | 0.25.2 | MIT | locked package metadata; artifact=https://files.pythonhosted.org/packages/47/8a/d48c0414db19307b0fb3bb10d76a3a0cbe275bb293f145ee7fba2abd668e/tree_sitter-0.25.2-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl; sha512=77b9199ac4b8dc04fdb196a278078889ded580157e5fd1d21fe4fd784e911de2890f837ac3971140abf59bfa8fa99014a8609c84c11074780d0dd67e47b37cdd |
 | tree-sitter-bash | 0.25.1 | MIT | locked package metadata; artifact=https://files.pythonhosted.org/packages/25/f0/1bb25519be27460255d3899db677313cfa1e6306988fbf456a3d7e211bbb/tree_sitter_bash-0.25.1-cp310-abi3-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl; sha512=341c213a2d3bd2873158946b6a3096411ac7c16fa994da0a79f8c4c0a29957ccc592df3c61e92fee00177efa6403f885d157f9584e9f98e805a788dc8d85ce47 |
@@ -4876,6 +4878,290 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
+### neo4j 6.4.1 — LICENSE.APACHE2.txt
+
+```text
+
+                                 Apache License
+                           Version 2.0, January 2004
+                        https://www.apache.org/licenses/
+
+   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
+
+   1. Definitions.
+
+      "License" shall mean the terms and conditions for use, reproduction,
+      and distribution as defined by Sections 1 through 9 of this document.
+
+      "Licensor" shall mean the copyright owner or entity authorized by
+      the copyright owner that is granting the License.
+
+      "Legal Entity" shall mean the union of the acting entity and all
+      other entities that control, are controlled by, or are under common
+      control with that entity. For the purposes of this definition,
+      "control" means (i) the power, direct or indirect, to cause the
+      direction or management of such entity, whether by contract or
+      otherwise, or (ii) ownership of fifty percent (50%) or more of the
+      outstanding shares, or (iii) beneficial ownership of such entity.
+
+      "You" (or "Your") shall mean an individual or Legal Entity
+      exercising permissions granted by this License.
+
+      "Source" form shall mean the preferred form for making modifications,
+      including but not limited to software source code, documentation
+      source, and configuration files.
+
+      "Object" form shall mean any form resulting from mechanical
+      transformation or translation of a Source form, including but
+      not limited to compiled object code, generated documentation,
+      and conversions to other media types.
+
+      "Work" shall mean the work of authorship, whether in Source or
+      Object form, made available under the License, as indicated by a
+      copyright notice that is included in or attached to the work
+      (an example is provided in the Appendix below).
+
+      "Derivative Works" shall mean any work, whether in Source or Object
+      form, that is based on (or derived from) the Work and for which the
+      editorial revisions, annotations, elaborations, or other modifications
+      represent, as a whole, an original work of authorship. For the purposes
+      of this License, Derivative Works shall not include works that remain
+      separable from, or merely link (or bind by name) to the interfaces of,
+      the Work and Derivative Works thereof.
+
+      "Contribution" shall mean any work of authorship, including
+      the original version of the Work and any modifications or additions
+      to that Work or Derivative Works thereof, that is intentionally
+      submitted to Licensor for inclusion in the Work by the copyright owner
+      or by an individual or Legal Entity authorized to submit on behalf of
+      the copyright owner. For the purposes of this definition, "submitted"
+      means any form of electronic, verbal, or written communication sent
+      to the Licensor or its representatives, including but not limited to
+      communication on electronic mailing lists, source code control systems,
+      and issue tracking systems that are managed by, or on behalf of, the
+      Licensor for the purpose of discussing and improving the Work, but
+      excluding communication that is conspicuously marked or otherwise
+      designated in writing by the copyright owner as "Not a Contribution."
+
+      "Contributor" shall mean Licensor and any individual or Legal Entity
+      on behalf of whom a Contribution has been received by Licensor and
+      subsequently incorporated within the Work.
+
+   2. Grant of Copyright License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      copyright license to reproduce, prepare Derivative Works of,
+      publicly display, publicly perform, sublicense, and distribute the
+      Work and such Derivative Works in Source or Object form.
+
+   3. Grant of Patent License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      (except as stated in this section) patent license to make, have made,
+      use, offer to sell, sell, import, and otherwise transfer the Work,
+      where such license applies only to those patent claims licensable
+      by such Contributor that are necessarily infringed by their
+      Contribution(s) alone or by combination of their Contribution(s)
+      with the Work to which such Contribution(s) was submitted. If You
+      institute patent litigation against any entity (including a
+      cross-claim or counterclaim in a lawsuit) alleging that the Work
+      or a Contribution incorporated within the Work constitutes direct
+      or contributory patent infringement, then any patent licenses
+      granted to You under this License for that Work shall terminate
+      as of the date such litigation is filed.
+
+   4. Redistribution. You may reproduce and distribute copies of the
+      Work or Derivative Works thereof in any medium, with or without
+      modifications, and in Source or Object form, provided that You
+      meet the following conditions:
+
+      (a) You must give any other recipients of the Work or
+          Derivative Works a copy of this License; and
+
+      (b) You must cause any modified files to carry prominent notices
+          stating that You changed the files; and
+
+      (c) You must retain, in the Source form of any Derivative Works
+          that You distribute, all copyright, patent, trademark, and
+          attribution notices from the Source form of the Work,
+          excluding those notices that do not pertain to any part of
+          the Derivative Works; and
+
+      (d) If the Work includes a "NOTICE" text file as part of its
+          distribution, then any Derivative Works that You distribute must
+          include a readable copy of the attribution notices contained
+          within such NOTICE file, excluding those notices that do not
+          pertain to any part of the Derivative Works, in at least one
+          of the following places: within a NOTICE text file distributed
+          as part of the Derivative Works; within the Source form or
+          documentation, if provided along with the Derivative Works; or,
+          within a display generated by the Derivative Works, if and
+          wherever such third-party notices normally appear. The contents
+          of the NOTICE file are for informational purposes only and
+          do not modify the License. You may add Your own attribution
+          notices within Derivative Works that You distribute, alongside
+          or as an addendum to the NOTICE text from the Work, provided
+          that such additional attribution notices cannot be construed
+          as modifying the License.
+
+      You may add Your own copyright statement to Your modifications and
+      may provide additional or different license terms and conditions
+      for use, reproduction, or distribution of Your modifications, or
+      for any such Derivative Works as a whole, provided Your use,
+      reproduction, and distribution of the Work otherwise complies with
+      the conditions stated in this License.
+
+   5. Submission of Contributions. Unless You explicitly state otherwise,
+      any Contribution intentionally submitted for inclusion in the Work
+      by You to the Licensor shall be under the terms and conditions of
+      this License, without any additional terms or conditions.
+      Notwithstanding the above, nothing herein shall supersede or modify
+      the terms of any separate license agreement you may have executed
+      with Licensor regarding such Contributions.
+
+   6. Trademarks. This License does not grant permission to use the trade
+      names, trademarks, service marks, or product names of the Licensor,
+      except as required for reasonable and customary use in describing the
+      origin of the Work and reproducing the content of the NOTICE file.
+
+   7. Disclaimer of Warranty. Unless required by applicable law or
+      agreed to in writing, Licensor provides the Work (and each
+      Contributor provides its Contributions) on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+      implied, including, without limitation, any warranties or conditions
+      of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
+      PARTICULAR PURPOSE. You are solely responsible for determining the
+      appropriateness of using or redistributing the Work and assume any
+      risks associated with Your exercise of permissions under this License.
+
+   8. Limitation of Liability. In no event and under no legal theory,
+      whether in tort (including negligence), contract, or otherwise,
+      unless required by applicable law (such as deliberate and grossly
+      negligent acts) or agreed to in writing, shall any Contributor be
+      liable to You for damages, including any direct, indirect, special,
+      incidental, or consequential damages of any character arising as a
+      result of this License or out of the use or inability to use the
+      Work (including but not limited to damages for loss of goodwill,
+      work stoppage, computer failure or malfunction, or any and all
+      other commercial damages or losses), even if such Contributor
+      has been advised of the possibility of such damages.
+
+   9. Accepting Warranty or Additional Liability. While redistributing
+      the Work or Derivative Works thereof, You may choose to offer,
+      and charge a fee for, acceptance of support, warranty, indemnity,
+      or other liability obligations and/or rights consistent with this
+      License. However, in accepting such obligations, You may act only
+      on Your own behalf and on Your sole responsibility, not on behalf
+      of any other Contributor, and only if You agree to indemnify,
+      defend, and hold each Contributor harmless for any liability
+      incurred by, or claims asserted against, such Contributor by reason
+      of your accepting any such warranty or additional liability.
+
+   END OF TERMS AND CONDITIONS
+
+   APPENDIX: How to apply the Apache License to your work.
+
+      To apply the Apache License to your work, attach the following
+      boilerplate notice, with the fields enclosed by brackets "[]"
+      replaced with your own identifying information. (Don't include
+      the brackets!)  The text should be enclosed in the appropriate
+      comment syntax for the file format. We also recommend that a
+      file or class name and description of purpose be included on the
+      same "printed page" as the copyright notice for easier
+      identification within third-party archives.
+
+   Copyright [yyyy] [name of copyright owner]
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       https://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+```
+### neo4j 6.4.1 — LICENSE.PYTHON.txt
+
+```text
+Python software and documentation are licensed under the
+Python Software Foundation License Version 2.
+
+Starting with Python 3.8.6, examples, recipes, and other code in
+the documentation are dual licensed under the PSF License Version 2
+and the Zero-Clause BSD license.
+
+
+PYTHON SOFTWARE FOUNDATION LICENSE VERSION 2
+--------------------------------------------
+
+1. This LICENSE AGREEMENT is between the Python Software Foundation
+("PSF"), and the Individual or Organization ("Licensee") accessing and
+otherwise using this software ("Python") in source or binary form and
+its associated documentation.
+
+2. Subject to the terms and conditions of this License Agreement, PSF hereby
+grants Licensee a nonexclusive, royalty-free, world-wide license to reproduce,
+analyze, test, perform and/or display publicly, prepare derivative works,
+distribute, and otherwise use Python alone or in any derivative version,
+provided, however, that PSF's License Agreement and PSF's notice of copyright,
+i.e., "Copyright (c) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
+2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022 Python Software Foundation;
+All Rights Reserved" are retained in Python alone or in any derivative version
+prepared by Licensee.
+
+3. In the event Licensee prepares a derivative work that is based on
+or incorporates Python or any part thereof, and wants to make
+the derivative work available to others as provided herein, then
+Licensee hereby agrees to include in any such work a brief summary of
+the changes made to Python.
+
+4. PSF is making Python available to Licensee on an "AS IS"
+basis.  PSF MAKES NO REPRESENTATIONS OR WARRANTIES, EXPRESS OR
+IMPLIED.  BY WAY OF EXAMPLE, BUT NOT LIMITATION, PSF MAKES NO AND
+DISCLAIMS ANY REPRESENTATION OR WARRANTY OF MERCHANTABILITY OR FITNESS
+FOR ANY PARTICULAR PURPOSE OR THAT THE USE OF PYTHON WILL NOT
+INFRINGE ANY THIRD PARTY RIGHTS.
+
+5. PSF SHALL NOT BE LIABLE TO LICENSEE OR ANY OTHER USERS OF PYTHON
+FOR ANY INCIDENTAL, SPECIAL, OR CONSEQUENTIAL DAMAGES OR LOSS AS
+A RESULT OF MODIFYING, DISTRIBUTING, OR OTHERWISE USING PYTHON,
+OR ANY DERIVATIVE THEREOF, EVEN IF ADVISED OF THE POSSIBILITY THEREOF.
+
+6. This License Agreement will automatically terminate upon a material
+breach of its terms and conditions.
+
+7. Nothing in this License Agreement shall be deemed to create any
+relationship of agency, partnership, or joint venture between PSF and
+Licensee.  This License Agreement does not grant permission to use PSF
+trademarks or trade name in a trademark sense to endorse or promote
+products or services of Licensee, or any third party.
+
+8. By copying, installing or otherwise using Python, Licensee
+agrees to be bound by the terms and conditions of this License
+Agreement.
+```
+### neo4j 6.4.1 — LICENSE.txt
+
+```text
+Unless stated otherwise, this software is distributed under the terms of the Apache License 2.0.
+See the LICENSE.APACHE2.txt file for the full license text.
+
+Parts of this software is distributed under the terms of the Python Software Foundation License Version 2.
+See the LICENSE.PYTHON.txt file for the full license text.
+The pieces of code covered by the Python Software Foundation License Version 2 are marked as such.
+```
+### neo4j 6.4.1 — NOTICE.txt
+
+```text
+Neo4j
+Copyright (c) Neo4j Sweden AB (referred to in this notice as "Neo4j") [https://neo4j.com]
+
+This product includes software ("Software") developed by Neo4j
+```
 ### networkx 3.7 — LICENSE.txt
 
 ```text
@@ -5208,6 +5494,29 @@ PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
 LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+```
+### pytz 2026.6 — LICENSE.txt
+
+```text
+Copyright (c) 2003-2019 Stuart Bishop <stuart@stuartbishop.net>
+
+Permission is hereby granted, free of charge, to any person obtaining a
+copy of this software and associated documentation files (the "Software"),
+to deal in the Software without restriction, including without limitation
+the rights to use, copy, modify, merge, publish, distribute, sublicense,
+and/or sell copies of the Software, and to permit persons to whom the
+Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+DEALINGS IN THE SOFTWARE.
 ```
 ### pyyaml 6.0.3 — LICENSE
 
