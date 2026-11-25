@@ -11,7 +11,9 @@ The SunsetTracker frontend is a standalone, decoupled React application built wi
 2. **arc42 Views UI (`ViewsUI`)**: Interactive architecture views (System Context, Building Block View with status coloring, and Deployment View) rendered via Mermaid.
 3. **Git Comparisons (`DiffUI`)**: A GitHub-first workflow for selecting a repository, choosing base/head branches from dropdowns, and reviewing changed-file explanations, risk, and migration warnings.
 
-## Quick Start
+## Local development
+
+To try the demo using prebuilt images, follow the [tester setup](../SETUP.md).
 
 ```bash
 cd frontend
@@ -37,9 +39,10 @@ The application runs at **`http://localhost:3000`**.
 * **Streaming Chat:** Chat answers are streamed from the backend as
   newline-delimited JSON and rendered token by token; a Stop button cancels
   long-running generations. Connection and LLM errors are shown in the chat.
-* **Illustrative Evidence:** Source evidence cards are illustrative mock data
-  for the demonstrator until the ingestion pipeline provides real evidence.
-  The arc42 views are likewise rendered from mock view definitions.
+* **Source Evidence:** The chat displays excerpts and commit-pinned GitHub links
+  returned by the backend. Follow the
+  [Catalog chat demo](../backend/README.md#catalog-chat-demo-with-neo4j) to enable
+  evidence. The arc42 views use mock view definitions.
 * **Licensing Compliance:** Built entirely using permissive open-source packages (MIT / Apache-2.0 / BSD).
 
 ## Verification & Build

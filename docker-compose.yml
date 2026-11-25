@@ -17,6 +17,7 @@ services:
       LLM_NAME: ${LLM_NAME:-}
       LLM_EXTRA_BODY: ${LLM_EXTRA_BODY:-}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
+      NEO4J_URI: ${NEO4J_URI:-bolt://neo4j:7687}
     restart: unless-stopped
 
   frontend:
@@ -25,3 +26,19 @@ services:
     ports:
       - "${FRONTEND_PORT:-3000}:80"
     restart: unless-stopped
+
+  neo4j:
+    image: neo4j:2026.10.2
+    ports:
+      - "${NEO4J_PORT:-7687}:7687"
+    volumes:
+      - neo4j-data:/data
+    environment:
+      # Hard coded password "change-this" for now
+      # Done this way to keep build process simple for mid-project release
+      # Will have to be changed to .env or something later
+      NEO4J_AUTH: "neo4j/change-this"
+    restart: unless-stopped
+
+volumes:
+  neo4j-data:

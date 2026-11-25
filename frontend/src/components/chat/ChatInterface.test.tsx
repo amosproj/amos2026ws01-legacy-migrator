@@ -59,5 +59,47 @@ describe('ChatInterface', () => {
     });
 
     expect(container.textContent).toContain('The migration is progressing.');
+    expect(container.textContent).not.toContain('Source evidence');
+  });
+
+  it('shows returned source fragments with pinned links to the reference repository', async () => {
+    const position = {
+      stage: 'step-06',
+      repoId: 'legacy-example-catalog-service',
+      path: 'src/main/java/com/ibm/catalog/CategoryResource.java',
+      commitSha: '474422cf156eb9bcce4267578b089a15edcc3733',
+      startLine: 17,
+      endLine: 17,
+    };
+    const githubUrl = `https://github.com/legacy-modernization-example/${position.repoId}/blob/${position.commitSha}/${position.path}#L17-L17`;
+    const fragment = '@Path("/CustomerOrderServicesWeb/jaxrs/Category")';
+    const source = { position, githubUrl, fragment };
+    const events = [
+      { type: 'sources', text: JSON.stringify(['llm:mock']) },
+      { type: 'evidence', text: JSON.stringify([
+        source,
+        source,
+        { ...source, githubUrl: githubUrl.replace('#L17-L17', '#L18-L18') },
+        { ...source, githubUrl: githubUrl.replace('github.com', 'github.com.example.org') },
+      ]) },
+      { type: 'content', text: 'The Category route is in the Catalog service.' },
+    ];
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(
+      events.map((event) => `${JSON.stringify(event)}\n`).join(''),
+    ));
+
+    const { container, root } = renderChat();
+    await act(async () => {
+      enterQuery(container, 'Where is the Category route?');
+    });
+
+    const links = container.querySelectorAll('a[title="Open on GitHub"]');
+    expect(links).toHaveLength(1);
+    expect(links[0].getAttribute('href')).toBe(githubUrl);
+    expect(container.textContent).toContain('CategoryResource.java:17');
+    expect(container.querySelector('pre code')?.textContent).toBe(fragment);
+    expect(container.textContent).not.toContain('llm:mock');
+    expect(container.textContent).not.toContain('Migrated to Target');
+    act(() => root.unmount());
   });
 });

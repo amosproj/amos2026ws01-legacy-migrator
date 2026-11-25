@@ -1,0 +1,12 @@
+# Docker Engine on Linux can reach a loopback-bound Ollama via host networking.
+services:
+  neo4j:
+    ports:
+      - "127.0.0.1:${TESTER_NEO4J_PORT:-7687}:7687"
+  backend:
+    network_mode: host
+    ports: !reset []
+    command: [uvicorn, app.main:app, --host, 127.0.0.1, --port, "8000"]
+    environment:
+      NEO4J_URI: bolt://127.0.0.1:${TESTER_NEO4J_PORT:-7687}
+      LLM_BASE_URL: http://127.0.0.1:11434/v1
