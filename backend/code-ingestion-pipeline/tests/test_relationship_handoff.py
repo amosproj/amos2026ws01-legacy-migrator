@@ -1,6 +1,7 @@
 import json
 
 from migration_assistant.adapters.outbound.graphify_relationships import write_relationship_handoff
+from migration_assistant.adapters.outbound.relationship_handoff import read_relationship_handoff
 from shared_contracts.records import SnapshotIdentity
 
 
@@ -48,6 +49,7 @@ def test_pipeline_writes_graph_loader_handoff_with_resolvable_endpoints(tmp_path
     )
 
     handoff = write_relationship_handoff([graph], sources, tmp_path / "run")
+    assert read_relationship_handoff(tmp_path / "run") == handoff
     entity_count, relationship_count = handoff
 
     entities = [

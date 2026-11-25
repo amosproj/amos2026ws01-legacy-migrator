@@ -4,9 +4,15 @@
 # To use a real LLM, set LLM_BASE_URL and LLM_NAME via docker compose .env or
 # `docker run -e`. host.docker.internal needs the host-gateway mapping on Linux
 # (docker-compose.yml includes it; docker run needs --add-host).
-FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim
+FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim@sha256:e5b65587bce7de595f299855d7385fe7fca39b8a74baa261ba1b7147afa78e58
 
 WORKDIR /app
+
+# The one-shot tester ingestion uses Git against the mounted reference checkout.
+# hadolint ignore=DL3008
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends git \
+    && rm -rf /var/lib/apt/lists/*
 
 # Dependencies first so this layer is cached between source changes.
 COPY pyproject.toml uv.lock ./
@@ -15,6 +21,8 @@ RUN uv sync --frozen --no-dev --no-install-project
 COPY app/ app/
 COPY shared_contracts/ shared_contracts/
 COPY schemas/ schemas/
+COPY code-ingestion-pipeline/src/migration_assistant/ code-ingestion-pipeline/src/migration_assistant/
+RUN uv sync --frozen --no-dev --no-editable
 
 ENV PATH="/app/.venv/bin:$PATH"
 

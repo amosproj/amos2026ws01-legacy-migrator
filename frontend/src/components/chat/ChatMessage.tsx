@@ -146,17 +146,17 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, onToggleThink
           </div>
         )}
 
-        {/* Source Code Evidence Section (Wolfgang's requirement) */}
         {!isUser && message.evidence && message.evidence.length > 0 && (
           <div className="mt-4 pt-3 border-t border-[#f0f0f0]">
             <button
               onClick={() => setShowEvidence(!showEvidence)}
+              aria-expanded={showEvidence}
               className="flex items-center justify-between w-full text-xs font-mono font-medium text-[#171717] hover:text-[#000000] py-1 transition-colors"
             >
               <div className="flex items-center gap-1.5">
                 <FileCheck2 className="w-3.5 h-3.5 text-[#297a3a]" />
                 <span className="uppercase tracking-wider">
-                  Verified AST Evidence ({message.evidence.length} trace points)
+                  Source evidence ({message.evidence.length})
                 </span>
               </div>
               {showEvidence ? <ChevronUp className="w-3.5 h-3.5 text-[#737373]" /> : <ChevronDown className="w-3.5 h-3.5 text-[#737373]" />}
@@ -165,7 +165,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, onToggleThink
             {showEvidence && (
               <div className="mt-2.5 space-y-2">
                 {message.evidence.map((ev) => (
-                  <SourceEvidenceCard key={ev.id} evidence={ev} />
+                  <SourceEvidenceCard key={ev.githubUrl} evidence={ev} />
                 ))}
               </div>
             )}

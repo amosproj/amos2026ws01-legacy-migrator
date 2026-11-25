@@ -7,6 +7,7 @@ dependencies = [
     "fastapi==0.141.1",
     "graphifyy==0.9.100",
     "httpx2==2.16.0",
+    "neo4j==6.4.1",
     "networkx==3.7",
     "numpy==2.5.4",
     "pydantic>=2",
@@ -46,7 +47,8 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project.scripts]
-ingest = "migration_assistant.bootstrap.cli:main"
+ingest = "migration_assistant.bootstrap.cli:run_full_ingestion"
+persist-handoff = "migration_assistant.bootstrap.cli:run_persistence_from_handoff"
 
 [tool.hatch.build.targets.wheel]
 packages = ["app", "shared_contracts", "code-ingestion-pipeline/src/migration_assistant"]

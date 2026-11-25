@@ -33,6 +33,7 @@ class ChatRequest(BaseModel):
 
     query: QueryText
     conversation_id: Annotated[str | None, Field(max_length=200)] = None
+    step_id: Annotated[str | None, Field(pattern=r"^step-[a-z0-9-]+$", max_length=50)] = None
 
 
 class HealthResponse(BaseModel):
