@@ -15,11 +15,18 @@ Matching keys:
 * relationship: ``(relationshipType, sourceKey, targetKey)``, compared as a
   multiset because one file can declare the same edge several times.
 
-Moves: inside one component, a removed and an added file with the same
-``contentSha256`` (unique on both sides) are one ``moved`` file. Symbols of a
-moved file are paired by ``(kind, name, startLine)`` and reported as ``moved``;
-relationships whose endpoints only moved count as unchanged. A file that was
-moved *and* edited stays removed + added.
+Moves, inside one component, among the files only in one stage:
+
+1. same ``contentSha256`` (unique on both sides) -> ``moved``; its symbols are
+   paired by ``(kind, name, startLine)``.
+2. then same file name (basename, unique among the remaining removed and added
+   files) -> ``moved_modified``; its symbols are paired by ``(kind, name)``.
+
+Paired symbols get the file's status; unpaired ones stay added / removed.
+Relationship endpoints are renamed to their paired keys before comparing, so a
+relationship that only moved counts as unchanged.
+
+Every changed file gets a ``FileCategory`` from ``CATEGORY_RULES``.
 
 A run with missing or inconsistent data yields ``state="insufficient_data"``
 with the problems listed instead of a partial answer.
@@ -33,6 +40,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from collections import Counter, defaultdict
 from collections.abc import Iterator
@@ -85,7 +93,40 @@ class ChangeStatus(StrEnum):
     REMOVED = "removed"
     MODIFIED = "modified"
     MOVED = "moved"
+    MOVED_MODIFIED = "moved_modified"
     UNCHANGED = "unchanged"
+
+
+class FileCategory(StrEnum):
+    DEPLOYMENT = "deployment"
+    DB_ACCESS = "db_access"
+    CONFIG = "config"
+    CODE = "code"
+
+
+# First matching rule wins; anything unmatched is ``code``. Patterns are matched
+# case-insensitively against the repository-relative path.
+CATEGORY_RULES: tuple[tuple[FileCategory, str], ...] = (
+    (FileCategory.DEPLOYMENT, r"(^|/)dockerfile[^/]*$"),
+    (FileCategory.DEPLOYMENT, r"(^|/)docker-compose[^/]*\.ya?ml$"),
+    (FileCategory.DEPLOYMENT, r"(^|/)nginx[^/]*\.conf$"),
+    (FileCategory.DEPLOYMENT, r"(^|/)[^/]*(deploy|ocp)[^/]*/.*\.ya?ml$"),
+    (FileCategory.DB_ACCESS, r"\.sql$"),
+    (FileCategory.DB_ACCESS, r"(^|/)(persistence|orm)\.xml$"),
+    (FileCategory.DB_ACCESS, r"repository|dao"),
+    (FileCategory.CONFIG, r"\.(xml|properties|ya?ml|conf)$"),
+)
+_COMPILED_CATEGORY_RULES = tuple(
+    (category, re.compile(pattern, re.IGNORECASE)) for category, pattern in CATEGORY_RULES
+)
+
+
+def categorize_file(path: str) -> FileCategory:
+    """Return the change category of one repository-relative file path."""
+    for category, pattern in _COMPILED_CATEGORY_RULES:
+        if pattern.search(path):
+            return category
+    return FileCategory.CODE
 
 
 class _CompareModel(BaseModel):
@@ -102,6 +143,7 @@ class ChangeCounts(_CompareModel):
     removed: int = 0
     modified: int = 0
     moved: int = 0
+    moved_modified: int = 0
     unchanged: int = 0
 
     def add(self, status: ChangeStatus) -> None:
@@ -109,7 +151,7 @@ class ChangeCounts(_CompareModel):
 
     @property
     def changed(self) -> int:
-        return self.added + self.removed + self.modified + self.moved
+        return self.added + self.removed + self.modified + self.moved + self.moved_modified
 
 
 class FileChange(_CompareModel):
@@ -117,6 +159,7 @@ class FileChange(_CompareModel):
     path: str
     previous_path: str | None = None
     status: ChangeStatus
+    category: FileCategory
     earlier_content_sha256: str | None = None
     later_content_sha256: str | None = None
     earlier_evidence: str | None = None
@@ -157,6 +200,7 @@ class ComponentSummary(_CompareModel):
     files: ChangeCounts = Field(default_factory=ChangeCounts)
     symbols: ChangeCounts = Field(default_factory=ChangeCounts)
     relationships: ChangeCounts = Field(default_factory=ChangeCounts)
+    changed_files_by_category: dict[FileCategory, ChangeCounts] = Field(default_factory=dict)
 
 
 class StageRef(_CompareModel):
@@ -386,62 +430,107 @@ def _stage_ref(data: StageData) -> StageRef:
     return StageRef(run_dir=str(data.run_dir), stage=data.stage, snapshot_id=data.snapshot_id)
 
 
-def _match_moved_files(earlier: StageData, later: StageData) -> dict[tuple[str, str], str]:
-    """Map ``(repoId, oldPath)`` to the new path of each byte-identical moved file.
+@dataclass(frozen=True)
+class FileMove:
+    new_path: str
+    status: Literal[ChangeStatus.MOVED, ChangeStatus.MOVED_MODIFIED]
 
-    Only a one-to-one match counts: when several removed or added files of a
-    component share a hash, none of them is treated as moved.
-    """
-    removed: defaultdict[tuple[str, str], list[str]] = defaultdict(list)
-    added: defaultdict[tuple[str, str], list[str]] = defaultdict(list)
-    for (repo_id, path), info in earlier.files.items():
-        if repo_id in later.members and (repo_id, path) not in later.files:
-            removed[(repo_id, info.content_sha256)].append(path)
-    for (repo_id, path), info in later.files.items():
-        if repo_id in earlier.members and (repo_id, path) not in earlier.files:
-            added[(repo_id, info.content_sha256)].append(path)
+
+def _unique_pairs(
+    removed: dict[tuple[str, str], list[str]], added: dict[tuple[str, str], list[str]]
+) -> dict[tuple[str, str], str]:
+    """Pair ``(repoId, oldPath)`` with a new path where a match key is one-to-one."""
     return {
-        (repo_id, old_paths[0]): added[(repo_id, sha)][0]
-        for (repo_id, sha), old_paths in removed.items()
-        if len(old_paths) == 1 and len(added.get((repo_id, sha), [])) == 1
+        (repo_id, old_paths[0]): added[(repo_id, match)][0]
+        for (repo_id, match), old_paths in removed.items()
+        if len(old_paths) == 1 and len(added.get((repo_id, match), [])) == 1
     }
 
 
-def _match_moved_symbols(
-    earlier: StageData, later: StageData, moved_files: dict[tuple[str, str], str]
-) -> dict[SymbolKey, SymbolKey]:
-    """Pair source-backed symbols of moved files by ``(kind, name, startLine)``.
+def _match_file_moves(earlier: StageData, later: StageData) -> dict[tuple[str, str], FileMove]:
+    """Map ``(repoId, oldPath)`` of each moved file to its new path and status.
 
-    The files are byte-identical, so the same symbol sits on the same line.
-    Signatures that repeat within a file are left unpaired.
+    Pass 1 pairs byte-identical files (``moved``), pass 2 pairs the remaining
+    ones by file name (``moved_modified``, or ``moved`` if the content is still
+    identical). A match key shared by several removed or added files of a
+    component pairs none of them.
     """
-    type Signature = tuple[str | None, str, str, str, int]
+    removed = {
+        key: info
+        for key, info in earlier.files.items()
+        if key[0] in later.members and key not in later.files
+    }
+    added = {
+        key: info
+        for key, info in later.files.items()
+        if key[0] in earlier.members and key not in earlier.files
+    }
+    moves: dict[tuple[str, str], FileMove] = {}
+    for status, match_key in (
+        (ChangeStatus.MOVED, lambda path, info: info.content_sha256),
+        (ChangeStatus.MOVED_MODIFIED, lambda path, info: path.rsplit("/", 1)[-1]),
+    ):
+        removed_by: defaultdict[tuple[str, str], list[str]] = defaultdict(list)
+        added_by: defaultdict[tuple[str, str], list[str]] = defaultdict(list)
+        for (repo_id, path), info in removed.items():
+            removed_by[(repo_id, match_key(path, info))].append(path)
+        for (repo_id, path), info in added.items():
+            added_by[(repo_id, match_key(path, info))].append(path)
+        for (repo_id, old_path), new_path in _unique_pairs(removed_by, added_by).items():
+            old_info = removed.pop((repo_id, old_path))
+            new_info = added.pop((repo_id, new_path))
+            # A name match can still be byte-identical (its hash was shared by several files).
+            identical = old_info.content_sha256 == new_info.content_sha256
+            moves[(repo_id, old_path)] = FileMove(
+                new_path, ChangeStatus.MOVED if identical else status
+            )
+    return moves
 
-    def index(data: StageData, paths: set[tuple[str, str]]) -> dict[Signature, SymbolKey]:
+
+def _match_symbol_moves(
+    earlier: StageData, later: StageData, file_moves: dict[tuple[str, str], FileMove]
+) -> dict[SymbolKey, tuple[SymbolKey, ChangeStatus]]:
+    """Pair source-backed symbols of moved files and give them the file's status.
+
+    Symbols of byte-identical files are matched by ``(kind, name, startLine)``;
+    symbols of edited files by ``(kind, name)``, because their lines may shift.
+    A signature that repeats within a file is left unpaired.
+    """
+    type Signature = tuple[str, str, str, str, int | None]
+
+    def index(data: StageData, paths: dict[tuple[str, str], bool]) -> dict[Signature, SymbolKey]:
         found: dict[Signature, SymbolKey] = {}
         repeated: set[Signature] = set()
         for key, symbol in data.symbols.items():
-            if (
-                symbol.path is None
-                or symbol.start_line is None
-                or (key[0], symbol.path) not in paths
-            ):
+            repo_id = key[0]
+            if repo_id is None or symbol.path is None or symbol.start_line is None:
                 continue
-            signature = (key[0], symbol.path, symbol.kind, symbol.name, symbol.start_line)
+            exact = paths.get((repo_id, symbol.path))
+            if exact is None:
+                continue
+            line = symbol.start_line if exact else None
+            signature = (repo_id, symbol.path, symbol.kind, symbol.name, line)
             if signature in found:
                 repeated.add(signature)
             found[signature] = key
         return {signature: key for signature, key in found.items() if signature not in repeated}
 
-    old_symbols = index(earlier, set(moved_files))
-    new_symbols = index(later, {(repo_id, new) for (repo_id, _), new in moved_files.items()})
-    pairs: dict[SymbolKey, SymbolKey] = {}
+    old_symbols = index(
+        earlier, {key: move.status is ChangeStatus.MOVED for key, move in file_moves.items()}
+    )
+    new_symbols = index(
+        later,
+        {
+            (repo_id, move.new_path): move.status is ChangeStatus.MOVED
+            for (repo_id, _), move in file_moves.items()
+        },
+    )
+    pairs: dict[SymbolKey, tuple[SymbolKey, ChangeStatus]] = {}
     for (repo_id, old_path, kind, name, line), old_key in old_symbols.items():
-        assert repo_id is not None
-        new_path = moved_files[(repo_id, old_path)]
-        new_key = new_symbols.get((repo_id, new_path, kind, name, line))
+        move = file_moves[(repo_id, old_path)]
+        new_key = new_symbols.get((repo_id, move.new_path, kind, name, line))
         if new_key is not None and new_key != old_key and old_key not in later.symbols:
-            pairs[old_key] = new_key
+            pairs[old_key] = (new_key, move.status)
     return pairs
 
 
@@ -464,30 +553,34 @@ def compare_stage_data(earlier: StageData, later: StageData) -> StageComparison:
         later_unmapped_relationships=later.unmapped_relationships,
     )
 
-    moved_files = _match_moved_files(earlier, later)
-    moved_file_sources = {(repo_id, new): old for (repo_id, old), new in moved_files.items()}
+    file_moves = _match_file_moves(earlier, later)
+    move_sources = {
+        (repo_id, move.new_path): (old_path, move.status)
+        for (repo_id, old_path), move in file_moves.items()
+    }
     modified_files: set[tuple[str, str]] = set()
     for repo_id, path in sorted(earlier.files.keys() | later.files.keys()):
-        if (repo_id, path) in moved_files:
+        if (repo_id, path) in file_moves:
             continue  # reported once, under its new path
-        previous_path = moved_file_sources.get((repo_id, path))
+        previous_path, move_status = move_sources.get((repo_id, path), (None, None))
         old = earlier.files.get((repo_id, previous_path or path))
         new = later.files.get((repo_id, path))
         changed = old is not None and new is not None and old.content_sha256 != new.content_sha256
-        if previous_path is not None:
-            status = ChangeStatus.MOVED
-        else:
-            status = _status(old is not None, new is not None, changed)
-        components[repo_id].files.add(status)
-        if changed:
+        status = move_status or _status(old is not None, new is not None, changed)
+        summary = components[repo_id]
+        summary.files.add(status)
+        if changed and move_status is None:
             modified_files.add((repo_id, path))
         if status is not ChangeStatus.UNCHANGED:
+            category = categorize_file(path)
+            summary.changed_files_by_category.setdefault(category, ChangeCounts()).add(status)
             result.files.append(
                 FileChange(
                     repo_id=repo_id,
                     path=path,
                     previous_path=previous_path,
                     status=status,
+                    category=category,
                     earlier_content_sha256=old.content_sha256 if old else None,
                     later_content_sha256=new.content_sha256 if new else None,
                     earlier_evidence=old.evidence(repo_id, previous_path or path) if old else None,
@@ -495,19 +588,20 @@ def compare_stage_data(earlier: StageData, later: StageData) -> StageComparison:
                 )
             )
 
-    moved_symbols = _match_moved_symbols(earlier, later, moved_files)
-    moved_symbol_sources = {new: old for old, new in moved_symbols.items()}
+    symbol_moves = _match_symbol_moves(earlier, later, file_moves)
+    moved_symbols = {old: new for old, (new, _) in symbol_moves.items()}
+    symbol_sources = {new: (old, status) for old, (new, status) in symbol_moves.items()}
     for key in sorted(earlier.symbols.keys() | later.symbols.keys(), key=_sort_key):
-        if key in moved_symbols:
+        if key in symbol_moves:
             continue  # reported once, under its new key
         repo_id, qualified_name = key
-        previous_key = moved_symbol_sources.get(key)
+        previous_key, move_status = symbol_sources.get(key, (None, None))
         old_symbol = earlier.symbols.get(previous_key or key)
         new_symbol = later.symbols.get(key)
         symbol = new_symbol or old_symbol
         assert symbol is not None
-        if previous_key is not None:
-            status = ChangeStatus.MOVED
+        if move_status is not None:
+            status = move_status
         else:
             changed = (
                 symbol.path is not None
@@ -535,7 +629,7 @@ def compare_stage_data(earlier: StageData, later: StageData) -> StageComparison:
                 )
             )
 
-    # Rewrite earlier endpoints to their moved keys so a pure move is not a change.
+    # Rewrite earlier endpoints to their paired keys so a move alone is not a change.
     earlier_relationships: Counter[RelationshipKey] = Counter()
     earlier_evidence: dict[RelationshipKey, list[str]] = {}
     for (relationship_type, source, target), count in earlier.relationships.items():
@@ -616,8 +710,22 @@ def _relationship_sort_key(key: RelationshipKey) -> tuple[str, tuple[str, str], 
 def _counts_cell(counts: ChangeCounts, with_modified: bool = True) -> str:
     cell = f"+{counts.added} / -{counts.removed}"
     if with_modified:
-        cell += f" / ~{counts.modified} / >{counts.moved}"
+        cell += f" / ~{counts.modified} / >{counts.moved} / >~{counts.moved_modified}"
     return f"{cell} / ={counts.unchanged}"
+
+
+def _category_cell(summary: ComponentSummary) -> str:
+    return ", ".join(
+        f"{category.value} {counts.changed}"
+        for category in FileCategory
+        if (counts := summary.changed_files_by_category.get(category))
+    )
+
+
+def _file_label(change: FileChange) -> str:
+    if change.previous_path:
+        return f"{change.status.value}: `{change.repo_id}:{change.previous_path}` → `{change.path}`"
+    return f"{change.status.value}: `{change.repo_id}:{change.path}`"
 
 
 def _symbol_label(ref: SymbolRef | SymbolChange) -> str:
@@ -637,11 +745,12 @@ def render_markdown(comparison: StageComparison, max_items: int = 15) -> str:
     lines += [
         f"- earlier: `{comparison.earlier.run_dir}` (snapshot `{comparison.earlier.snapshot_id}`)",
         f"- later: `{comparison.later.run_dir}` (snapshot `{comparison.later.snapshot_id}`)",
-        "- counts are `+added / -removed / ~modified / >moved / =unchanged`; a symbol is "
-        "modified when it exists in both stages and its file content changed",
+        "- counts are `+added / -removed / ~modified / >moved / >~moved_modified / =unchanged`;"
+        " a symbol is modified when it exists in both stages and its file content changed",
         "",
-        "| Component | Status | Commit | Files | Symbols | Relationships |",
-        "|---|---|---|---|---|---|",
+        "| Component | Status | Commit | Files | Changed files by category | Symbols "
+        "| Relationships |",
+        "|---|---|---|---|---|---|---|",
     ]
     for summary in comparison.components:
         commits = " → ".join(
@@ -649,11 +758,12 @@ def render_markdown(comparison: StageComparison, max_items: int = 15) -> str:
         )
         lines.append(
             f"| {summary.repo_id} | {summary.status.value} | {commits} "
-            f"| {_counts_cell(summary.files)} | {_counts_cell(summary.symbols)} "
+            f"| {_counts_cell(summary.files)} | {_category_cell(summary)} "
+            f"| {_counts_cell(summary.symbols)} "
             f"| {_counts_cell(summary.relationships, with_modified=False)} |"
         )
     lines.append(
-        f"| _external (no component)_ | | | | {_counts_cell(comparison.unattributed_symbols)} "
+        f"| _external (no component)_ | | | | | {_counts_cell(comparison.unattributed_symbols)} "
         f"| {_counts_cell(comparison.unattributed_relationships, with_modified=False)} |"
     )
     lines += [
@@ -669,15 +779,13 @@ def render_markdown(comparison: StageComparison, max_items: int = 15) -> str:
         if len(items) > max_items:
             lines.append(f"- … {len(items) - max_items} more")
 
-    section(
-        "Changed files",
-        [
-            f"{change.status.value}: `{change.repo_id}:{change.previous_path}` → `{change.path}`"
-            if change.previous_path
-            else f"{change.status.value}: `{change.repo_id}:{change.path}`"
-            for change in comparison.files
-        ],
-    )
+    infrastructure = (FileCategory.DEPLOYMENT, FileCategory.DB_ACCESS)
+    lines.extend(["", "## Deployment & DB-access changes"])
+    for category in infrastructure:
+        items = [_file_label(change) for change in comparison.files if change.category is category]
+        lines.extend(["", f"**{category.value}** ({len(items)})", ""])
+        lines.extend(f"- {item}" for item in items or ["none"])
+    section("Changed files", [_file_label(change) for change in comparison.files])
     section(
         "Changed symbols",
         [

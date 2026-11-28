@@ -17,8 +17,10 @@ import pytest
 from app.stage_compare import (
     REQUIRED_FILES,
     ChangeStatus,
+    FileCategory,
     StageComparison,
     StageDataError,
+    categorize_file,
     compare_stages,
     load_stage,
     main,
@@ -349,7 +351,7 @@ def test_cli_writes_markdown_and_signals_insufficient_data(
 
 
 def _moved_runs(root: Path) -> tuple[Path, Path]:
-    """``Svc.java`` moves unchanged; ``Edited.java`` moves and changes."""
+    """``Svc.java`` moves unchanged; ``Edited.java`` moves and gains a method."""
     runs: list[Path] = []
     for stage, folder, edited in (("step-a", "old", "v1"), ("step-b", "new", "v2")):
         run = RunBuilder(root, stage, {"alpha": stage})
@@ -358,7 +360,12 @@ def _moved_runs(root: Path) -> tuple[Path, Path]:
         run.file("alpha", "Util.java", "class Util {}")
         svc = run.symbol("alpha", f"{folder}/Svc.java", "Svc")
         method = run.symbol("alpha", f"{folder}/Svc.java", ".run()", line=1, kind="method")
-        edited_class = run.symbol("alpha", f"{folder}/Edited.java", "Edited")
+        # the edit shifts the class down one line, so only kind + name can pair it
+        edited_class = run.symbol(
+            "alpha", f"{folder}/Edited.java", "Edited", line=1 if edited == "v1" else 2
+        )
+        if edited == "v2":
+            run.symbol("alpha", f"{folder}/Edited.java", ".extra()", line=3, kind="method")
         util = run.symbol("alpha", "Util.java", "Util")
         run.relate("DECLARES_MEMBER", svc, method).relate("CALLS", method, util)
         run.relate("CALLS", edited_class, util)
@@ -386,31 +393,53 @@ def test_identical_file_with_new_path_is_moved(tmp_path: Path) -> None:
         assert change.earlier_evidence and change.later_evidence
         assert f"old/Svc.java::{name}" not in symbols
 
-    # Both Svc relationships only had their endpoints moved.
-    changed = {(change.status, change.source.qualified_name) for change in comparison.relationships}
-    assert changed == {
-        (ChangeStatus.REMOVED, "old/Edited.java::Edited"),
-        (ChangeStatus.ADDED, "new/Edited.java::Edited"),
-    }
-    assert alpha.relationships.unchanged == 2
+    # Every relationship endpoint was paired, so no relationship changed.
+    assert comparison.relationships == []
+    assert alpha.relationships.unchanged == 3
 
 
-def test_moved_and_edited_file_stays_removed_and_added(tmp_path: Path) -> None:
+def test_edited_file_with_unique_name_is_moved_modified(tmp_path: Path) -> None:
     comparison = compare_stages(*_moved_runs(tmp_path))
 
-    files = {change.path: change.status for change in comparison.files}
-    assert files["old/Edited.java"] is ChangeStatus.REMOVED
-    assert files["new/Edited.java"] is ChangeStatus.ADDED
-    symbols = {change.qualified_name: change.status for change in comparison.symbols}
-    assert symbols["old/Edited.java::Edited"] is ChangeStatus.REMOVED
-    assert symbols["new/Edited.java::Edited"] is ChangeStatus.ADDED
+    files = {change.path: change for change in comparison.files}
+    edited = files["new/Edited.java"]
+    assert (edited.status, edited.previous_path) == (
+        ChangeStatus.MOVED_MODIFIED,
+        "old/Edited.java",
+    )
+    assert edited.earlier_content_sha256 != edited.later_content_sha256
+    assert "old/Edited.java" not in files
+
+    symbols = {change.qualified_name: change for change in comparison.symbols}
+    paired = symbols["new/Edited.java::Edited"]
+    assert paired.status is ChangeStatus.MOVED_MODIFIED
+    assert paired.previous_qualified_name == "old/Edited.java::Edited"
+    assert symbols["new/Edited.java::.extra()"].status is ChangeStatus.ADDED
+    assert "old/Edited.java::Edited" not in symbols
+
     alpha = _component(comparison, "alpha")
-    assert (alpha.files.added, alpha.files.removed, alpha.files.moved) == (1, 1, 1)
-    assert (alpha.symbols.added, alpha.symbols.removed, alpha.symbols.moved) == (1, 1, 2)
-    assert "moved: `alpha:old/Svc.java` → `new/Svc.java`" in render_markdown(comparison)
+    assert (alpha.files.moved, alpha.files.moved_modified, alpha.files.unchanged) == (1, 1, 1)
+    assert (alpha.symbols.added, alpha.symbols.moved, alpha.symbols.moved_modified) == (1, 2, 1)
+    report = render_markdown(comparison)
+    assert "moved: `alpha:old/Svc.java` → `new/Svc.java`" in report
+    assert "moved_modified: `alpha:old/Edited.java` → `new/Edited.java`" in report
 
 
-def test_files_sharing_a_hash_are_not_guessed_as_moves(tmp_path: Path) -> None:
+def test_ambiguous_file_name_stays_removed_and_added(tmp_path: Path) -> None:
+    runs: list[Path] = []
+    for stage, paths in (("step-a", ["a/pom.xml", "b/pom.xml"]), ("step-b", ["c/pom.xml"])):
+        run = RunBuilder(tmp_path, stage, {"alpha": stage})
+        for path in paths:
+            run.file("alpha", path, f"<project>{stage}:{path}</project>")
+        runs.append(run.write())
+
+    comparison = compare_stages(*runs)
+
+    files = _component(comparison, "alpha").files
+    assert (files.added, files.removed, files.moved, files.moved_modified) == (1, 2, 0, 0)
+
+
+def test_shared_hash_falls_back_to_file_name_and_stays_moved(tmp_path: Path) -> None:
     runs: list[Path] = []
     for stage, paths in (("step-a", ["a/x.txt", "a/y.txt"]), ("step-b", ["b/x.txt", "b/y.txt"])):
         run = RunBuilder(tmp_path, stage, {"alpha": stage})
@@ -420,8 +449,65 @@ def test_files_sharing_a_hash_are_not_guessed_as_moves(tmp_path: Path) -> None:
 
     comparison = compare_stages(*runs)
 
-    files = _component(comparison, "alpha").files
-    assert (files.added, files.removed, files.moved) == (2, 2, 0)
+    moves = {(change.previous_path, change.path, change.status) for change in comparison.files}
+    assert moves == {
+        ("a/x.txt", "b/x.txt", ChangeStatus.MOVED),
+        ("a/y.txt", "b/y.txt", ChangeStatus.MOVED),
+    }
+
+
+@pytest.mark.parametrize(
+    ("path", "category"),
+    [
+        ("Dockerfile", FileCategory.DEPLOYMENT),
+        ("docker/Dockerfile.native", FileCategory.DEPLOYMENT),
+        ("docker-compose.yml", FileCategory.DEPLOYMENT),
+        ("nginx-catalog.conf", FileCategory.DEPLOYMENT),
+        ("OCPdeploy/db2-dc.yaml", FileCategory.DEPLOYMENT),
+        ("k8s/deploy/service.yml", FileCategory.DEPLOYMENT),
+        ("createOrderDB.sql", FileCategory.DB_ACCESS),
+        ("src/main/resources/META-INF/persistence.xml", FileCategory.DB_ACCESS),
+        ("ejbModule/META-INF/orm.xml", FileCategory.DB_ACCESS),
+        ("src/org/example/dao/OrderDao.java", FileCategory.DB_ACCESS),
+        ("src/com/example/ProductRepository.java", FileCategory.DB_ACCESS),
+        ("liberty/server.xml", FileCategory.CONFIG),
+        ("WebContent/WEB-INF/web.xml", FileCategory.CONFIG),
+        ("pom.xml", FileCategory.CONFIG),
+        ("src/main/resources/application.properties", FileCategory.CONFIG),
+        ("resources/jmx_exporter/jmx-config.yml", FileCategory.CONFIG),
+        ("src/org/example/Order.java", FileCategory.CODE),
+        ("WebContent/index.html", FileCategory.CODE),
+        ("dojo_depot/depot/ProductController.js", FileCategory.CODE),
+        ("populateDB.sh", FileCategory.CODE),
+    ],
+)
+def test_categorize_file(path: str, category: FileCategory) -> None:
+    assert categorize_file(path) is category
+
+
+def test_changed_files_are_counted_per_category(tmp_path: Path) -> None:
+    runs: list[Path] = []
+    for stage, extra in (("step-a", []), ("step-b", ["Dockerfile", "schema.sql"])):
+        run = RunBuilder(tmp_path, stage, {"alpha": stage})
+        run.file("alpha", "pom.xml", f"<project>{stage}</project>")
+        run.file("alpha", "Main.java", "class Main {}")
+        for path in extra:
+            run.file("alpha", path, path)
+        runs.append(run.write())
+
+    comparison = compare_stages(*runs)
+
+    by_category = _component(comparison, "alpha").changed_files_by_category
+    assert {category: counts.changed for category, counts in by_category.items()} == {
+        FileCategory.CONFIG: 1,
+        FileCategory.DEPLOYMENT: 1,
+        FileCategory.DB_ACCESS: 1,
+    }
+    assert by_category[FileCategory.CONFIG].modified == 1
+    report = render_markdown(comparison)
+    assert "## Deployment & DB-access changes" in report
+    assert "- added: `alpha:Dockerfile`" in report
+    assert "- added: `alpha:schema.sql`" in report
 
 
 def _single_run(stage: str) -> Path | None:
